@@ -1,0 +1,80 @@
+[versions]
+app-name = "1.0.0"
+app-version = "9"
+app-project = "9"
+
+compileSdk = "35"
+minSdk = "24"
+targetSdk = "35"
+
+jvm = "17"
+
+kotlin = "2.1.0"
+compose = "1.7.3"
+agp = "8.2.2"
+androidx-activityCompose = "1.10.1"
+androidx-uiTest = "1.7.8"
+multiplatform-settings = "1.3.0"
+
+android-compileSdk = "35"
+android-minSdk = "24"
+android-targetSdk = "35"
+androidx-appcompat = "1.7.0"
+androidx-constraintlayout = "2.2.0"
+androidx-core-ktx = "1.15.0"
+androidx-espresso-core = "3.6.1"
+androidx-material = "1.12.0"
+androidx-test-junit = "1.2.1"
+coil = "3.0.4"
+compose-plugin = "1.7.3"
+filekit = "0.8.8"
+junit = "4.13.2"
+koin = "4.0.2"
+koinComposeMultiplatform = "4.0.2"
+ktor = "3.0.3"
+lifecycle = "2.8.4"
+navigationCompose = "2.8.0-alpha12"
+kotlinx_serialization_json = "1.8.0"
+coroutines = "1.10.1"
+modulegraph = "0.10.1"
+buildConfig = "5.5.1"
+kermit = "2.0.5"
+zoomimageComposeCoil = "1.1.0"
+compose-hot-reload = "1.0.0-dev.34.1"
+
+
+[libraries]
+
+androidx-activityCompose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activityCompose" }
+androidx-uitest-testManifest = { module = "androidx.compose.ui:ui-test-manifest", version.ref = "androidx-uiTest" }
+androidx-uitest-junit4 = { module = "androidx.compose.ui:ui-test-junit4", version.ref = "androidx-uiTest" }
+kotlin-gradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
+kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlin" }
+multiplatform-settings = { module = "com.russhwolf:multiplatform-settings-no-arg", version.ref = "multiplatform-settings" }
+multiplatform-settings-coroutines = { module = "com.russhwolf:multiplatform-settings-coroutines", version.ref = "multiplatform-settings" }
+multiplatform-settings-serialization = { module = "com.russhwolf:multiplatform-settings-serialization", version.ref = "multiplatform-settings" }
+android-gradlePlugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }
+compose-gradlePlugin = { module = "org.jetbrains.compose:compose-gradle-plugin", version.ref = "compose" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx_serialization_json" }
+coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
+kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
+
+[plugins]
+
+kmultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kcompose = { id = "org.jetbrains.compose", version.ref = "compose" }
+android-application = { id = "com.android.application", version.ref = "agp" }
+android-library = { id = "com.android.library", version.ref = "agp" }
+
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+kotlin-parcelize = { id = "org.jetbrains.kotlin.plugin.parcelize", version.ref = "kotlin" }
+modulegraph = { id = "dev.iurysouza.modulegraph", version.ref = "modulegraph" }
+buildConfig = { id = "com.github.gmazzo.buildconfig", version.ref = "buildConfig" }
+composeHotReload = { id = "org.jetbrains.compose-hot-reload", version.ref = "compose-hot-reload" }
+
+
+compedux-multiplatform = { id = "com.riffaells.compedux.multiplatform", version = "unspecified"  }
+compedux-multiplatform-compose = { id = "com.riffaells.compedux.multiplatform.compose", version = "unspecified" }
+compedux-multiplatform-library = { id = "com.riffaells.compedux.multiplatform.library", version = "unspecified" }
+compedux-settings = { id = "com.compedu.buildlogic.compEduXSettings", version = "unspecified" }
