@@ -1,6 +1,8 @@
 package com.riffaells.compedux
 
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -12,16 +14,13 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
-import compedux.composeapp.generated.resources.*
 import com.riffaells.compedux.theme.AppTheme
 import com.riffaells.compedux.theme.LocalThemeIsDark
+import compedux.composeapp.generated.resources.*
 import kotlinx.coroutines.isActive
 import org.jetbrains.compose.resources.Font
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
-import com.riffaells.compedux.common.Logger
-import com.riffaells.compedux.settings.AppSettings
-import com.riffaells.compedux.ui.SettingsScreen
 
 @Composable
 internal fun App() = AppTheme {
@@ -102,34 +101,4 @@ internal fun App() = AppTheme {
     }
 }
 
-/**
- * Main entry point for the CompEduX application
- */
-@Composable
-fun App(appSettings: AppSettings) {
-    Logger.info("App started")
 
-    // Collect dark mode setting
-    val isDarkMode = true
-
-    // Set up theme based on settings
-    val colorScheme = if (isDarkMode) {
-        MaterialTheme.colorScheme.copy(
-            background = MaterialTheme.colorScheme.surfaceVariant,
-            surface = MaterialTheme.colorScheme.surfaceVariant
-        )
-    } else {
-        MaterialTheme.colorScheme
-    }
-
-    MaterialTheme(
-        colorScheme = colorScheme
-    ) {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background
-        ) {
-            SettingsScreen(appSettings)
-        }
-    }
-}
