@@ -48,7 +48,7 @@ kotlin {
 
             // Module dependencies
             implementation(projects.core.common)
-            implementation(projects.settings)
+            implementation(projects.core.settings)
         }
 
         commonTest.dependencies {

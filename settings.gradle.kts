@@ -25,4 +25,4 @@ dependencyResolutionManagement {
 // Включаем все модули проекта
 include(":composeApp")
 include(":core:common")
-include(":settings")
+include(":core:settings")

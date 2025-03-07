@@ -12,29 +12,25 @@ dependencies {
     compileOnly(libs.compose.gradlePlugin)
 }
 
-// This makes the version catalog available to the convention plugins
-// See: https://github.com/gradle/gradle/issues/15383
-dependencies {
-    compileOnly(files(libs.javaClass.superclass.protectionDomain.codeSource.location))
-}
+
 
 gradlePlugin {
     plugins {
         register("kotlinMultiplatform") {
             id = "com.riffaells.compedux.multiplatform"
-            implementationClass = "com.compedu.buildlogic.KotlinMultiplatformConventionPlugin"
+            implementationClass = "com.riffaells.compedux.buildlogic.KotlinMultiplatformConventionPlugin"
         }
         register("kotlinMultiplatformLibrary") {
             id = "com.riffaells.compedux.multiplatform.library"
-            implementationClass = "com.compedu.buildlogic.KotlinMultiplatformLibraryConventionPlugin"
+            implementationClass = "com.riffaells.compedux.buildlogic.KotlinMultiplatformLibraryConventionPlugin"
         }
         register("kotlinMultiplatformCompose") {
             id = "com.riffaells.compedux.multiplatform.compose"
-            implementationClass = "com.compedu.buildlogic.KotlinMultiplatformComposeConventionPlugin"
+            implementationClass = "com.riffaells.compedux.buildlogic.KotlinMultiplatformComposeConventionPlugin"
         }
         register("compEduXSettings") {
-            id = "com.compedu.buildlogic.compEduXSettings"
-            implementationClass = "com.compedu.buildlogic.CompEduXSettingsPlugin"
+            id = "com.riffaells.compedux.multiplatform.settings"
+            implementationClass = "com.riffaells.compedux.buildlogic.CompEduXSettingsPlugin"
         }
     }
 }

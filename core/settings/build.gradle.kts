@@ -1,7 +1,7 @@
 plugins {
     alias(libs.plugins.compedux.multiplatform)
     alias(libs.plugins.compedux.multiplatform.library)
-    id("com.compedu.buildlogic.compEduXSettings")
+    alias(libs.plugins.compedux.settings)
 }
 
 kotlin {

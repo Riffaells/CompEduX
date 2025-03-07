@@ -1,4 +1,4 @@
-package com.compedu.buildlogic
+package com.riffaells.compedux.buildlogic
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project

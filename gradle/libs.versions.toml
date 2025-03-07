@@ -117,7 +117,7 @@ composeHotReload = { id = "org.jetbrains.compose-hot-reload", version.ref = "com
 typesafe-conventions = { id = "dev.panuszewski.typesafe-conventions", version.ref = "typesafeConventions" }
 
 
-compedux-multiplatform = { id = "com.riffaells.compedux.multiplatform", version = "unspecified"  }
+compedux-multiplatform = { id = "com.riffaells.compedux.multiplatform"  }
 compedux-multiplatform-compose = { id = "com.riffaells.compedux.multiplatform.compose", version = "unspecified" }
 compedux-multiplatform-library = { id = "com.riffaells.compedux.multiplatform.library", version = "unspecified" }
-compedux-settings = { id = "com.compedu.buildlogic.compEduXSettings", version = "unspecified" }
+compedux-settings = { id = "com.riffaells.compedux.multiplatform.settings", version = "unspecified" }
