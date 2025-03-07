@@ -1,10 +1,10 @@
 package com.compedu.buildlogic
 
+import libs
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.dsl.DependencyHandler
 import org.gradle.kotlin.dsl.configure
-import org.gradle.kotlin.dsl.dependencies
 import org.gradle.kotlin.dsl.kotlin
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
@@ -22,10 +22,10 @@ class KotlinMultiplatformConventionPlugin : Plugin<Project> {
                 val commonTest = sourceSets.maybeCreate("commonTest")
 
                 commonMain.dependencies {
-                    implementation(libs.findLibrary("kotlinx.serialization.json").get())
-                    implementation(libs.findLibrary("kotlin.stdlib").get())
-                    implementation(libs.findLibrary("coroutines.core").get())
-                    implementation(libs.findLibrary("kermit").get())
+                    implementation(libs.kotlinx.serialization.json)
+                    implementation(libs.kotlin.stdlib)
+                    implementation(libs.coroutines.core)
+                    implementation(libs.kermit)
                 }
 
                 commonTest.dependencies {
