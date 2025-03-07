@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.compedux.multiplatform)
     alias(libs.plugins.compedux.multiplatform.compose)
     alias(libs.plugins.android.application)
+    alias(libs.plugins.buildConfig)
 }
 
 kotlin {
@@ -85,10 +86,11 @@ android {
     }
 }
 
-//https://developer.android.com/develop/ui/compose/testing#setup
-dependencies {
-    androidTestImplementation(libs.androidx.uitest.junit4)
-    debugImplementation(libs.androidx.uitest.testManifest)
+
+
+buildConfig {
+
+    buildConfigField("APP_VERSION", libs.versions.app.project.get().toInt())
 }
 
 compose.desktop {

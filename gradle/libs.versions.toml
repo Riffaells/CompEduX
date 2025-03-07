@@ -65,7 +65,6 @@ android-gradlePlugin = { module = "com.android.tools.build:gradle", version.ref 
 compose-gradlePlugin = { module = "org.jetbrains.compose:compose-gradle-plugin", version.ref = "compose" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx_serialization_json" }
 coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
-kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
 kodein-di = { module = "org.kodein.di:kodein-di", version.ref = "kodein" }
 
 # Decompose и Essenty
@@ -116,8 +115,10 @@ buildConfig = { id = "com.github.gmazzo.buildconfig", version.ref = "buildConfig
 composeHotReload = { id = "org.jetbrains.compose-hot-reload", version.ref = "compose-hot-reload" }
 typesafe-conventions = { id = "dev.panuszewski.typesafe-conventions", version.ref = "typesafeConventions" }
 
+kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 
 compedux-multiplatform = { id = "com.riffaells.compedux.multiplatform"  }
-compedux-multiplatform-compose = { id = "com.riffaells.compedux.multiplatform.compose", version = "unspecified" }
-compedux-multiplatform-library = { id = "com.riffaells.compedux.multiplatform.library", version = "unspecified" }
-compedux-settings = { id = "com.riffaells.compedux.multiplatform.settings", version = "unspecified" }
+compedux-multiplatform-compose = { id = "com.riffaells.compedux.multiplatform.compose" }
+compedux-multiplatform-library = { id = "com.riffaells.compedux.multiplatform.library" }
+compedux-settings = { id = "com.riffaells.compedux.multiplatform.settings" }
+compedux-kconfig = { id = "com.riffaells.compedux.multiplatform.config" }

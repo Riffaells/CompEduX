@@ -4,15 +4,13 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.dsl.DependencyHandler
 import org.gradle.kotlin.dsl.configure
-import org.gradle.kotlin.dsl.dependencies
 import org.gradle.kotlin.dsl.getByType
 import org.jetbrains.compose.ComposeExtension
-import org.jetbrains.compose.ComposePlugin
 import org.jetbrains.compose.ExperimentalComposeLibrary
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import libs
 
-class KotlinMultiplatformComposeConventionPlugin : Plugin<Project> {
+class MultiplatformComposeConventionPlugin : Plugin<Project> {
     @OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
     override fun apply(target: Project) {
         with(target) {

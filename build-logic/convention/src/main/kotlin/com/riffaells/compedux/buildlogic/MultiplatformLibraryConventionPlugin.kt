@@ -1,35 +1,45 @@
 package com.riffaells.compedux.buildlogic
 
-import libs
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.dsl.DependencyHandler
 import org.gradle.kotlin.dsl.configure
-import org.gradle.kotlin.dsl.kotlin
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+import libs
 
-class KotlinMultiplatformConventionPlugin : Plugin<Project> {
+class MultiplatformLibraryConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
         with(target) {
             with(pluginManager) {
-                apply("org.jetbrains.kotlin.multiplatform")
-                apply("org.jetbrains.kotlin.plugin.serialization")
+                    apply(libs.plugins.android.library.get().pluginId)
             }
 
             extensions.configure<KotlinMultiplatformExtension> {
-                // Configure source sets
-                val commonMain = sourceSets.maybeCreate("commonMain")
-                val commonTest = sourceSets.maybeCreate("commonTest")
+                androidTarget()
+                jvm()
 
-                commonMain.dependencies {
-                    implementation(libs.kotlinx.serialization.json)
-                    implementation(libs.kotlin.stdlib)
-                    implementation(libs.coroutines.core)
-                    implementation(libs.kermit)
+                @OptIn(ExperimentalWasmDsl::class)
+                wasmJs {
+                    browser()
                 }
 
-                commonTest.dependencies {
-                    implementation(kotlin("test"))
+                listOf(
+                    iosX64(),
+                    iosArm64(),
+                    iosSimulatorArm64()
+                ).forEach {
+                    it.binaries.framework {
+                        baseName = project.name
+                        isStatic = true
+                    }
+                }
+
+                // Configure source sets
+                val commonMain = sourceSets.maybeCreate("commonMain")
+
+                commonMain.dependencies {
+                    // Common dependencies are handled by the base plugin
                 }
             }
         }
