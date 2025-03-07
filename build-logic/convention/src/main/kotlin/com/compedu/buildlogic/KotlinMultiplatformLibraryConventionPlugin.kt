@@ -8,12 +8,13 @@ import org.gradle.kotlin.dsl.dependencies
 import org.gradle.kotlin.dsl.kotlin
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+import libs
 
 class KotlinMultiplatformLibraryConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
         with(target) {
             with(pluginManager) {
-                apply("com.android.library")
+                    apply(libs.plugins.android.library.get().pluginId)
             }
 
             extensions.configure<KotlinMultiplatformExtension> {
