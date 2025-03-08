@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:14
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-competition_platform}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app_network
+
+  api_gateway:
+    build: ./api_gateway
+    ports:
+      - "${API_GATEWAY_PORT:-8000}:8000"
+    environment:
+      - AUTH_SERVICE_URL=${AUTH_SERVICE_URL:-http://auth_service:8000}
+      - ROOM_SERVICE_URL=${ROOM_SERVICE_URL:-http://room_service:8000}
+      - COMPETITION_SERVICE_URL=${COMPETITION_SERVICE_URL:-http://competition_service:8000}
+      - ACHIEVEMENT_SERVICE_URL=${ACHIEVEMENT_SERVICE_URL:-http://achievement_service:8000}
+    depends_on:
+      - auth_service
+      - room_service
+    networks:
+      - app_network
+
+  auth_service:
+    build: ./auth_service
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-competition_platform}
+      - SECRET_KEY=${AUTH_SECRET_KEY:-09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app_network
+
+  room_service:
+    build: ./room_service
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-competition_platform}
+      - AUTH_SERVICE_URL=${AUTH_SERVICE_URL:-http://auth_service:8000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app_network
+
+networks:
+  app_network:
+
+volumes:
+  postgres_data:

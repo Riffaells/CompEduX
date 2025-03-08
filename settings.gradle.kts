@@ -23,6 +23,13 @@ dependencyResolutionManagement {
 }
 
 // Включаем все модули проекта
-include(":composeApp")
-include(":core:common")
-include(":core:settings")
+include(
+    "app",
+    ":core:common",
+    ":core:data",
+    ":core:database",
+    ":core:network",
+    ":core:notifications",
+    ":core:ui",
+    ":feature:settings",
+)

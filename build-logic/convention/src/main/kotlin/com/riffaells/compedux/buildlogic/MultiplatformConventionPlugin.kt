@@ -21,38 +21,30 @@ class MultiplatformConventionPlugin : Plugin<Project> {
 
             extensions.configure<KotlinMultiplatformExtension> {
                 // Configure source sets
-                val commonMain = sourceSets.maybeCreate("commonMain")
-                val commonTest = sourceSets.maybeCreate("commonTest")
+                val commonMain = sourceSets.commonMain
+                val commonTest = sourceSets.commonTest
+                val androidMain = sourceSets.androidMain
 
                 commonMain.dependencies {
                     implementation(libs.kotlinx.serialization.json)
                     implementation(libs.kotlin.stdlib)
-                    implementation(libs.coroutines.core)
                     implementation(libs.napier)
 
-                    // Decompose и Essenty
-                    implementation(libs.decompose)
-                    implementation(libs.decompose.compose)
-                    implementation(libs.essenty.lifecycle)
-                    implementation(libs.essenty.statekeeper)
-                    implementation(libs.essenty.instancekeeper)
-                    implementation(libs.essenty.backhandler)
-
-                    // MVIKotlin
-                    implementation(libs.mvikotlin)
-                    implementation(libs.mvikotlin.main)
-                    implementation(libs.mvikotlin.logging)
-                    implementation(libs.mvikotlin.timetravel)
-                    implementation(libs.mvikotlin.extensions.coroutines)
-
                     // Kodein DI
-                    implementation(libs.kodein.di)
+                    implementation(libs.kodein)
+                    implementation(libs.kodein.compose)
 
 
+                    implementation(libs.coroutines)
                 }
 
                 commonTest.dependencies {
                     implementation(kotlin("test"))
+                }
+
+                androidMain.dependencies {
+                    implementation(libs.coroutines.android)
+
                 }
             }
         }

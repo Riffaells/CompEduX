@@ -2,6 +2,7 @@
 app-name = "1.0.0"
 app-version = "9"
 app-project = "9"
+app-package = "com.riffaells.compedux"
 
 compileSdk = "35"
 minSdk = "24"
@@ -11,7 +12,7 @@ jvm = "17"
 
 kotlin = "2.1.10"
 compose = "1.7.3"
-agp = "8.2.2"
+agp = "8.7.3"
 androidx-activityCompose = "1.10.1"
 androidx-uiTest = "1.7.8"
 multiplatform-settings = "1.3.0"
@@ -64,8 +65,12 @@ multiplatform-settings-serialization = { module = "com.russhwolf:multiplatform-s
 android-gradlePlugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }
 compose-gradlePlugin = { module = "org.jetbrains.compose:compose-gradle-plugin", version.ref = "compose" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx_serialization_json" }
-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
-kodein-di = { module = "org.kodein.di:kodein-di", version.ref = "kodein" }
+
+coroutines = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
+coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
+
+kodein = { module = "org.kodein.di:kodein-di", version.ref = "kodein" }
+kodein-compose = { module = "org.kodein.di:kodein-di-framework-compose", version.ref = "kodein" }
 
 # Decompose и Essenty
 decompose = { module = "com.arkivanov.decompose:decompose", version.ref = "decompose" }
@@ -122,3 +127,5 @@ compedux-multiplatform-compose = { id = "com.riffaells.compedux.multiplatform.co
 compedux-multiplatform-library = { id = "com.riffaells.compedux.multiplatform.library" }
 compedux-settings = { id = "com.riffaells.compedux.multiplatform.settings" }
 compedux-kconfig = { id = "com.riffaells.compedux.multiplatform.config" }
+compedux-networking = { id = "com.riffaells.compedux.multiplatform.networking" }
+compedux-decompose = { id = "com.riffaells.compedux.multiplatform.decompose" }

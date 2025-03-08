@@ -36,5 +36,13 @@ gradlePlugin {
             id = "com.riffaells.compedux.multiplatform.config"
             implementationClass = "com.riffaells.compedux.buildlogic.CompEduXConfigPlugin"
         }
+        register("compEduXNetworking") {
+            id = "com.riffaells.compedux.multiplatform.networking"
+            implementationClass = "com.riffaells.compedux.buildlogic.CompEduXNetworkingPlugin"
+        }
+        register("compEduXDecompose") {
+            id = "com.riffaells.compedux.multiplatform.decompose"
+            implementationClass = "com.riffaells.compedux.buildlogic.CompEduXDecomposePlugin"
+        }
     }
 }

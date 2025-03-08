@@ -1,14 +1,12 @@
 package com.riffaells.compedux.buildlogic
 
+import libs
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.artifacts.dsl.DependencyHandler
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.getByType
 import org.jetbrains.compose.ComposeExtension
-import org.jetbrains.compose.ExperimentalComposeLibrary
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
-import libs
 
 class MultiplatformComposeConventionPlugin : Plugin<Project> {
     @OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
@@ -27,10 +25,8 @@ class MultiplatformComposeConventionPlugin : Plugin<Project> {
 
             extensions.configure<KotlinMultiplatformExtension> {
                 // Configure source sets
-                val commonMain = sourceSets.maybeCreate("commonMain")
-                val androidMain = sourceSets.maybeCreate("androidMain")
-                val jvmMain = sourceSets.maybeCreate("jvmMain")
-                val wasmJsMain = sourceSets.maybeCreate("wasmJsMain")
+                val commonMain = sourceSets.commonMain
+                val wasmJsMain = sourceSets.wasmJsMain
 
                 // Configure Wasm target
                 wasmJs {
@@ -38,23 +34,25 @@ class MultiplatformComposeConventionPlugin : Plugin<Project> {
                     binaries.executable()
                 }
 
+
                 // Configure common dependencies for all targets
-                sourceSets.getByName("commonMain") {
+                commonMain {
                     dependencies {
                         // Access compose dependencies through the project's ComposeExtension
                         val composeE = project.extensions.getByType<ComposeExtension>()
                         val compose = composeE.dependencies
+                        implementation(compose.ui)
                         implementation(compose.runtime)
                         implementation(compose.foundation)
-                        implementation(compose.material)
-                        implementation(compose.ui)
-                        @OptIn(ExperimentalComposeLibrary::class)
+                        implementation(compose.material3)
+                        implementation(compose.materialIconsExtended)
                         implementation(compose.components.resources)
+                        implementation(compose.components.uiToolingPreview)
                     }
                 }
 
                 // Wasm-specific dependencies if needed
-                sourceSets.getByName("wasmJsMain") {
+                wasmJsMain {
                     dependencies {
                         // Add Wasm-specific dependencies here if needed
                     }
@@ -62,9 +60,4 @@ class MultiplatformComposeConventionPlugin : Plugin<Project> {
             }
         }
     }
-}
-
-// Extension function to make the code more readable
-private fun DependencyHandler.implementation(dependencyNotation: Any) {
-    add("implementation", dependencyNotation)
 }

@@ -1,5 +1,6 @@
 package com.riffaells.compedux.buildlogic
 
+import com.android.build.gradle.LibraryExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.dsl.DependencyHandler
@@ -12,11 +13,43 @@ class MultiplatformLibraryConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
         with(target) {
             with(pluginManager) {
-                    apply(libs.plugins.android.library.get().pluginId)
+                apply(libs.plugins.android.library.get().pluginId)
+            }
+
+            // Настройка Android
+            extensions.configure<LibraryExtension> {
+                compileSdk = libs.versions.compileSdk.get().toInt()
+
+                defaultConfig {
+                    minSdk = libs.versions.minSdk.get().toInt()
+                }
+
+                // Определяем namespace на основе имени проекта, если он не указан
+                val projectPath = project.path.replace(":", ".")
+                namespace = "com.riffaells.compedux${projectPath}"
+
+                // Настройка исходных директорий
+                sourceSets {
+                    named("main") {
+                        manifest.srcFile("src/androidMain/AndroidManifest.xml")
+                        res.srcDirs("src/androidMain/res")
+                    }
+                }
+
+                // Отключаем ненужные сборки для библиотек
+                buildTypes {
+                    release {
+                        isMinifyEnabled = false
+                    }
+                }
+
             }
 
             extensions.configure<KotlinMultiplatformExtension> {
-                androidTarget()
+                androidTarget {
+
+                }
+
                 jvm()
 
                 @OptIn(ExperimentalWasmDsl::class)
@@ -36,12 +69,14 @@ class MultiplatformLibraryConventionPlugin : Plugin<Project> {
                 }
 
                 // Configure source sets
-                val commonMain = sourceSets.maybeCreate("commonMain")
+                val commonMain = sourceSets.commonMain
 
                 commonMain.dependencies {
                     // Common dependencies are handled by the base plugin
                 }
             }
+
+
         }
     }
 }
