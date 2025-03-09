@@ -1,27 +1,43 @@
 package components.settings
 
 import MultiplatformSettings
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import component.app.settings.SettingsComponent
 import component.app.settings.store.SettingsStore
+import components.settings.components.SettingDropdown
+import components.settings.components.SettingSection
+import components.settings.components.SettingTextField
+import components.settings.components.SettingToggle
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.kodein.di.compose.rememberInstance
 
 /**
@@ -41,119 +57,203 @@ fun SettingsContent(component: SettingsComponent) {
     // Локальное состояние для выбора темы
     var selectedThemeOption by remember { mutableStateOf(themeOption) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Настройки") },
-                navigationIcon = {
-                    IconButton(onClick = { component.onAction(SettingsStore.Intent.Back) }) {
-                        Icon(Icons.Rounded.ArrowBack, contentDescription = "Назад")
+    // Состояние для управления drawer
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+
+    // Состояние для анимации элементов
+    var showContent by remember { mutableStateOf(false) }
+
+    // Запускаем анимацию появления контента с небольшой задержкой
+    LaunchedEffect(Unit) {
+        delay(100)
+        showContent = true
+    }
+
+    // Создаем drawer с дополнительными опциями
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            ModalDrawerSheet {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    "Дополнительные настройки",
+                    modifier = Modifier.padding(16.dp),
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Divider()
+
+                // Анимированные элементы drawer
+                val drawerItems = listOf(
+                    "Профиль пользователя" to { scope.launch { drawerState.close() } },
+                    "Уведомления" to { scope.launch { drawerState.close() } },
+                    "Конфиденциальность" to { scope.launch { drawerState.close() } }
+                )
+
+                drawerItems.forEachIndexed { index, (text, onClick) ->
+                    var showItem by remember { mutableStateOf(false) }
+
+                    // Запускаем анимацию с задержкой для каждого элемента
+                    LaunchedEffect(drawerState.isOpen) {
+                        if (drawerState.isOpen) {
+                            delay(100L * index)
+                            showItem = true
+                        } else {
+                            showItem = false
+                        }
+                    }
+
+                    AnimatedVisibility(
+                        visible = showItem,
+                        enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
+                        exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 })
+                    ) {
+                        NavigationDrawerItem(
+                            label = { Text(text) },
+                            selected = false,
+                            onClick = { onClick() }
+                        )
                     }
                 }
-            )
+            }
         }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Text(
-                text = "Настройки приложения",
-                style = MaterialTheme.typography.headlineSmall
-            )
-
-            HorizontalDivider()
-
-            // Настройка темы
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text("Тема", style = MaterialTheme.typography.titleMedium)
-
-                // Радио-кнопки для выбора темы
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    RadioButton(
-                        selected = selectedThemeOption == MultiplatformSettings.ThemeOption.THEME_SYSTEM,
-                        onClick = {
-                            selectedThemeOption = MultiplatformSettings.ThemeOption.THEME_SYSTEM
-                            settings.saveThemeSettings(MultiplatformSettings.ThemeOption.THEME_SYSTEM)
+    ) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text("Настройки") },
+                    navigationIcon = {
+                        IconButton(onClick = { component.onAction(SettingsStore.Intent.Back) }) {
+                            Icon(Icons.Rounded.ArrowBack, contentDescription = "Назад")
                         }
-                    )
-                    Text("Системная", modifier = Modifier.padding(start = 8.dp))
-                }
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    RadioButton(
-                        selected = selectedThemeOption == MultiplatformSettings.ThemeOption.THEME_LIGHT,
-                        onClick = {
-                            selectedThemeOption = MultiplatformSettings.ThemeOption.THEME_LIGHT
-                            settings.saveThemeSettings(MultiplatformSettings.ThemeOption.THEME_LIGHT)
-                            component.onAction(SettingsStore.Intent.UpdateTheme(selectedThemeOption))
+                    },
+                    actions = {
+                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                            Icon(Icons.Default.Menu, contentDescription = "Меню")
                         }
-                    )
-                    Text("Светлая", modifier = Modifier.padding(start = 8.dp))
-                }
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    RadioButton(
-                        selected = selectedThemeOption == MultiplatformSettings.ThemeOption.THEME_DARK,
-                        onClick = {
-                            selectedThemeOption = MultiplatformSettings.ThemeOption.THEME_DARK
-                            settings.saveThemeSettings(MultiplatformSettings.ThemeOption.THEME_DARK)
-                            component.onAction(SettingsStore.Intent.UpdateTheme(selectedThemeOption))
-                        }
-                    )
-                    Text("Темная", modifier = Modifier.padding(start = 8.dp))
-                }
-            }
-
-            HorizontalDivider()
-
-            // Выбор языка
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Язык: ${if (state.language == "en") "Английский" else "Русский"}")
-                Button(
-                    onClick = {
-                        val newLanguage = if (state.language == "en") "ru" else "en"
-                        component.onAction(SettingsStore.Intent.UpdateLanguage(newLanguage))
-                    }
-                ) {
-                    Text("Изменить")
-                }
-            }
-
-            HorizontalDivider()
-
-            // Настройка звездного неба
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Звездное небо")
-                Switch(
-                    checked = starrySky,
-                    onCheckedChange = {
-                        settings.saveStarrySkySettings(it)
                     }
                 )
+            }
+        ) { padding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Анимация заголовка
+                AnimatedVisibility(
+                    visible = showContent,
+                    enter = fadeIn(animationSpec = tween(500)) +
+                            slideInHorizontally(
+                                initialOffsetX = { -it / 2 },
+                                animationSpec = tween(500)
+                            ),
+                    exit = fadeOut()
+                ) {
+                    Text(
+                        text = "Настройки приложения",
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                }
+
+                // Секция "Внешний вид"
+                SettingSection(
+                    title = "Внешний вид",
+                    showContent = showContent,
+                    animationDelay = 600,
+                    showTopDivider = false, // Первая секция без верхнего разделителя
+                    showBottomDivider = true
+                ) {
+                    // Настройка темы с использованием компонента выбора из списка
+                    val themeOptions = listOf(
+                        "Системная" to MultiplatformSettings.ThemeOption.THEME_SYSTEM,
+                        "Светлая" to MultiplatformSettings.ThemeOption.THEME_LIGHT,
+                        "Темная" to MultiplatformSettings.ThemeOption.THEME_DARK
+                    )
+
+                    SettingDropdown(
+                        title = "Тема",
+                        description = "Выберите тему оформления приложения",
+                        options = themeOptions.map { it.first },
+                        selectedIndex = themeOptions.indexOfFirst { it.second == selectedThemeOption },
+                        onOptionSelected = { index ->
+                            val option = themeOptions[index].second
+                            selectedThemeOption = option
+                            settings.saveThemeSettings(option)
+                            component.onAction(SettingsStore.Intent.UpdateTheme(option))
+                        }
+                    )
+
+                    // Настройка звездного неба с использованием компонента переключателя
+                    SettingToggle(
+                        title = "Звездное небо",
+                        description = "Включить анимацию звездного неба на главном экране",
+                        isChecked = starrySky,
+                        onCheckedChange = { settings.saveStarrySkySettings(it) },
+                        isExperimental = true
+                    )
+                }
+
+                // Секция "Язык и локализация"
+                SettingSection(
+                    title = "Язык и локализация",
+                    showContent = showContent,
+                    animationDelay = 700,
+                    showTopDivider = false, // Используем только нижний разделитель
+                    showBottomDivider = true
+                ) {
+                    // Настройка языка с использованием компонента выбора из списка
+                    val languageOptions = listOf("Русский" to "ru", "Английский" to "en")
+
+                    SettingDropdown(
+                        title = "Язык интерфейса",
+                        description = "Выберите язык интерфейса приложения",
+                        options = languageOptions.map { it.first },
+                        selectedIndex = languageOptions.indexOfFirst { it.second == state.language },
+                        onOptionSelected = { index ->
+                            val newLanguage = languageOptions[index].second
+                            component.onAction(SettingsStore.Intent.UpdateLanguage(newLanguage))
+                        }
+                    )
+                }
+
+                // Секция "Экспериментальные функции"
+                SettingSection(
+                    title = "Экспериментальные функции",
+                    showContent = showContent,
+                    animationDelay = 800,
+                    showTopDivider = false, // Используем только нижний разделитель
+                    showBottomDivider = true
+                ) {
+                    // Текстовое поле для ввода пользовательского значения
+                    SettingTextField(
+                        title = "API ключ",
+                        description = "Введите ключ API для доступа к экспериментальным функциям",
+                        value = "",
+                        onValueChange = { /* Сохранение значения */ },
+                        isExperimental = true
+                    )
+
+                    // Дополнительные экспериментальные настройки
+                    SettingToggle(
+                        title = "Расширенная аналитика",
+                        description = "Включить сбор расширенной аналитики для улучшения приложения",
+                        isChecked = false,
+                        onCheckedChange = { /* Сохранение значения */ },
+                        isExperimental = true
+                    )
+
+                    SettingToggle(
+                        title = "Новый интерфейс",
+                        description = "Включить новый экспериментальный интерфейс (может быть нестабильно)",
+                        isChecked = false,
+                        onCheckedChange = { /* Сохранение значения */ },
+                        isExperimental = true
+                    )
+                }
             }
         }
     }
