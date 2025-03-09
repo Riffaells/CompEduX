@@ -14,7 +14,7 @@ class App : Application(), DIAware {
 
     override val di: DI by DI.lazy {
         // Импортируем основной DI контейнер
-        import(appDI)
+        extend(appDI)
 
         // Привязываем контекст приложения
         bindSingleton<Context> { this@App.applicationContext }

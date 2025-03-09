@@ -1,7 +1,10 @@
 package components.root
 
 import androidx.compose.animation.*
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.EaseInQuart
+import androidx.compose.animation.core.EaseOutQuart
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
@@ -13,7 +16,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.stack.animation.fade
@@ -28,6 +30,7 @@ import components.main.MainContent
 import components.settings.SettingsContent
 import components.skiko.SkikoContent
 import theme.AppTheme
+import utils.isLargeScreen
 
 /**
  * Корневой композабл, который отображает текущий дочерний компонент
@@ -45,9 +48,8 @@ fun RootContent(
     val settings = component.settings
     val theme by settings.themeFlow.collectAsState()
 
-    // Определяем тип навигации в зависимости от размера экрана
-    val windowInfo = LocalWindowInfo.current
-    val isLargeScreen = windowInfo.containerSize.width > 840
+    // Используем платформо-независимую функцию
+    val isLargeScreen = isLargeScreen()
 
     // Запоминаем предыдущее состояние для анимации
     var wasLargeScreen by remember { mutableStateOf(isLargeScreen) }
