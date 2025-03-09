@@ -24,6 +24,9 @@ import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import component.app.main.MainComponent
@@ -184,6 +187,16 @@ fun MainContent(component: MainComponent) {
                         ) {
                             Text(if (showSkiaDemo) "Скрыть Skia демо" else "Показать Skia демо")
                         }
+
+                        // Добавляем кнопку для открытия карты развития
+                        Button(
+                            onClick = { /*component.onAction(MainStore.Intent.OpenDevelopmentMap)*/ },
+                            modifier = Modifier
+                                .padding(top = 16.dp)
+                                .scale(buttonScale)
+                        ) {
+                            Text("Открыть карту развития")
+                        }
                     }
                 }
 
@@ -218,6 +231,9 @@ fun MainContent(component: MainComponent) {
 fun SkiaDemo() {
     // Создаем бесконечную анимацию
     val infiniteTransition = rememberInfiniteTransition(label = "SkiaAnimation")
+
+    // Добавляем TextMeasurer для измерения и рисования текста
+    val textMeasurer = rememberTextMeasurer()
 
     // Анимация вращения
     val rotation by infiniteTransition.animateFloat(
@@ -339,17 +355,16 @@ fun SkiaDemo() {
         val textSize = 24.dp.toPx()
         translate(center.x - textSize * 2, center.y) {
             scale(scale) {
-                // Заменяем низкоуровневый Skia API на Compose API
-                val textStyle = androidx.compose.ui.text.TextStyle(
-                    fontSize = textSize.sp,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold
-                )
-
+                // Используем TextMeasurer для рисования текста
                 drawText(
+                    textMeasurer = textMeasurer,
                     text = "Skia Demo",
                     topLeft = Offset(0f, 0f),
-                    style = textStyle
+                    style = TextStyle(
+                        fontSize = textSize.sp,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
                 )
             }
         }

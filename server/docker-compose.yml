@@ -19,6 +19,13 @@ services:
     networks:
       - app_network
 
+  api_gateway-base:
+    build:
+      context: ./api_gateway
+      dockerfile: base.Dockerfile
+    image: api_gateway-base
+    command: echo "Base image built"
+
   api_gateway:
     build:
       context: ./api_gateway
@@ -38,6 +45,7 @@ services:
       - room_service
       - achievement_service
       - competition_service
+      - api_gateway-base
     networks:
       - app_network
     restart: unless-stopped

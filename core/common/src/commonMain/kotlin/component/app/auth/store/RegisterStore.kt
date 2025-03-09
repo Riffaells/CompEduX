@@ -6,6 +6,7 @@ import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import org.kodein.di.DI
 import org.kodein.di.DIAware
 import utils.rDispatchers
@@ -20,6 +21,7 @@ interface RegisterStore : Store<RegisterStore.Intent, RegisterStore.State, Nothi
         data object Register : Intent
     }
 
+    @Serializable
     data class State(
         val name: String = "",
         val email: String = "",
@@ -34,6 +36,11 @@ internal class RegisterStoreFactory(
     private val storeFactory: StoreFactory,
     override val di: DI
 ) : DIAware {
+
+    // Интерфейс для фабрики, используемый в ComponentModule
+    interface Factory {
+        fun create(): RegisterStore
+    }
 
     fun create(): RegisterStore =
         object : RegisterStore, Store<RegisterStore.Intent, RegisterStore.State, Nothing> by storeFactory.create(
@@ -60,53 +67,72 @@ internal class RegisterStoreFactory(
         ) {
 
         override fun executeAction(action: Unit) {
-            // TODO: Инициализация, если необходимо
+            try {
+                // TODO: Инициализация, если необходимо
+            } catch (e: Exception) {
+                println("Error in executeAction: ${e.message}")
+            }
+        }
+
+        // Безопасный вызов dispatch, который перехватывает исключения
+        private fun safeDispatch(msg: Msg) {
+            try {
+                dispatch(msg)
+            } catch (e: Exception) {
+                println("Error in dispatch: ${e.message}")
+            }
         }
 
         override fun executeIntent(intent: RegisterStore.Intent): Unit =
-            when (intent) {
-                is RegisterStore.Intent.UpdateName -> {
-                    dispatch(Msg.NameChanged(intent.name))
-                }
-                is RegisterStore.Intent.UpdateEmail -> {
-                    dispatch(Msg.EmailChanged(intent.email))
-                }
-                is RegisterStore.Intent.UpdatePassword -> {
-                    dispatch(Msg.PasswordChanged(intent.password))
-                }
-                is RegisterStore.Intent.UpdateConfirmPassword -> {
-                    dispatch(Msg.ConfirmPasswordChanged(intent.confirmPassword))
-                }
-                is RegisterStore.Intent.Register -> {
-                    dispatch(Msg.Loading)
+            try {
+                when (intent) {
+                    is RegisterStore.Intent.UpdateName -> {
+                        safeDispatch(Msg.NameChanged(intent.name))
+                    }
+                    is RegisterStore.Intent.UpdateEmail -> {
+                        safeDispatch(Msg.EmailChanged(intent.email))
+                    }
+                    is RegisterStore.Intent.UpdatePassword -> {
+                        safeDispatch(Msg.PasswordChanged(intent.password))
+                    }
+                    is RegisterStore.Intent.UpdateConfirmPassword -> {
+                        safeDispatch(Msg.ConfirmPasswordChanged(intent.confirmPassword))
+                    }
+                    is RegisterStore.Intent.Register -> {
+                        safeDispatch(Msg.Loading)
 
-                    scope.launch {
-                        try {
-                            // TODO: Реализовать реальную логику регистрации с использованием API
-                            // Для примера просто имитируем задержку и проверки
-                            kotlinx.coroutines.delay(1000)
+                        scope.launch {
+                            try {
+                                // TODO: Реализовать реальную логику регистрации с использованием API
+                                // Для примера просто имитируем задержку и проверки
+                                kotlinx.coroutines.delay(1000)
 
-                            val state = state()
-                            // Проверка на пустые поля
-                            if (state.name.isBlank() || state.email.isBlank() ||
-                                state.password.isBlank() || state.confirmPassword.isBlank()) {
-                                dispatch(Msg.ErrorOccurred("Все поля должны быть заполнены"))
-                                return@launch
+                                val state = state()
+                                // Проверка на пустые поля
+                                if (state.name.isBlank() || state.email.isBlank() ||
+                                    state.password.isBlank() || state.confirmPassword.isBlank()) {
+                                    safeDispatch(Msg.ErrorOccurred("Все поля должны быть заполнены"))
+                                    return@launch
+                                }
+
+                                // Проверка совпадения паролей
+                                if (state.password != state.confirmPassword) {
+                                    safeDispatch(Msg.ErrorOccurred("Пароли не совпадают"))
+                                    return@launch
+                                }
+
+                                // Имитация успешной регистрации
+                                safeDispatch(Msg.RegisterSuccess)
+                            } catch (e: Exception) {
+                                safeDispatch(Msg.ErrorOccurred(e.message ?: "Неизвестная ошибка"))
+                                println("Error in registration: ${e.message}")
                             }
-
-                            // Проверка совпадения паролей
-                            if (state.password != state.confirmPassword) {
-                                dispatch(Msg.ErrorOccurred("Пароли не совпадают"))
-                                return@launch
-                            }
-
-                            // Имитация успешной регистрации
-                            dispatch(Msg.RegisterSuccess)
-                        } catch (e: Exception) {
-                            dispatch(Msg.ErrorOccurred(e.message ?: "Неизвестная ошибка"))
                         }
+                        Unit
                     }
                 }
+            } catch (e: Exception) {
+                println("Error in executeIntent: ${e.message}")
             }
     }
 

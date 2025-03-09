@@ -3,14 +3,23 @@ package component.app.auth
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.Value
+import com.arkivanov.mvikotlin.core.instancekeeper.getStore
+import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import component.app.auth.AuthComponent.Child.*
+import component.app.auth.store.AuthStore
+import component.app.auth.store.AuthStoreFactory
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.Serializable
 import org.kodein.di.DI
 import org.kodein.di.DIAware
+import org.kodein.di.instance
 
 interface AuthComponent {
     val childStack: Value<ChildStack<*, Child>>
+    val state: StateFlow<AuthStore.State>
 
+    fun onEvent(event: AuthStore.Intent)
     fun onLoginClicked()
     fun onRegisterClicked()
     fun onProfileClicked()
@@ -33,12 +42,27 @@ class DefaultAuthComponent(
 
     private val stack = childStack(
         source = navigation,
+        serializer = Config.serializer(),
         initialConfiguration = Config.Login,
         handleBackButton = true,
         childFactory = ::child,
     )
 
     override val childStack: Value<ChildStack<*, AuthComponent.Child>> = stack
+
+    private val authStoreFactory: AuthStoreFactory by instance()
+
+    private val store =
+        instanceKeeper.getStore {
+            authStoreFactory.create()
+        }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    override val state: StateFlow<AuthStore.State> = store.stateFlow
+
+    override fun onEvent(event: AuthStore.Intent) {
+        store.accept(event)
+    }
 
     private fun child(config: Config, componentContext: ComponentContext): AuthComponent.Child =
         when (config) {
@@ -50,7 +74,7 @@ class DefaultAuthComponent(
     private fun loginComponent(componentContext: ComponentContext): LoginComponent {
         return DefaultLoginComponent(
             componentContext = componentContext,
-            onRegisterClicked = ::onRegisterClicked,
+            onRegister = ::onRegisterClicked,
             onLoginSuccess = ::onLoginSuccess,
             onBack = ::onBackToRoot,
             di = di

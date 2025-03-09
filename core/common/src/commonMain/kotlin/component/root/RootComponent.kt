@@ -7,14 +7,19 @@ import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.router.stack.webhistory.WebHistoryController
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.mvikotlin.core.instancekeeper.getStore
+import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
+import component.app.auth.DefaultAuthComponent
 import component.app.main.DefaultMainComponent
 import component.app.settings.DefaultSettingsComponent
+import component.app.skiko.DefaultSkikoComponent
 import component.root.RootComponent.Child.*
 import component.root.store.RootStore
 import component.root.store.RootStoreFactory
+import di.AuthComponentParams
 import di.MainComponentParams
 import di.SettingsComponentParams
+import di.SkikoComponentParams
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.Serializable
@@ -27,15 +32,19 @@ interface RootComponent {
     val childStack: Value<ChildStack<*, Child>>
     val state: StateFlow<RootStore.State>
 
-    val settings:MultiplatformSettings
+    val settings: MultiplatformSettings
 
     fun onEvent(event: RootStore.Intent)
     fun onMainClicked()
     fun onSettingsClicked()
+    fun onDevelopmentMapClicked()
+    fun onAuthClicked()
 
     sealed class Child {
         class MainChild(val component: DefaultMainComponent) : Child()
         class SettingsChild(val component: DefaultSettingsComponent) : Child()
+        class SkikoChild(val component: DefaultSkikoComponent) : Child()
+        class AuthChild(val component: DefaultAuthComponent) : Child()
     }
 }
 
@@ -44,7 +53,7 @@ class DefaultRootComponent(
     componentContext: ComponentContext,
     deepLink: DeepLink = DeepLink.None,
     webHistoryController: WebHistoryController? = null,
-    storeFactory: com.arkivanov.mvikotlin.main.store.DefaultStoreFactory,
+    storeFactory: StoreFactory,
     override val di: DI
 ) : RootComponent, DIAware, ComponentContext by componentContext {
 
@@ -98,28 +107,47 @@ class DefaultRootComponent(
         when (config) {
             Config.Main -> MainChild(mainComponent(componentContext))
             Config.Settings -> SettingsChild(settingsComponent(componentContext))
+            Config.Skiko -> SkikoChild(skikoComponent(componentContext))
+            Config.Auth -> AuthChild(authComponent(componentContext))
         }
 
 
     private fun mainComponent(componentContext: ComponentContext): DefaultMainComponent {
-
-        val mainComponentFactory: (MainComponentParams) -> DefaultMainComponent by factory()
+        val mainComponentFactory by factory<MainComponentParams, DefaultMainComponent>()
         return mainComponentFactory(
             MainComponentParams(
                 componentContext = componentContext,
-                onSettingsClicked = ::onSettingsClicked
+                onSettingsClicked = ::onSettingsClicked,
+                onDevelopmentMapClicked = ::onDevelopmentMapClicked
             )
         )
     }
 
     private fun settingsComponent(componentContext: ComponentContext): DefaultSettingsComponent {
-
-        //val settingsComponentFactory: (SettingsComponentParams) -> DefaultSettingsComponent by factory()
         return DefaultSettingsComponent(
             componentContext = componentContext,
             onBack = navigation::pop,
             di = di
+        )
+    }
 
+    private fun skikoComponent(componentContext: ComponentContext): DefaultSkikoComponent {
+        val skikoComponentFactory by factory<SkikoComponentParams, DefaultSkikoComponent>()
+        return skikoComponentFactory(
+            SkikoComponentParams(
+                componentContext = componentContext,
+                onBack = navigation::pop
+            )
+        )
+    }
+
+    private fun authComponent(componentContext: ComponentContext): DefaultAuthComponent {
+        val authComponentFactory by factory<AuthComponentParams, DefaultAuthComponent>()
+        return authComponentFactory(
+            AuthComponentParams(
+                componentContext = componentContext,
+                onBack = navigation::pop
+            )
         )
     }
 
@@ -131,8 +159,18 @@ class DefaultRootComponent(
         navigation.bringToFront(Config.Settings)
     }
 
+    override fun onDevelopmentMapClicked() {
+        navigation.bringToFront(Config.Skiko)
+    }
+
+    override fun onAuthClicked() {
+        navigation.bringToFront(Config.Auth)
+    }
+
     private companion object {
         private const val WEB_PATH_SETTINGS = "settings"
+        private const val WEB_PATH_SKIKO = "skiko"
+        private const val WEB_PATH_AUTH = "auth"
 
         private fun getInitialStack(webHistoryPaths: List<String>?, deepLink: DeepLink): List<Config> =
             webHistoryPaths
@@ -150,11 +188,15 @@ class DefaultRootComponent(
             when (config) {
                 Config.Main -> "/"
                 Config.Settings -> "/$WEB_PATH_SETTINGS"
+                Config.Skiko -> "/$WEB_PATH_SKIKO"
+                Config.Auth -> "/$WEB_PATH_AUTH"
             }
 
         private fun getConfigForPath(path: String): Config =
             when (path.removePrefix("/")) {
                 WEB_PATH_SETTINGS -> Config.Settings
+                WEB_PATH_SKIKO -> Config.Skiko
+                WEB_PATH_AUTH -> Config.Auth
                 else -> Config.Main
             }
     }
@@ -166,6 +208,12 @@ class DefaultRootComponent(
 
         @Serializable
         data object Settings : Config
+
+        @Serializable
+        data object Skiko : Config
+
+        @Serializable
+        data object Auth : Config
     }
 
     sealed interface DeepLink {
