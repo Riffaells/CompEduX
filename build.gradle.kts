@@ -14,3 +14,9 @@ plugins {
 //    group = "com.riffaells.compedux"
 //    version = libs.versions.app.name.get()
 //}
+allprojects {
+    tasks.withType<JavaCompile>().configureEach {
+        sourceCompatibility = libs.versions.jvm.get()
+        targetCompatibility = libs.versions.jvm.get()
+    }
+}

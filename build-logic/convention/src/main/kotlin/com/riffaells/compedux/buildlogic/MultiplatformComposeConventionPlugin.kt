@@ -13,7 +13,6 @@ class MultiplatformComposeConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
         with(target) {
             with(pluginManager) {
-
                 apply(libs.plugins.kmultiplatform.get().pluginId)
                 apply(libs.plugins.kcompose.get().pluginId)
                 apply(libs.plugins.compose.compiler.get().pluginId)
@@ -24,16 +23,21 @@ class MultiplatformComposeConventionPlugin : Plugin<Project> {
             }
 
             extensions.configure<KotlinMultiplatformExtension> {
+                // Set JVM target compatibility to match Java
+                jvmToolchain(libs.versions.jvm.get().toInt())
+
                 // Add opt-in annotations for experimental APIs
                 targets.configureEach {
                     compilations.configureEach {
-                        compilerOptions.configure {
-                            // Add opt-in for Material3 experimental APIs
-                            freeCompilerArgs.add("-opt-in=androidx.compose.material3.ExperimentalMaterial3Api")
-                            // Add other common opt-ins if needed
-                            freeCompilerArgs.add("-opt-in=androidx.compose.foundation.ExperimentalFoundationApi")
-                            freeCompilerArgs.add("-opt-in=androidx.compose.animation.ExperimentalAnimationApi")
-                            freeCompilerArgs.add("-opt-in=androidx.compose.ui.ExperimentalComposeUiApi")
+                        compileTaskProvider.configure {
+                            compilerOptions {
+                                // Add opt-in for Material3 experimental APIs
+                                freeCompilerArgs.add("-opt-in=androidx.compose.material3.ExperimentalMaterial3Api")
+                                // Add other common opt-ins if needed
+                                freeCompilerArgs.add("-opt-in=androidx.compose.foundation.ExperimentalFoundationApi")
+                                freeCompilerArgs.add("-opt-in=androidx.compose.animation.ExperimentalAnimationApi")
+                                freeCompilerArgs.add("-opt-in=androidx.compose.ui.ExperimentalComposeUiApi")
+                            }
                         }
                     }
                 }

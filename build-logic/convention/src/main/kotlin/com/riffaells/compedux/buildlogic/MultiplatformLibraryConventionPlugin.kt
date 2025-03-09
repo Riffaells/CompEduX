@@ -24,6 +24,12 @@ class MultiplatformLibraryConventionPlugin : Plugin<Project> {
                     minSdk = libs.versions.minSdk.get().toInt()
                 }
 
+                // Установка совместимости Java для Android
+                compileOptions {
+                    sourceCompatibility = org.gradle.api.JavaVersion.toVersion(libs.versions.jvm.get())
+                    targetCompatibility = org.gradle.api.JavaVersion.toVersion(libs.versions.jvm.get())
+                }
+
                 // Определяем namespace на основе имени проекта, если он не указан
                 val projectPath = project.path.replace(":", ".")
                 namespace = "com.riffaells.compedux${projectPath}"

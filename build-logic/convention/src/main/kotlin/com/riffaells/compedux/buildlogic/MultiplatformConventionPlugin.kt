@@ -44,14 +44,10 @@ class MultiplatformConventionPlugin : Plugin<Project> {
 
                 androidMain.dependencies {
                     implementation(libs.coroutines.android)
+                    implementation(libs.androidx.core)
 
                 }
             }
         }
     }
-}
-
-// Extension function to make the code more readable
-private fun DependencyHandler.implementation(dependencyNotation: Any) {
-    add("implementation", dependencyNotation)
 }
