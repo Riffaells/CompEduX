@@ -1,27 +1,30 @@
 package component.root.store
 
+import MultiplatformSettings
 import com.arkivanov.mvikotlin.core.store.Reducer
 import com.arkivanov.mvikotlin.core.store.SimpleBootstrapper
 import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.kodein.di.DI
 import org.kodein.di.DIAware
+import org.kodein.di.instance
 import utils.rDispatchers
 
 interface RootStore : Store<RootStore.Intent, RootStore.State, Nothing> {
 
     sealed interface Intent {
         data object Init : Intent
-        data class UpdateTheme(val isDarkMode: Boolean) : Intent
+        data class UpdateTheme(val theme: Int) : Intent
         data class UpdateLanguage(val language: String) : Intent
     }
 
     @Serializable
     data class State(
-        val isDarkMode: Boolean = false,
+        val theme: Int = 0,
         val language: String = "en",
         val loading: Boolean = false,
     )
@@ -32,7 +35,7 @@ internal class RootStoreFactory(
     override val di: DI,
 ) : DIAware {
 
-//    val settings by instance<MultiplatformSettings>()
+    val settings by instance<MultiplatformSettings>()
 //    val teamUseCases by instance<TeamUseCases>()
 //    val useCasesCategory by instance<CategoryUseCases>()
 //    val useCasesWord by instance<WordUseCases>()
@@ -50,7 +53,7 @@ internal class RootStoreFactory(
     private sealed interface Msg {
         data object LoadingData : Msg
         data object LoadData : Msg
-        data class UpdateTheme(val isDarkMode: Boolean) : Msg
+        data class UpdateTheme(val theme: Int) : Msg
         data class UpdateLanguage(val language: String) : Msg
     }
 
@@ -74,15 +77,14 @@ internal class RootStoreFactory(
             scope.launch {
                 try {
                     // Загрузка настроек
-
+                    val theme = settings.themeFlow.first()
                     // Обновление UI
-                    // safeDispatch(Msg.UpdateTheme(isDarkMode))
+                     safeDispatch(Msg.UpdateTheme(theme))
                     // safeDispatch(Msg.UpdateLanguage(language))
                 } catch (e: Exception) {
                     println("Error loading initial settings: ${e.message}")
                 }
             }
-            Unit
         }
 
         // Безопасный вызов dispatch, который перехватывает исключения
@@ -101,21 +103,7 @@ internal class RootStoreFactory(
                         safeDispatch(Msg.LoadData)
                         loadInitialSettings()
                     }
-                    is RootStore.Intent.UpdateTheme -> {
-                        // Сохранение настроек
-                        scope.launch {
-                            try {
-                                // Асинхронное сохранение настроек
-                                // settings.putBoolean("isDarkMode", intent.isDarkMode)
-
-                                // Обновление UI
-                                safeDispatch(Msg.UpdateTheme(intent.isDarkMode))
-                            } catch (e: Exception) {
-                                println("Error updating theme: ${e.message}")
-                            }
-                        }
-                        Unit
-                    }
+                    is RootStore.Intent.UpdateTheme -> readThemeSettings()
                     is RootStore.Intent.UpdateLanguage -> {
                         // Сохранение настроек
                         scope.launch {
@@ -135,6 +123,22 @@ internal class RootStoreFactory(
             } catch (e: Exception) {
                 println("Error in executeIntent: ${e.message}")
             }
+
+
+
+        private fun saveThemeSettings(value: Int) {
+            settings.saveThemeSettings(value)
+            dispatch(Msg.UpdateTheme(value))
+
+        }
+
+        private fun readThemeSettings() {
+            scope.launch {
+                val theme = settings.themeFlow.first()
+
+                dispatch(Msg.UpdateTheme(theme))
+            }
+        }
     }
 
     private object ReducerImpl : Reducer<RootStore.State, Msg> {
@@ -142,7 +146,7 @@ internal class RootStoreFactory(
             when (msg) {
                 Msg.LoadData -> copy(loading = false)
                 Msg.LoadingData -> copy(loading = true)
-                is Msg.UpdateTheme -> copy(isDarkMode = msg.isDarkMode)
+                is Msg.UpdateTheme -> copy(theme = msg.theme)
                 is Msg.UpdateLanguage -> copy(language = msg.language)
             }
     }

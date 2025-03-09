@@ -20,13 +20,13 @@ interface SettingsStore : Store<SettingsStore.Intent, SettingsStore.State, Nothi
     sealed interface Intent {
         data object Init : Intent
         data object Back : Intent
-        data class UpdateTheme(val isDarkMode: Boolean) : Intent
+        data class UpdateTheme(val theme: Int) : Intent
         data class UpdateLanguage(val language: String) : Intent
     }
 
     @Serializable
     data class State(
-        val isDarkMode: Boolean = false,
+        val theme: Int = MultiplatformSettings.ThemeOption.THEME_SYSTEM,
         val language: String = "en",
         val loading: Boolean = false
     )
@@ -51,7 +51,7 @@ internal class SettingsStoreFactory(
     private sealed interface Msg {
         data object LoadingData : Msg
         data object LoadData : Msg
-        data class UpdateTheme(val isDarkMode: Boolean) : Msg
+        data class UpdateTheme(val theme: Int) : Msg
         data class UpdateLanguage(val language: String) : Msg
     }
 
@@ -69,9 +69,8 @@ internal class SettingsStoreFactory(
 
         private fun loadThemeSettings() {
             scope.launch {
-                val themeValue = settings.themeFlow.first()
-                val isDarkMode = themeValue == MultiplatformSettings.ThemeOption.THEME_DARK
-                dispatch(Msg.UpdateTheme(isDarkMode))
+                val theme = settings.themeFlow.first()
+                dispatch(Msg.UpdateTheme(theme))
             }
         }
 
@@ -85,9 +84,8 @@ internal class SettingsStoreFactory(
         private fun setupObservers() {
             // Наблюдаем за изменениями темы
             scope.launch {
-                settings.themeFlow.collectLatest { themeValue ->
-                    val isDarkMode = themeValue == MultiplatformSettings.ThemeOption.THEME_DARK
-                    dispatch(Msg.UpdateTheme(isDarkMode))
+                settings.themeFlow.collectLatest { theme ->
+                    dispatch(Msg.UpdateTheme(theme))
                 }
             }
 
@@ -109,13 +107,9 @@ internal class SettingsStoreFactory(
                 }
                 is SettingsStore.Intent.UpdateTheme -> {
                     // Сохраняем настройку темы
-                    val themeValue = if (intent.isDarkMode)
-                        MultiplatformSettings.ThemeOption.THEME_DARK
-                    else
-                        MultiplatformSettings.ThemeOption.THEME_LIGHT
 
-                    settings.saveThemeSettings(themeValue)
-                    dispatch(Msg.UpdateTheme(intent.isDarkMode))
+                    settings.saveThemeSettings(intent.theme)
+                    dispatch(Msg.UpdateTheme(intent.theme))
                 }
                 is SettingsStore.Intent.UpdateLanguage -> {
                     // Сохраняем настройку языка
@@ -133,7 +127,7 @@ internal class SettingsStoreFactory(
             when (msg) {
                 Msg.LoadData -> copy(loading = false)
                 Msg.LoadingData -> copy(loading = true)
-                is Msg.UpdateTheme -> copy(isDarkMode = msg.isDarkMode)
+                is Msg.UpdateTheme -> copy(theme = msg.theme)
                 is Msg.UpdateLanguage -> copy(language = msg.language)
             }
     }

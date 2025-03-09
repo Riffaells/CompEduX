@@ -9,6 +9,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             // Зависимость от common модуля для доступа к компонентам
+            implementation(projects.core.design)
             implementation(projects.core.common)
             implementation(projects.feature.settings)
         }

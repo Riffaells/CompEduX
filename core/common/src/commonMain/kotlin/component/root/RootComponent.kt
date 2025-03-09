@@ -1,5 +1,6 @@
 package component.root
 
+import MultiplatformSettings
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.router.stack.*
@@ -26,6 +27,8 @@ interface RootComponent {
     val childStack: Value<ChildStack<*, Child>>
     val state: StateFlow<RootStore.State>
 
+    val settings:MultiplatformSettings
+
     fun onEvent(event: RootStore.Intent)
     fun onMainClicked()
     fun onSettingsClicked()
@@ -48,6 +51,9 @@ class DefaultRootComponent(
     // Получаем фабрики компонентов
 
     private val navigation = StackNavigation<Config>()
+
+
+    override val settings by instance<MultiplatformSettings>()
 
     private val stack = childStack(
         source = navigation,

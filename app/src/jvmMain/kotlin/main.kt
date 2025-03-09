@@ -7,10 +7,8 @@ import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.lifecycle.LifecycleController
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
-import com.arkivanov.mvikotlin.core.utils.setMainThreadId
-import com.riffaells.compedux.App
 import com.riffaells.compedux.di.appDI
-import com.riffaells.compedux.ui.components.root.RootContent
+import components.root.RootContent
 import com.riffaells.compedux.ui.desktop.DesktopContent
 import component.root.DefaultRootComponent
 import di.RootComponentParams
@@ -108,5 +106,4 @@ internal fun <T> runOnUiThread(block: () -> T): T {
 @Preview
 @Composable
 fun AppPreview() {
-    App()
 }

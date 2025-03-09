@@ -30,6 +30,7 @@ include(
     ":core:database",
     ":core:network",
     ":core:notifications",
+    ":core:design",
     ":core:ui",
     ":feature:settings",
 )

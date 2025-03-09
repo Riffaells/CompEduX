@@ -24,9 +24,24 @@ class MultiplatformComposeConventionPlugin : Plugin<Project> {
             }
 
             extensions.configure<KotlinMultiplatformExtension> {
+                // Add opt-in annotations for experimental APIs
+                targets.configureEach {
+                    compilations.configureEach {
+                        compilerOptions.configure {
+                            // Add opt-in for Material3 experimental APIs
+                            freeCompilerArgs.add("-opt-in=androidx.compose.material3.ExperimentalMaterial3Api")
+                            // Add other common opt-ins if needed
+                            freeCompilerArgs.add("-opt-in=androidx.compose.foundation.ExperimentalFoundationApi")
+                            freeCompilerArgs.add("-opt-in=androidx.compose.animation.ExperimentalAnimationApi")
+                            freeCompilerArgs.add("-opt-in=androidx.compose.ui.ExperimentalComposeUiApi")
+                        }
+                    }
+                }
+
                 // Configure source sets
                 val commonMain = sourceSets.commonMain
                 val wasmJsMain = sourceSets.wasmJsMain
+                val desktop = sourceSets.jvmMain
 
                 // Configure Wasm target
                 wasmJs {
@@ -34,13 +49,13 @@ class MultiplatformComposeConventionPlugin : Plugin<Project> {
                     binaries.executable()
                 }
 
+                val composeE = project.extensions.getByType<ComposeExtension>()
+                val compose = composeE.dependencies
 
                 // Configure common dependencies for all targets
                 commonMain {
                     dependencies {
                         // Access compose dependencies through the project's ComposeExtension
-                        val composeE = project.extensions.getByType<ComposeExtension>()
-                        val compose = composeE.dependencies
                         implementation(compose.ui)
                         implementation(compose.runtime)
                         implementation(compose.foundation)
@@ -48,6 +63,16 @@ class MultiplatformComposeConventionPlugin : Plugin<Project> {
                         implementation(compose.materialIconsExtended)
                         implementation(compose.components.resources)
                         implementation(compose.components.uiToolingPreview)
+                        implementation(compose.material3AdaptiveNavigationSuite)
+
+                        implementation(libs.skiko)
+                    }
+                }
+
+                desktop {
+                    dependencies {
+                        implementation(compose.desktop.currentOs)
+
                     }
                 }
 

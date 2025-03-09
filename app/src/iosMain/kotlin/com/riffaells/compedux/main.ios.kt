@@ -4,8 +4,8 @@ import androidx.compose.ui.window.ComposeUIViewController
 import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.riffaells.compedux.di.appDI
-import com.riffaells.compedux.theme.AppTheme
-import com.riffaells.compedux.ui.components.root.RootContent
+import components.root.RootContent
+import theme.AppTheme
 import component.root.DefaultRootComponent
 import org.kodein.di.compose.withDI
 import org.kodein.di.direct
