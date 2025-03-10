@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
  * @param isChecked Текущее состояние переключателя
  * @param onCheckedChange Обработчик изменения состояния переключателя
  * @param isExperimental Флаг, указывающий, является ли настройка экспериментальной
+ * @param enabled Флаг, указывающий, доступен ли переключатель для взаимодействия
  */
 @Composable
 fun SettingToggle(
@@ -29,7 +30,8 @@ fun SettingToggle(
     description: String,
     isChecked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
-    isExperimental: Boolean = false
+    isExperimental: Boolean = false,
+    enabled: Boolean = true
 ) {
     Column(
         modifier = Modifier
@@ -45,7 +47,8 @@ fun SettingToggle(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = title,
-                        style = MaterialTheme.typography.titleSmall
+                        style = MaterialTheme.typography.titleSmall,
+                        color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
 
                     if (isExperimental) {
@@ -56,7 +59,7 @@ fun SettingToggle(
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -64,7 +67,8 @@ fun SettingToggle(
 
             Switch(
                 checked = isChecked,
-                onCheckedChange = onCheckedChange
+                onCheckedChange = onCheckedChange,
+                enabled = enabled
             )
         }
     }

@@ -31,6 +31,7 @@ import components.room.RoomContent
 import components.settings.SettingsContent
 import components.skiko.SkikoContent
 import ui.theme.AppTheme
+import ui.theme.LocalThemeIsDark
 import utils.isLargeScreen
 import MultiplatformSettings
 
@@ -49,6 +50,7 @@ fun RootContent(
 
     val settings = component.settings
     val theme by settings.themeFlow.collectAsState()
+    val blackBackground by settings.blackBackgroundFlow.collectAsState()
 
     // Используем платформо-независимую функцию
     val isLargeScreen = isLargeScreen()
@@ -73,7 +75,13 @@ fun RootContent(
     }
 
     // Применяем тему на уровне всего контента
-    AppTheme(isDarkTheme = isDarkTheme) {
+    AppTheme(
+        isDarkTheme = isDarkTheme,
+        useBlackBackground = blackBackground
+    ) {
+        // Получаем текущую тему после применения AppTheme
+        val currentIsDark by LocalThemeIsDark.current
+
         Surface(
             modifier = modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background

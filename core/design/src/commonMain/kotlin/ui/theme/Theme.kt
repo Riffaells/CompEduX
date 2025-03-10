@@ -4,6 +4,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 
@@ -83,6 +84,20 @@ private val darkColorScheme = darkColorScheme(
     surfaceContainerHighest = SurfaceContainerHighestDark,
 )
 
+// Black background color scheme - a variant of dark theme with true black background
+private val blackBackgroundColorScheme = darkColorScheme.copy(
+    background = Color.Black,
+    surface = Color.Black,
+    surfaceVariant = Color(0xFF121212),
+    surfaceDim = Color.Black,
+    surfaceBright = Color(0xFF121212),
+    surfaceContainerLowest = Color.Black,
+    surfaceContainerLow = Color(0xFF0A0A0A),
+    surfaceContainer = Color(0xFF121212),
+    surfaceContainerHigh = Color(0xFF1E1E1E),
+    surfaceContainerHighest = Color(0xFF2A2A2A)
+)
+
 /**
  * Light Android gradient colors
  */
@@ -94,6 +109,11 @@ val LightAndroidGradientColors = GradientColors(container = PrimaryContainerLigh
 val DarkAndroidGradientColors = GradientColors(container = PrimaryContainerDark)
 
 /**
+ * Black Android gradient colors
+ */
+val BlackAndroidGradientColors = GradientColors(container = Color.Black)
+
+/**
  * Light Android background theme
  */
 val LightAndroidBackgroundTheme = BackgroundTheme(color = PrimaryContainerLight)
@@ -102,6 +122,11 @@ val LightAndroidBackgroundTheme = BackgroundTheme(color = PrimaryContainerLight)
  * Dark Android background theme
  */
 val DarkAndroidBackgroundTheme = BackgroundTheme(color = PrimaryContainerDark)
+
+/**
+ * Black Android background theme
+ */
+val BlackAndroidBackgroundTheme = BackgroundTheme(color = Color.Black)
 
 private val AppShapes = Shapes(
     extraSmall = RoundedCornerShape(2.dp),
@@ -113,37 +138,50 @@ private val AppShapes = Shapes(
 
 
 val LocalThemeIsDark = compositionLocalOf { mutableStateOf(true) }
+val LocalUseBlackBackground = compositionLocalOf { mutableStateOf(false) }
 
 
 @Composable
 fun AppTheme(
     isDarkTheme: Boolean? = null,
+    useBlackBackground: Boolean = false,
     content: @Composable() () -> Unit
 ) {
     val systemIsDark = isSystemInDarkTheme()
     val isDarkState = remember { mutableStateOf(systemIsDark) }
+    val useBlackBackgroundState = remember { mutableStateOf(useBlackBackground) }
 
     // Используем переданное значение или системное
     isDarkState.value = isDarkTheme ?: systemIsDark
+    useBlackBackgroundState.value = useBlackBackground
 
     val isDark by isDarkState
-    val colorScheme = (if (isDark) darkColorScheme else lightColorScheme).switch()
-//    // Gradient colors
-    val emptyGradientColors = GradientColors(container = colorScheme.surfaceColorAtElevation(2.dp))
-    val defaultGradientColors = GradientColors(
-        top = colorScheme.inverseOnSurface,
-        bottom = colorScheme.primaryContainer,
-        container = colorScheme.surface,
-    )
-    val gradientColors = if (isDark) DarkAndroidGradientColors else LightAndroidGradientColors
+    val useBlack by useBlackBackgroundState
+
+    // Определяем, нужно ли использовать черный фон
+    // Черный фон применяется только в темной теме
+    val shouldUseBlackBackground = useBlack && isDark
+
+    // Выбираем цветовую схему в зависимости от настроек
+    val colorScheme = when {
+        !isDark -> lightColorScheme
+        shouldUseBlackBackground -> blackBackgroundColorScheme
+        else -> darkColorScheme
+    }.switch()
+
+    // Gradient colors
+    val gradientColors = when {
+        !isDark -> LightAndroidGradientColors
+        shouldUseBlackBackground -> BlackAndroidGradientColors
+        else -> DarkAndroidGradientColors
+    }
 
     // Background theme
-    val defaultBackgroundTheme = BackgroundTheme(
-        color = colorScheme.surface,
-        tonalElevation = 2.dp,
-    )
-    val backgroundTheme =
-        if (isDark) DarkAndroidBackgroundTheme else LightAndroidBackgroundTheme
+    val backgroundTheme = when {
+        !isDark -> LightAndroidBackgroundTheme
+        shouldUseBlackBackground -> BlackAndroidBackgroundTheme
+        else -> DarkAndroidBackgroundTheme
+    }
 
     val tintTheme = TintTheme(colorScheme.primary)
 
@@ -151,6 +189,7 @@ fun AppTheme(
     // Composition locals
     CompositionLocalProvider(
         LocalThemeIsDark provides isDarkState,
+        LocalUseBlackBackground provides useBlackBackgroundState,
         LocalGradientColors provides gradientColors,
         LocalBackgroundTheme provides backgroundTheme,
         LocalTintTheme provides tintTheme,

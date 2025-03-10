@@ -22,12 +22,14 @@ interface SettingsStore : Store<SettingsStore.Intent, SettingsStore.State, Nothi
         data object Back : Intent
         data class UpdateTheme(val theme: Int) : Intent
         data class UpdateLanguage(val language: String) : Intent
+        data class UpdateBlackBackground(val enabled: Boolean) : Intent
     }
 
     @Serializable
     data class State(
         val theme: Int = MultiplatformSettings.ThemeOption.THEME_SYSTEM,
         val language: String = "en",
+        val blackBackground: Boolean = false,
         val loading: Boolean = false
     )
 }
@@ -53,6 +55,7 @@ internal class SettingsStoreFactory(
         data object LoadData : Msg
         data class UpdateTheme(val theme: Int) : Msg
         data class UpdateLanguage(val language: String) : Msg
+        data class UpdateBlackBackground(val enabled: Boolean) : Msg
     }
 
     private inner class ExecutorImpl :
@@ -64,6 +67,7 @@ internal class SettingsStoreFactory(
             dispatch(Msg.LoadData)
             loadThemeSettings()
             loadLanguageSettings()
+            loadBlackBackgroundSettings()
             setupObservers()
         }
 
@@ -81,6 +85,13 @@ internal class SettingsStoreFactory(
             }
         }
 
+        private fun loadBlackBackgroundSettings() {
+            scope.launch {
+                val blackBackground = settings.blackBackgroundFlow.first()
+                dispatch(Msg.UpdateBlackBackground(blackBackground))
+            }
+        }
+
         private fun setupObservers() {
             // Наблюдаем за изменениями темы
             scope.launch {
@@ -95,6 +106,13 @@ internal class SettingsStoreFactory(
                     dispatch(Msg.UpdateLanguage(language))
                 }
             }
+
+            // Наблюдаем за изменениями настройки черного фона
+            scope.launch {
+                settings.blackBackgroundFlow.collectLatest { enabled ->
+                    dispatch(Msg.UpdateBlackBackground(enabled))
+                }
+            }
         }
 
         override fun executeIntent(intent: SettingsStore.Intent): Unit =
@@ -103,11 +121,11 @@ internal class SettingsStoreFactory(
                     dispatch(Msg.LoadData)
                     loadThemeSettings()
                     loadLanguageSettings()
+                    loadBlackBackgroundSettings()
                     setupObservers()
                 }
                 is SettingsStore.Intent.UpdateTheme -> {
                     // Сохраняем настройку темы
-
                     settings.saveThemeSettings(intent.theme)
                     dispatch(Msg.UpdateTheme(intent.theme))
                 }
@@ -115,6 +133,11 @@ internal class SettingsStoreFactory(
                     // Сохраняем настройку языка
                     settings.saveLangSettings(intent.language)
                     dispatch(Msg.UpdateLanguage(intent.language))
+                }
+                is SettingsStore.Intent.UpdateBlackBackground -> {
+                    // Сохраняем настройку черного фона
+                    settings.saveBlackBackgroundSettings(intent.enabled)
+                    dispatch(Msg.UpdateBlackBackground(intent.enabled))
                 }
                 is SettingsStore.Intent.Back -> {
                     // Обработка в компоненте
@@ -129,6 +152,7 @@ internal class SettingsStoreFactory(
                 Msg.LoadingData -> copy(loading = true)
                 is Msg.UpdateTheme -> copy(theme = msg.theme)
                 is Msg.UpdateLanguage -> copy(language = msg.language)
+                is Msg.UpdateBlackBackground -> copy(blackBackground = msg.enabled)
             }
     }
 }

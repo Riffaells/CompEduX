@@ -39,6 +39,7 @@ import component.settings.SettingToggle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.kodein.di.compose.rememberInstance
+import ui.theme.LocalThemeIsDark
 
 /**
  * Композабл для отображения экрана настроек
@@ -52,7 +53,11 @@ fun SettingsContent(component: SettingsComponent) {
     // Получаем настройки напрямую для отображения дополнительных опций
     val settings: MultiplatformSettings by rememberInstance()
     val starrySky by settings.starrySkyFlow.collectAsState()
+    val blackBackground by settings.blackBackgroundFlow.collectAsState()
     val themeOption by settings.themeFlow.collectAsState()
+
+    // Получаем текущую тему из LocalThemeIsDark
+    val isDarkTheme by LocalThemeIsDark.current
 
     // Локальное состояние для выбора темы
     var selectedThemeOption by remember { mutableStateOf(themeOption) }
@@ -182,9 +187,19 @@ fun SettingsContent(component: SettingsComponent) {
                         onOptionSelected = { index ->
                             val option = themeOptions[index].second
                             selectedThemeOption = option
-                            settings.saveThemeSettings(option)
                             component.onAction(SettingsStore.Intent.UpdateTheme(option))
                         }
+                    )
+
+                    // Настройка черного фона (только для темной темы)
+                    SettingToggle(
+                        title = "Черный фон",
+                        description = "Использовать полностью черный фон в темной теме (AMOLED)",
+                        isChecked = blackBackground,
+                        onCheckedChange = {
+                            component.onAction(SettingsStore.Intent.UpdateBlackBackground(it))
+                        },
+                        enabled = selectedThemeOption != MultiplatformSettings.ThemeOption.THEME_LIGHT
                     )
 
                     // Настройка звездного неба с использованием компонента переключателя

@@ -13,6 +13,9 @@ interface MultiplatformSettings {
     val starrySkyFlow: StateFlow<Boolean>
     fun saveStarrySkySettings(value: Boolean)
 
+    val blackBackgroundFlow: StateFlow<Boolean>
+    fun saveBlackBackgroundSettings(value: Boolean)
+
     val versionFlow: StateFlow<Int>
     fun saveVersionSettings(value: Int)
 
@@ -75,6 +78,17 @@ internal class MultiplatformSettingsImpl(private val settings: Settings) : Multi
 
     override val starrySkyFlow: StateFlow<Boolean> get() = starrySky.flow
     override fun saveStarrySkySettings(value: Boolean) = starrySky.save(value)
+
+    private val blackBackground = Setting(
+        key = "BLACK_BACKGROUND_OPTION",
+        defaultValue = false,
+        settings = settings,
+        get = Settings::getBoolean,
+        put = Settings::putBoolean
+    )
+
+    override val blackBackgroundFlow: StateFlow<Boolean> get() = blackBackground.flow
+    override fun saveBlackBackgroundSettings(value: Boolean) = blackBackground.save(value)
 
     private val version = Setting(
         key = "APP_VERSION",
