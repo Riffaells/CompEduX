@@ -1,4 +1,4 @@
-package component.app.auth.store
+package component.app.room.auth.store
 
 import com.arkivanov.mvikotlin.core.store.Reducer
 import com.arkivanov.mvikotlin.core.store.SimpleBootstrapper

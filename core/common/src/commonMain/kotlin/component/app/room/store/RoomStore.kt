@@ -9,6 +9,8 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.kodein.di.DI
 import org.kodein.di.DIAware
+import org.kodein.di.instance
+import repository.auth.AuthRepository
 import utils.rDispatchers
 
 interface RoomStore : Store<RoomStore.Intent, RoomStore.State, Nothing> {
@@ -16,6 +18,7 @@ interface RoomStore : Store<RoomStore.Intent, RoomStore.State, Nothing> {
     sealed interface Intent {
         data object Init : Intent
         data object ToggleAchievement : Intent
+        data object ToggleAuth : Intent
         data class UpdateRoomName(val name: String) : Intent
         data class UpdateRoomDescription(val description: String) : Intent
     }
@@ -25,6 +28,8 @@ interface RoomStore : Store<RoomStore.Intent, RoomStore.State, Nothing> {
         val roomName: String = "Default Room",
         val roomDescription: String = "This is a default room description",
         val showAchievement: Boolean = true,
+        val showAuth: Boolean = false,
+        val isAuthenticated: Boolean = false,
         val loading: Boolean = false
     )
 }
@@ -33,6 +38,8 @@ internal class RoomStoreFactory(
     private val storeFactory: StoreFactory,
     override val di: DI
 ) : DIAware {
+
+    private val authRepository: AuthRepository by instance()
 
     fun create(): RoomStore =
         object : RoomStore, Store<RoomStore.Intent, RoomStore.State, Nothing> by storeFactory.create(
@@ -49,6 +56,8 @@ internal class RoomStoreFactory(
         data class UpdateRoomName(val name: String) : Msg
         data class UpdateRoomDescription(val description: String) : Msg
         data class ToggleAchievementVisibility(val show: Boolean) : Msg
+        data class ToggleAuthVisibility(val show: Boolean) : Msg
+        data class UpdateAuthStatus(val isAuthenticated: Boolean) : Msg
     }
 
     private inner class ExecutorImpl :
@@ -59,8 +68,20 @@ internal class RoomStoreFactory(
         override fun executeAction(action: Unit) {
             try {
                 dispatch(Msg.LoadData)
+                checkAuthStatus()
             } catch (e: Exception) {
                 println("Error in executeAction: ${e.message}")
+            }
+        }
+
+        private fun checkAuthStatus() {
+            scope.launch {
+                try {
+                    val isAuthenticated = authRepository.isAuthenticated()
+                    safeDispatch(Msg.UpdateAuthStatus(isAuthenticated))
+                } catch (e: Exception) {
+                    println("Error checking auth status: ${e.message}")
+                }
             }
         }
 
@@ -78,6 +99,7 @@ internal class RoomStoreFactory(
                 when (intent) {
                     is RoomStore.Intent.Init -> {
                         safeDispatch(Msg.LoadData)
+                        checkAuthStatus()
                     }
                     is RoomStore.Intent.UpdateRoomName -> {
                         scope.launch {
@@ -105,6 +127,10 @@ internal class RoomStoreFactory(
                         val currentState = state()
                         safeDispatch(Msg.ToggleAchievementVisibility(!currentState.showAchievement))
                     }
+                    is RoomStore.Intent.ToggleAuth -> {
+                        val currentState = state()
+                        safeDispatch(Msg.ToggleAuthVisibility(!currentState.showAuth))
+                    }
                 }
             } catch (e: Exception) {
                 println("Error in executeIntent: ${e.message}")
@@ -119,6 +145,8 @@ internal class RoomStoreFactory(
                 is Msg.UpdateRoomName -> copy(roomName = msg.name)
                 is Msg.UpdateRoomDescription -> copy(roomDescription = msg.description)
                 is Msg.ToggleAchievementVisibility -> copy(showAchievement = msg.show)
+                is Msg.ToggleAuthVisibility -> copy(showAuth = msg.show)
+                is Msg.UpdateAuthStatus -> copy(isAuthenticated = msg.isAuthenticated)
             }
     }
 }
