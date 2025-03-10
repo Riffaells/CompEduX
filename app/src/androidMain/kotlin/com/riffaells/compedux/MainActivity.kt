@@ -46,7 +46,7 @@ class AppActivity : ComponentActivity() {
             withDI(appDI) {
                 // Предоставляем AndroidWindowSizeHelper через CompositionLocalProvider
                 CompositionLocalProvider(
-                    LocalWindowSizeHelper provides AndroidWindowSizeHelper()
+                    utils.LocalWindowSizeHelper provides utils.AndroidWindowSizeHelper()
                 ) {
                     RootContent(component = rootComponent)
                 }

@@ -29,8 +29,9 @@ import components.auth.AuthContent
 import components.main.MainContent
 import components.settings.SettingsContent
 import components.skiko.SkikoContent
-import theme.AppTheme
+import ui.theme.AppTheme
 import utils.isLargeScreen
+import MultiplatformSettings
 
 /**
  * Корневой композабл, который отображает текущий дочерний компонент
@@ -62,103 +63,119 @@ fun RootContent(
         wasLargeScreen = isLargeScreen
     }
 
-    // Применяем тему на уровне всего контента, чтобы избежать мигания при переходах
-    AppTheme(theme = theme) {
+    // Определяем, какую тему использовать на основе настроек
+    val isDarkTheme = when (theme) {
+        MultiplatformSettings.ThemeOption.THEME_SYSTEM -> null // null означает использовать системную тему
+        MultiplatformSettings.ThemeOption.THEME_DARK -> true
+        MultiplatformSettings.ThemeOption.THEME_LIGHT -> false
+        else -> null
+    }
+
+    // Применяем тему на уровне всего контента
+    AppTheme(isDarkTheme = isDarkTheme) {
         Surface(
             modifier = modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background
         ) {
-            // Используем AnimatedContent для плавного перехода между разными типами навигации
-            AnimatedContent(
-                targetState = isLargeScreen,
-                transitionSpec = {
-                    fadeIn(animationSpec = tween(500, easing = EaseOutQuart)) with
-                            fadeOut(animationSpec = tween(500, easing = EaseInQuart))
-                },
-                label = "NavigationTypeAnimation"
-            ) { targetIsLargeScreen ->
-                if (targetIsLargeScreen) {
-                    // Для больших экранов используем NavigationRail слева
-                    Row(
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        // Анимированный NavigationRail
-                        NavigationRail {
-                            NavigationRailItem(
-                                selected = childStack.active.instance is MainChild,
-                                onClick = { component.onMainClicked() },
-                                icon = { Icon(Icons.Default.Home, contentDescription = "Главная") },
-                                label = { Text("Главная") }
-                            )
-                            NavigationRailItem(
-                                selected = childStack.active.instance is SettingsChild,
-                                onClick = { component.onSettingsClicked() },
-                                icon = { Icon(Icons.Default.Settings, contentDescription = "Настройки") },
-                                label = { Text("Настройки") }
-                            )
-                            NavigationRailItem(
-                                selected = childStack.active.instance is SkikoChild,
-                                onClick = { component.onDevelopmentMapClicked() },
-                                icon = { Icon(Icons.Default.Map, contentDescription = "Карта развития") },
-                                label = { Text("Карта развития") }
-                            )
-                            NavigationRailItem(
-                                selected = childStack.active.instance is AuthChild,
-                                onClick = { component.onAuthClicked() },
-                                icon = { Icon(Icons.Default.Person, contentDescription = "Профиль") },
-                                label = { Text("Профиль") }
-                            )
-                        }
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Отображаем desktopContent сверху для всех типов экранов, если он есть
+                if (desktopContent != null) {
+                    desktopContent(childStack.active.instance, false)
+                }
 
-                        // Контент справа от NavigationRail
-                        Surface(
-                            modifier = Modifier.fillMaxSize(),
-                            color = MaterialTheme.colorScheme.background
+                // Используем AnimatedContent для плавного перехода между разными типами навигации
+                AnimatedContent(
+                    targetState = isLargeScreen,
+                    transitionSpec = {
+                        fadeIn(animationSpec = tween(500, easing = EaseOutQuart)) with
+                                fadeOut(animationSpec = tween(500, easing = EaseInQuart))
+                    },
+                    modifier = Modifier.weight(1f),
+                    label = "NavigationTypeAnimation"
+                ) { targetIsLargeScreen ->
+                    if (targetIsLargeScreen) {
+                        // Для больших экранов используем NavigationRail слева
+                        Row(
+                            modifier = Modifier.fillMaxSize()
                         ) {
-                            RenderContent(component, desktopContent)
-                        }
-                    }
-                } else {
-                    // Для маленьких экранов используем NavigationBar внизу
-                    Column(
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        // Контент над NavigationBar
-                        Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f),
-                            color = MaterialTheme.colorScheme.background
-                        ) {
-                            RenderContent(component, desktopContent)
-                        }
+                            // Анимированный NavigationRail
+                            NavigationRail {
+                                NavigationRailItem(
+                                    selected = childStack.active.instance is MainChild,
+                                    onClick = { component.onMainClicked() },
+                                    icon = { Icon(Icons.Default.Home, contentDescription = "Главная") },
+                                    label = { Text("Главная") }
+                                )
+                                NavigationRailItem(
+                                    selected = childStack.active.instance is SettingsChild,
+                                    onClick = { component.onSettingsClicked() },
+                                    icon = { Icon(Icons.Default.Settings, contentDescription = "Настройки") },
+                                    label = { Text("Настройки") }
+                                )
+                                NavigationRailItem(
+                                    selected = childStack.active.instance is SkikoChild,
+                                    onClick = { component.onDevelopmentMapClicked() },
+                                    icon = { Icon(Icons.Default.Map, contentDescription = "Карта развития") },
+                                    label = { Text("Карта развития") }
+                                )
+                                NavigationRailItem(
+                                    selected = childStack.active.instance is AuthChild,
+                                    onClick = { component.onAuthClicked() },
+                                    icon = { Icon(Icons.Default.Person, contentDescription = "Профиль") },
+                                    label = { Text("Профиль") }
+                                )
+                            }
 
-                        // Нижняя навигация
-                        NavigationBar {
-                            NavigationBarItem(
-                                selected = childStack.active.instance is MainChild,
-                                onClick = { component.onMainClicked() },
-                                icon = { Icon(Icons.Default.Home, contentDescription = "Главная") },
-                                label = { Text("Главная") }
-                            )
-                            NavigationBarItem(
-                                selected = childStack.active.instance is SettingsChild,
-                                onClick = { component.onSettingsClicked() },
-                                icon = { Icon(Icons.Default.Settings, contentDescription = "Настройки") },
-                                label = { Text("Настройки") }
-                            )
-                            NavigationBarItem(
-                                selected = childStack.active.instance is SkikoChild,
-                                onClick = { component.onDevelopmentMapClicked() },
-                                icon = { Icon(Icons.Default.Map, contentDescription = "Карта развития") },
-                                label = { Text("Карта развития") }
-                            )
-                            NavigationBarItem(
-                                selected = childStack.active.instance is AuthChild,
-                                onClick = { component.onAuthClicked() },
-                                icon = { Icon(Icons.Default.Person, contentDescription = "Профиль") },
-                                label = { Text("Профиль") }
-                            )
+                            // Контент справа от NavigationRail
+                            Surface(
+                                modifier = Modifier.fillMaxSize(),
+                                color = MaterialTheme.colorScheme.background
+                            ) {
+                                RenderContent(component, null)
+                            }
+                        }
+                    } else {
+                        // Для маленьких экранов используем NavigationBar внизу
+                        Column(
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            // Контент над NavigationBar
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f),
+                                color = MaterialTheme.colorScheme.background
+                            ) {
+                                RenderContent(component, null)
+                            }
+
+                            // Нижняя навигация
+                            NavigationBar {
+                                NavigationBarItem(
+                                    selected = childStack.active.instance is MainChild,
+                                    onClick = { component.onMainClicked() },
+                                    icon = { Icon(Icons.Default.Home, contentDescription = "Главная") },
+                                    label = { Text("Главная") }
+                                )
+                                NavigationBarItem(
+                                    selected = childStack.active.instance is SettingsChild,
+                                    onClick = { component.onSettingsClicked() },
+                                    icon = { Icon(Icons.Default.Settings, contentDescription = "Настройки") },
+                                    label = { Text("Настройки") }
+                                )
+                                NavigationBarItem(
+                                    selected = childStack.active.instance is SkikoChild,
+                                    onClick = { component.onDevelopmentMapClicked() },
+                                    icon = { Icon(Icons.Default.Map, contentDescription = "Карта развития") },
+                                    label = { Text("Карта развития") }
+                                )
+                                NavigationBarItem(
+                                    selected = childStack.active.instance is AuthChild,
+                                    onClick = { component.onAuthClicked() },
+                                    icon = { Icon(Icons.Default.Person, contentDescription = "Профиль") },
+                                    label = { Text("Профиль") }
+                                )
+                            }
                         }
                     }
                 }
@@ -182,29 +199,11 @@ private fun RenderContent(
         modifier = Modifier.fillMaxSize()
     ) { child ->
         val instance = child.instance
-
-        if (desktopContent != null) {
-            // Для десктопа используем кастомный контент
-            Column(
-                modifier = Modifier.padding(start = 8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                desktopContent(instance, false)
-                when (instance) {
-                    is MainChild -> MainContent(instance.component)
-                    is SettingsChild -> SettingsContent(instance.component)
-                    is SkikoChild -> SkikoContent(instance.component)
-                    is AuthChild -> AuthContent(instance.component)
-                }
-            }
-        } else {
-            // Для других платформ используем стандартный контент
-            when (instance) {
-                is MainChild -> MainContent(instance.component)
-                is SettingsChild -> SettingsContent(instance.component)
-                is SkikoChild -> SkikoContent(instance.component)
-                is AuthChild -> AuthContent(instance.component)
-            }
+        when (instance) {
+            is MainChild -> MainContent(instance.component)
+            is SettingsChild -> SettingsContent(instance.component)
+            is SkikoChild -> SkikoContent(instance.component)
+            is AuthChild -> AuthContent(instance.component)
         }
     }
 }

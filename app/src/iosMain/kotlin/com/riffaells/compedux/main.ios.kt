@@ -5,7 +5,7 @@ import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.riffaells.compedux.di.appDI
 import components.root.RootContent
-import theme.AppTheme
+import ui.theme.AppTheme
 import component.root.DefaultRootComponent
 import org.kodein.di.compose.withDI
 import org.kodein.di.direct

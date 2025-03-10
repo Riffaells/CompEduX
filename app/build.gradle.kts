@@ -48,6 +48,7 @@ kotlin {
             implementation(projects.core.common)
             implementation(projects.feature.settings)
             implementation(projects.core.ui)
+            implementation(projects.core.design)
         }
 
 

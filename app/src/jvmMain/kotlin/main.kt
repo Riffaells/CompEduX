@@ -9,12 +9,12 @@ import com.arkivanov.decompose.extensions.compose.lifecycle.LifecycleController
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.riffaells.compedux.di.appDI
 import components.root.RootContent
-import com.riffaells.compedux.ui.desktop.DesktopContent
 import component.root.DefaultRootComponent
 import di.RootComponentParams
 import org.kodein.di.compose.withDI
 import org.kodein.di.direct
 import org.kodein.di.factory
+import ui.desktop.DesktopContent
 import javax.swing.SwingUtilities
 
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalDecomposeApi::class)
