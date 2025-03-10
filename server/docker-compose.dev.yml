@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  # База данных PostgreSQL
+  postgres:
+    image: postgres:14-alpine
+    container_name: postgres
+    restart: always
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secure_password
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Сервис аутентификации в режиме разработки
+  auth_service:
+    build:
+      context: ./auth_service
+      dockerfile: Dockerfile
+    container_name: auth_service
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secure_password
+      POSTGRES_DB: auth_db
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      DEBUG: "true"
+      AUTH_SECRET_KEY: "your_secure_secret_key_here"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./auth_service:/app
+    command: >
+      sh -c "
+        echo 'Waiting for PostgreSQL to be ready...' &&
+        sleep 5 &&
+        cd /app &&
+        python -m app.db.init_db &&
+        alembic upgrade head &&
+        uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+      "
+
+  # API Gateway в режиме разработки
+  api_gateway:
+    build:
+      context: ./api_gateway
+      dockerfile: Dockerfile
+    container_name: api_gateway
+    restart: always
+    environment:
+      DEBUG: "true"
+      AUTH_SECRET_KEY: "your_secure_secret_key_here"
+      AUTH_SERVICE_URL: "http://auth_service:8000"
+    depends_on:
+      - auth_service
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./api_gateway:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+volumes:
+  postgres_data:

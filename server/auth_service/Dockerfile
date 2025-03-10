@@ -1,17 +1,19 @@
-FROM python:3.13-slim
+FROM python:3.11-slim
 
 WORKDIR /app
 
-# Копируем только requirements.txt сначала для использования кеша Docker
+# Установка системных зависимостей для psycopg2
+RUN apt-get update && apt-get install -y \
+    gcc \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Установка зависимостей Python
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Копируем остальные файлы
+# Копирование кода приложения
 COPY . .
 
-# Создаем непривилегированного пользователя
-RUN adduser --disabled-password --gecos "" appuser
-USER appuser
-
-# Запускаем приложение
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Запуск миграций и приложения
+CMD alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000
