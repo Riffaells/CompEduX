@@ -6,10 +6,12 @@ import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.getByType
 import org.jetbrains.compose.ComposeExtension
+import org.jetbrains.compose.ExperimentalComposeLibrary
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
 class MultiplatformComposeConventionPlugin : Plugin<Project> {
-    @OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
+    @OptIn(ExperimentalWasmDsl::class, ExperimentalComposeLibrary::class)
     override fun apply(target: Project) {
         with(target) {
             with(pluginManager) {
@@ -44,8 +46,10 @@ class MultiplatformComposeConventionPlugin : Plugin<Project> {
 
                 // Configure source sets
                 val commonMain = sourceSets.commonMain
+                val commonTest = sourceSets.commonTest
                 val wasmJsMain = sourceSets.wasmJsMain
-                val desktop = sourceSets.jvmMain
+                val desktopMain = sourceSets.jvmMain
+                val androidMain = sourceSets.androidMain
 
                 // Configure Wasm target
                 wasmJs {
@@ -73,17 +77,31 @@ class MultiplatformComposeConventionPlugin : Plugin<Project> {
                     }
                 }
 
-                desktop {
+                commonTest {
+                    dependencies {
+
+                        implementation(kotlin("test"))
+                        implementation(compose.uiTest)
+                    }
+                }
+
+                desktopMain {
                     dependencies {
                         implementation(compose.desktop.currentOs)
 
                     }
                 }
+                androidMain {
+                    dependencies {
+                        implementation(compose.uiTooling)
+                        implementation(libs.androidx.activityCompose)
+                    }
+
+                }
 
                 // Wasm-specific dependencies if needed
                 wasmJsMain {
                     dependencies {
-                        // Add Wasm-specific dependencies here if needed
                     }
                 }
             }

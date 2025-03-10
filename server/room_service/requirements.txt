@@ -1,6 +1,9 @@
-fastapi
+fastapi>=0.100.0
 uvicorn
 sqlalchemy
-pydantic
-requests
+pydantic>=2.0.0
+pydantic-settings
+httpx
+python-jose
+python-multipart
 psycopg2-binary

@@ -443,9 +443,9 @@ async def github_auth(request: OAuthLoginRequest, db: Session = Depends(database
 def create_new_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
     # Проверяем, есть ли пользователь с таким email
     if user.email:
-        db_user = get_user_by_email(db, email=user.email)
-        if db_user:
-            raise HTTPException(status_code=400, detail="Email already registered")
+    db_user = get_user_by_email(db, email=user.email)
+    if db_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
 
     # Проверяем, есть ли пользователь с таким username
     db_user = get_user(db, username=user.username)
