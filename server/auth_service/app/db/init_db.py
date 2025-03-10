@@ -9,40 +9,30 @@ logger = logging.getLogger(__name__)
 
 def init_db():
     """
-    Инициализация баз данных для всех сервисов
+    Инициализация базы данных для auth_service
     """
     # Получаем параметры подключения из переменных окружения
-    user = os.getenv("POSTGRES_USER", "postgres")
-    password = os.getenv("POSTGRES_PASSWORD", "secure_password")
+    user = os.getenv("POSTGRES_USER", "auth_user")
+    password = os.getenv("POSTGRES_PASSWORD", "auth_password")
     host = os.getenv("POSTGRES_HOST", "localhost")
     port = os.getenv("POSTGRES_PORT", "5432")
+    db = os.getenv("POSTGRES_DB", "auth_db")
 
-    # Подключаемся к основной базе данных postgres
-    postgres_url = f"postgresql://{user}:{password}@{host}:{port}/postgres"
-    engine = create_engine(postgres_url)
+    # Подключаемся к базе данных
+    db_url = f"postgresql://{user}:{password}@{host}:{port}/{db}"
+    logger.info(f"Подключение к базе данных {db} с пользователем {user}")
 
-    # Список баз данных для создания
-    databases = ["auth_db", "room_db", "competition_db", "achievement_db"]
+    try:
+        engine = create_engine(db_url)
+        with engine.connect() as conn:
+            logger.info("Успешное подключение к базе данных")
+            # Здесь можно выполнить дополнительные операции инициализации,
+            # например, создание таблиц или заполнение начальными данными
+    except Exception as e:
+        logger.error(f"Ошибка при подключении к базе данных: {e}")
+        raise
 
-    # Создаем базы данных, если они не существуют
-    with engine.connect() as conn:
-        conn.execution_options(isolation_level="AUTOCOMMIT")
-
-        for db_name in databases:
-            try:
-                logger.info(f"Проверка существования базы данных {db_name}...")
-                # Проверяем, существует ли база данных
-                result = conn.execute(text(f"SELECT 1 FROM pg_database WHERE datname = '{db_name}'"))
-                if result.fetchone() is None:
-                    logger.info(f"Создание базы данных {db_name}...")
-                    conn.execute(text(f"CREATE DATABASE {db_name}"))
-                    logger.info(f"База данных {db_name} успешно создана")
-                else:
-                    logger.info(f"База данных {db_name} уже существует")
-            except Exception as e:
-                logger.error(f"Ошибка при создании базы данных {db_name}: {e}")
-
-    logger.info("Инициализация баз данных завершена")
+    logger.info("Инициализация базы данных завершена")
 
 
 if __name__ == "__main__":

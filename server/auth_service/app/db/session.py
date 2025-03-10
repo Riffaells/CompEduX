@@ -1,8 +1,8 @@
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
+from app.models.user import Base
 
 # Создаем движок SQLAlchemy
 engine = create_engine(
@@ -13,12 +13,15 @@ engine = create_engine(
 # Создаем фабрику сессий
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Базовый класс для моделей
-Base = declarative_base()
-
 
 # Функция-зависимость для получения сессии БД
 def get_db():
+    """
+    Функция-зависимость для получения сессии базы данных.
+
+    Yields:
+        Session: Сессия SQLAlchemy для работы с базой данных.
+    """
     db = SessionLocal()
     try:
         yield db
