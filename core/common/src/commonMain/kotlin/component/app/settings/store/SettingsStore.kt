@@ -23,6 +23,7 @@ interface SettingsStore : Store<SettingsStore.Intent, SettingsStore.State, Nothi
         data class UpdateTheme(val theme: Int) : Intent
         data class UpdateLanguage(val language: String) : Intent
         data class UpdateBlackBackground(val enabled: Boolean) : Intent
+        data class UpdateServerUrl(val url: String) : Intent
     }
 
     @Serializable
@@ -30,6 +31,7 @@ interface SettingsStore : Store<SettingsStore.Intent, SettingsStore.State, Nothi
         val theme: Int = MultiplatformSettings.ThemeOption.THEME_SYSTEM,
         val language: String = "en",
         val blackBackground: Boolean = false,
+        val serverUrl: String = "https://api.example.com",
         val loading: Boolean = false
     )
 }
@@ -56,6 +58,7 @@ internal class SettingsStoreFactory(
         data class UpdateTheme(val theme: Int) : Msg
         data class UpdateLanguage(val language: String) : Msg
         data class UpdateBlackBackground(val enabled: Boolean) : Msg
+        data class UpdateServerUrl(val url: String) : Msg
     }
 
     private inner class ExecutorImpl :
@@ -68,6 +71,7 @@ internal class SettingsStoreFactory(
             loadThemeSettings()
             loadLanguageSettings()
             loadBlackBackgroundSettings()
+            loadServerUrlSettings()
             setupObservers()
         }
 
@@ -92,6 +96,13 @@ internal class SettingsStoreFactory(
             }
         }
 
+        private fun loadServerUrlSettings() {
+            scope.launch {
+                val serverUrl = settings.serverUrlFlow.first()
+                dispatch(Msg.UpdateServerUrl(serverUrl))
+            }
+        }
+
         private fun setupObservers() {
             // Наблюдаем за изменениями темы
             scope.launch {
@@ -113,6 +124,13 @@ internal class SettingsStoreFactory(
                     dispatch(Msg.UpdateBlackBackground(enabled))
                 }
             }
+
+            // Наблюдаем за изменениями URL сервера
+            scope.launch {
+                settings.serverUrlFlow.collectLatest { url ->
+                    dispatch(Msg.UpdateServerUrl(url))
+                }
+            }
         }
 
         override fun executeIntent(intent: SettingsStore.Intent): Unit =
@@ -122,6 +140,7 @@ internal class SettingsStoreFactory(
                     loadThemeSettings()
                     loadLanguageSettings()
                     loadBlackBackgroundSettings()
+                    loadServerUrlSettings()
                     setupObservers()
                 }
                 is SettingsStore.Intent.UpdateTheme -> {
@@ -139,6 +158,11 @@ internal class SettingsStoreFactory(
                     settings.saveBlackBackgroundSettings(intent.enabled)
                     dispatch(Msg.UpdateBlackBackground(intent.enabled))
                 }
+                is SettingsStore.Intent.UpdateServerUrl -> {
+                    // Сохраняем URL сервера
+                    settings.saveServerUrlSettings(intent.url)
+                    dispatch(Msg.UpdateServerUrl(intent.url))
+                }
                 is SettingsStore.Intent.Back -> {
                     // Обработка в компоненте
                 }
@@ -153,6 +177,7 @@ internal class SettingsStoreFactory(
                 is Msg.UpdateTheme -> copy(theme = msg.theme)
                 is Msg.UpdateLanguage -> copy(language = msg.language)
                 is Msg.UpdateBlackBackground -> copy(blackBackground = msg.enabled)
+                is Msg.UpdateServerUrl -> copy(serverUrl = msg.url)
             }
     }
 }

@@ -55,12 +55,16 @@ fun SettingsContent(component: SettingsComponent) {
     val starrySky by settings.starrySkyFlow.collectAsState()
     val blackBackground by settings.blackBackgroundFlow.collectAsState()
     val themeOption by settings.themeFlow.collectAsState()
+    val serverUrl by settings.serverUrlFlow.collectAsState()
 
     // Получаем текущую тему из LocalThemeIsDark
     val isDarkTheme by LocalThemeIsDark.current
 
     // Локальное состояние для выбора темы
     var selectedThemeOption by remember { mutableStateOf(themeOption) }
+
+    // Локальное состояние для URL сервера
+    var serverUrlValue by remember { mutableStateOf(serverUrl) }
 
     // Состояние для управления drawer
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -231,6 +235,26 @@ fun SettingsContent(component: SettingsComponent) {
                         onOptionSelected = { index ->
                             val newLanguage = languageOptions[index].second
                             component.onAction(SettingsStore.Intent.UpdateLanguage(newLanguage))
+                        }
+                    )
+                }
+
+                // Секция "Настройки сервера"
+                SettingSection(
+                    title = "Настройки сервера",
+                    showContent = showContent,
+                    animationDelay = 750,
+                    showTopDivider = false,
+                    showBottomDivider = true
+                ) {
+                    // Текстовое поле для ввода URL сервера
+                    SettingTextField(
+                        title = "URL сервера",
+                        description = "Введите адрес сервера для подключения",
+                        value = serverUrlValue,
+                        onValueChange = { newValue ->
+                            serverUrlValue = newValue
+                            component.onAction(SettingsStore.Intent.UpdateServerUrl(newValue))
                         }
                     )
                 }

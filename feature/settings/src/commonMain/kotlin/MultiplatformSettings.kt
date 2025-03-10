@@ -19,6 +19,9 @@ interface MultiplatformSettings {
     val versionFlow: StateFlow<Int>
     fun saveVersionSettings(value: Int)
 
+    val serverUrlFlow: StateFlow<String>
+    fun saveServerUrlSettings(value: String)
+
     object ThemeOption {
         const val KEY = "THEME_OPTION"
         const val THEME_LIGHT = 1
@@ -100,4 +103,15 @@ internal class MultiplatformSettingsImpl(private val settings: Settings) : Multi
 
     override val versionFlow: StateFlow<Int> get() = version.flow
     override fun saveVersionSettings(value: Int) = version.save(value)
+
+    private val serverUrl = Setting(
+        key = "SERVER_URL_OPTION",
+        defaultValue = "https://api.example.com",
+        settings = settings,
+        get = Settings::getString,
+        put = Settings::putString
+    )
+
+    override val serverUrlFlow: StateFlow<String> get() = serverUrl.flow
+    override fun saveServerUrlSettings(value: String) = serverUrl.save(value)
 }
