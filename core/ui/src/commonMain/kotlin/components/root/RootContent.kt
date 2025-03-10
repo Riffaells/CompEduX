@@ -27,6 +27,7 @@ import component.root.RootComponent
 import component.root.RootComponent.Child.*
 import components.auth.AuthContent
 import components.main.MainContent
+import components.room.RoomContent
 import components.settings.SettingsContent
 import components.skiko.SkikoContent
 import ui.theme.AppTheme
@@ -204,6 +205,7 @@ private fun RenderContent(
             is SettingsChild -> SettingsContent(instance.component)
             is SkikoChild -> SkikoContent(instance.component)
             is AuthChild -> AuthContent(instance.component)
+            is RoomChild -> RoomContent(instance.component)
         }
     }
 }

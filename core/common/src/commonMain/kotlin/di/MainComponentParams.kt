@@ -8,5 +8,6 @@ import com.arkivanov.decompose.ComponentContext
 data class MainComponentParams(
     val componentContext: ComponentContext,
     val onSettingsClicked: () -> Unit,
-    val onDevelopmentMapClicked: () -> Unit
+    val onDevelopmentMapClicked: () -> Unit,
+    val onRoomClicked: () -> Unit = {}
 )

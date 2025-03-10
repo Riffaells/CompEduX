@@ -32,10 +32,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import component.app.settings.SettingsComponent
 import component.app.settings.store.SettingsStore
-import components.settings.components.SettingDropdown
-import components.settings.components.SettingSection
-import components.settings.components.SettingTextField
-import components.settings.components.SettingToggle
+import component.settings.SettingDropdown
+import component.settings.SettingSection
+import component.settings.SettingTextField
+import component.settings.SettingToggle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.kodein.di.compose.rememberInstance

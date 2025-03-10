@@ -15,11 +15,16 @@ interface MainComponent {
     val state: StateFlow<MainStore.State>
 
     fun onAction(action: MainStore.Intent)
+    fun onSettingsClicked()
+    fun onDevelopmentMapClicked()
+    fun onRoomClicked()
 }
 
 class DefaultMainComponent(
     componentContext: ComponentContext,
     private val onSettingsClicked: () -> Unit,
+    private val onDevelopmentMapClicked: () -> Unit,
+    private val onRoomClicked: () -> Unit,
     override val di: DI
 ) : MainComponent, DIAware, ComponentContext by componentContext {
 
@@ -37,5 +42,17 @@ class DefaultMainComponent(
             is MainStore.Intent.OpenSettings -> onSettingsClicked()
             else -> store.accept(action)
         }
+    }
+
+    override fun onSettingsClicked() {
+        onSettingsClicked.invoke()
+    }
+
+    override fun onDevelopmentMapClicked() {
+        onDevelopmentMapClicked.invoke()
+    }
+
+    override fun onRoomClicked() {
+        onRoomClicked.invoke()
     }
 }

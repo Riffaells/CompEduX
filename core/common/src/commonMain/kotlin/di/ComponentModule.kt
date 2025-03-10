@@ -9,6 +9,12 @@ import component.app.auth.store.ProfileStoreFactory
 import component.app.auth.store.RegisterStoreFactory
 import component.app.main.DefaultMainComponent
 import component.app.main.store.MainStoreFactory
+import component.app.room.DefaultRoomComponent
+import component.app.room.achievement.DefaultAchievementComponent
+import component.app.room.achievement.store.AchievementStoreFactory
+import component.app.room.diagram.DefaultDiagramComponent
+import component.app.room.diagram.store.DiagramStoreFactory
+import component.app.room.store.RoomStoreFactory
 import component.app.settings.DefaultSettingsComponent
 import component.app.settings.store.SettingsStoreFactory
 import component.app.skiko.DefaultSkikoComponent
@@ -31,13 +37,17 @@ val componentModule = DI.Module("componentModule") {
     bindProvider { SettingsStoreFactory(storeFactory = instance(), di = di) }
     bindProvider { SkikoStoreFactory(storeFactory = instance(), di = di) }
     bindProvider { AuthStoreFactory(storeFactory = instance(), di = di) }
+    bindProvider { RoomStoreFactory(storeFactory = instance(), di = di) }
+    bindProvider { DiagramStoreFactory(storeFactory = instance(), di = di) }
+    bindProvider { AchievementStoreFactory(storeFactory = instance(), di = di) }
 
     // Фабрики компонентов с использованием data class для параметров
     bindFactory { params: MainComponentParams ->
         DefaultMainComponent(
             componentContext = params.componentContext,
             onSettingsClicked = params.onSettingsClicked,
-//            onDevelopmentMapClicked = params.onDevelopmentMapClicked,
+            onDevelopmentMapClicked = params.onDevelopmentMapClicked,
+            onRoomClicked = params.onRoomClicked,
             di = di
         )
     }
@@ -72,6 +82,29 @@ val componentModule = DI.Module("componentModule") {
         DefaultAuthComponent(
             componentContext = params.componentContext,
             onBack = params.onBack,
+            di = di
+        )
+    }
+
+    bindFactory { params: RoomComponentParams ->
+        DefaultRoomComponent(
+            componentContext = params.componentContext,
+            storeFactory = instance(),
+            onBack = params.onBack,
+            di = di
+        )
+    }
+
+    bindFactory { params: DiagramComponentParams ->
+        DefaultDiagramComponent(
+            componentContext = params.componentContext,
+            di = di
+        )
+    }
+
+    bindFactory { params: AchievementComponentParams ->
+        DefaultAchievementComponent(
+            componentContext = params.componentContext,
             di = di
         )
     }

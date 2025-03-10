@@ -197,6 +197,16 @@ fun MainContent(component: MainComponent) {
                         ) {
                             Text("Открыть карту развития")
                         }
+
+                        // Добавляем кнопку для открытия комнаты
+                        Button(
+                            onClick = { component.onRoomClicked() },
+                            modifier = Modifier
+                                .padding(top = 16.dp)
+                                .scale(buttonScale)
+                        ) {
+                            Text("Открыть комнату")
+                        }
                     }
                 }
 

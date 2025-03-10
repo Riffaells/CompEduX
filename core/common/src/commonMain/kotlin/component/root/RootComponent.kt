@@ -11,15 +11,13 @@ import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import component.app.auth.DefaultAuthComponent
 import component.app.main.DefaultMainComponent
+import component.app.room.DefaultRoomComponent
 import component.app.settings.DefaultSettingsComponent
 import component.app.skiko.DefaultSkikoComponent
 import component.root.RootComponent.Child.*
 import component.root.store.RootStore
 import component.root.store.RootStoreFactory
-import di.AuthComponentParams
-import di.MainComponentParams
-import di.SettingsComponentParams
-import di.SkikoComponentParams
+import di.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.Serializable
@@ -39,12 +37,14 @@ interface RootComponent {
     fun onSettingsClicked()
     fun onDevelopmentMapClicked()
     fun onAuthClicked()
+    fun onRoomClicked()
 
     sealed class Child {
         class MainChild(val component: DefaultMainComponent) : Child()
         class SettingsChild(val component: DefaultSettingsComponent) : Child()
         class SkikoChild(val component: DefaultSkikoComponent) : Child()
         class AuthChild(val component: DefaultAuthComponent) : Child()
+        class RoomChild(val component: DefaultRoomComponent) : Child()
     }
 }
 
@@ -109,6 +109,7 @@ class DefaultRootComponent(
             Config.Settings -> SettingsChild(settingsComponent(componentContext))
             Config.Skiko -> SkikoChild(skikoComponent(componentContext))
             Config.Auth -> AuthChild(authComponent(componentContext))
+            Config.Room -> RoomChild(roomComponent(componentContext))
         }
 
 
@@ -118,7 +119,8 @@ class DefaultRootComponent(
             MainComponentParams(
                 componentContext = componentContext,
                 onSettingsClicked = ::onSettingsClicked,
-                onDevelopmentMapClicked = ::onDevelopmentMapClicked
+                onDevelopmentMapClicked = ::onDevelopmentMapClicked,
+                onRoomClicked = ::onRoomClicked
             )
         )
     }
@@ -151,6 +153,16 @@ class DefaultRootComponent(
         )
     }
 
+    private fun roomComponent(componentContext: ComponentContext): DefaultRoomComponent {
+        val roomComponentFactory by factory<RoomComponentParams, DefaultRoomComponent>()
+        return roomComponentFactory(
+            RoomComponentParams(
+                componentContext = componentContext,
+                onBack = navigation::pop
+            )
+        )
+    }
+
     override fun onMainClicked() {
         navigation.bringToFront(Config.Main)
     }
@@ -167,10 +179,15 @@ class DefaultRootComponent(
         navigation.bringToFront(Config.Auth)
     }
 
+    override fun onRoomClicked() {
+        navigation.bringToFront(Config.Room)
+    }
+
     private companion object {
         private const val WEB_PATH_SETTINGS = "settings"
         private const val WEB_PATH_SKIKO = "skiko"
         private const val WEB_PATH_AUTH = "auth"
+        private const val WEB_PATH_ROOM = "room"
 
         private fun getInitialStack(webHistoryPaths: List<String>?, deepLink: DeepLink): List<Config> =
             webHistoryPaths
@@ -190,6 +207,7 @@ class DefaultRootComponent(
                 Config.Settings -> "/$WEB_PATH_SETTINGS"
                 Config.Skiko -> "/$WEB_PATH_SKIKO"
                 Config.Auth -> "/$WEB_PATH_AUTH"
+                Config.Room -> "/$WEB_PATH_ROOM"
             }
 
         private fun getConfigForPath(path: String): Config =
@@ -197,6 +215,7 @@ class DefaultRootComponent(
                 WEB_PATH_SETTINGS -> Config.Settings
                 WEB_PATH_SKIKO -> Config.Skiko
                 WEB_PATH_AUTH -> Config.Auth
+                WEB_PATH_ROOM -> Config.Room
                 else -> Config.Main
             }
     }
@@ -214,6 +233,9 @@ class DefaultRootComponent(
 
         @Serializable
         data object Auth : Config
+
+        @Serializable
+        data object Room : Config
     }
 
     sealed interface DeepLink {

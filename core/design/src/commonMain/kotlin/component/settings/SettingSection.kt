@@ -1,4 +1,4 @@
-package components.settings.components
+package component.settings
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
