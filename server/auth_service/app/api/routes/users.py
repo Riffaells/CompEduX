@@ -1,18 +1,18 @@
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Path
 from sqlalchemy.orm import Session
 
-from app.db.session import get_db
-from app.models.user import User, UserRole
-from app.schemas.user import UserResponse, UserUpdate
-from app.services.auth import get_current_user, get_user_by_id
+from ...db.session import get_db
+from ...models.user import User, UserRole
+from ...schemas import UserResponse, UserUpdate, UserPublicProfile
+from ...services.auth import get_current_user, get_user_by_id, get_user_by_username
 
 router = APIRouter()
 
 
 def get_current_admin_user(current_user: User = Depends(get_current_user)) -> User:
-    """Проверка, что текущий пользователь - администратор"""
+    """Check if the current user is an administrator"""
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -28,19 +28,19 @@ async def read_users(
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db)
 ):
-    """Получение списка пользователей (только для администраторов)"""
+    """Get a list of users (admin only)"""
     users = db.query(User).offset(skip).limit(limit).all()
     return users
 
 
-@router.get("/{user_id}", response_model=UserResponse)
+@router.get("/id/{user_id}", response_model=UserResponse)
 async def read_user(
     user_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Получение информации о пользователе по ID"""
-    # Обычные пользователи могут получать информацию только о себе
+    """Get user information by ID"""
+    # Regular users can only get information about themselves
     if current_user.id != user_id and current_user.role != UserRole.ADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -58,16 +58,16 @@ async def read_user(
     return user
 
 
-@router.patch("/{user_id}", response_model=UserResponse)
+@router.patch("/id/{user_id}", response_model=UserResponse)
 async def update_user(
     user_id: int,
     user_data: UserUpdate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Обновление информации о пользователе"""
-    # Обычные пользователи могут обновлять только свою информацию
-    # и не могут менять роль
+    """Update user information"""
+    # Regular users can only update their own information
+    # and cannot change their role
     if current_user.id != user_id and current_user.role != UserRole.ADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -88,12 +88,12 @@ async def update_user(
             detail="User not found"
         )
 
-    # Обновляем поля пользователя
+    # Update user fields
     user_data_dict = user_data.dict(exclude_unset=True)
 
     for key, value in user_data_dict.items():
         if key == "password" and value:
-            from app.services.auth import get_password_hash
+            from ...services.auth import get_password_hash
             setattr(user, "hashed_password", get_password_hash(value))
         elif hasattr(user, key):
             setattr(user, key, value)
@@ -104,13 +104,13 @@ async def update_user(
     return user
 
 
-@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/id/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(
     user_id: int,
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db)
 ):
-    """Удаление пользователя (только для администраторов)"""
+    """Delete a user (admin only)"""
     user = get_user_by_id(db, user_id)
 
     if user is None:
@@ -119,7 +119,7 @@ async def delete_user(
             detail="User not found"
         )
 
-    # Запрещаем администратору удалять самого себя
+    # Prevent admin from deleting themselves
     if user.id == current_user.id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -130,3 +130,28 @@ async def delete_user(
     db.commit()
 
     return None
+
+
+@router.get("/username/{username}", response_model=UserPublicProfile)
+async def get_user_profile(
+    username: str = Path(..., min_length=3, max_length=30),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get a user's public profile by username.
+
+    Returns the public profile of the user with the specified username.
+    Only authenticated users can view profiles.
+    """
+    user = get_user_by_username(db, username)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    # TODO: Implement privacy settings check
+    # For now, return the public profile for all authenticated users
+
+    return user

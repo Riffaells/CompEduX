@@ -1,26 +1,25 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.core.config import settings
-from app.models.user import Base
+from ..core.config import settings
 
-# Создаем движок SQLAlchemy
+# Create SQLAlchemy engine
 engine = create_engine(
     settings.SQLALCHEMY_DATABASE_URI,
-    pool_pre_ping=True,  # Проверка соединения перед использованием
+    pool_pre_ping=True,  # Check connection before use
 )
 
-# Создаем фабрику сессий
+# Create session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
-# Функция-зависимость для получения сессии БД
+# Dependency function for getting DB session
 def get_db():
     """
-    Функция-зависимость для получения сессии базы данных.
+    Dependency function for obtaining a database session.
 
     Yields:
-        Session: Сессия SQLAlchemy для работы с базой данных.
+        Session: SQLAlchemy session for database operations.
     """
     db = SessionLocal()
     try:

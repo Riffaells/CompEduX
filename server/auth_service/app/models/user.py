@@ -1,132 +1,75 @@
 from datetime import UTC, datetime
-from enum import Enum
-
-from app.db.session import Base
 from sqlalchemy import (Boolean, Column, DateTime, Enum as SQLAlchemyEnum,
-                        ForeignKey, Integer, String, Table, Text, JSON)
+                        ForeignKey, Integer, String, Text, JSON)
 from sqlalchemy.orm import relationship
 
-
-class UserRole(str, Enum):
-    ADMIN = "admin"
-    USER = "user"
-    MODERATOR = "moderator"
-
-
-class OAuthProvider(str, Enum):
-    GOOGLE = "google"
-    GITHUB = "github"
-    EMAIL = "email"
-
-
-class PrivacyLevel(str, Enum):
-    PUBLIC = "public"      # Видно всем
-    FRIENDS = "friends"    # Видно только друзьям
-    PRIVATE = "private"    # Видно только самому пользователю
-
-
-
-
-# Таблица связи пользователей с OAuth провайдерами
-user_oauth_providers = Table(
-    "user_oauth_providers",
-    Base.metadata,
-    Column("user_id", Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
-    Column("provider", SQLAlchemyEnum(OAuthProvider), primary_key=True),
-    Column("provider_user_id", String, nullable=False),
-    Column("access_token", String, nullable=True),
-    Column("refresh_token", String, nullable=True),
-    Column("expires_at", DateTime, nullable=True),
-    Column("created_at", DateTime, default=lambda: datetime.now(UTC)),
-    Column("updated_at", DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC)),
-)
-
-
-# Таблица связи пользователей с комнатами
-user_rooms = Table(
-    "user_rooms",
-    Base.metadata,
-    Column("user_id", Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
-    Column("room_id", String, primary_key=True),
-    Column("joined_at", DateTime, default=lambda: datetime.now(UTC)),
-)
-
-
-class UserPrivacy(Base):
-    """Настройки приватности пользователя"""
-    __tablename__ = "user_privacy"
-
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
-    email_privacy = Column(SQLAlchemyEnum(PrivacyLevel), default=PrivacyLevel.PRIVATE)
-    location_privacy = Column(SQLAlchemyEnum(PrivacyLevel), default=PrivacyLevel.FRIENDS)
-    achievements_privacy = Column(SQLAlchemyEnum(PrivacyLevel), default=PrivacyLevel.PUBLIC)
-    rooms_privacy = Column(SQLAlchemyEnum(PrivacyLevel), default=PrivacyLevel.PUBLIC)
-    rating_privacy = Column(SQLAlchemyEnum(PrivacyLevel), default=PrivacyLevel.PUBLIC)
-
-    user = relationship("User", back_populates="privacy_settings")
+from .base import Base
+from .enums import UserRole, OAuthProvider
+from .associations import user_oauth_providers, user_rooms, Room
+from .privacy import UserPrivacy
 
 
 class User(Base):
     """
-    Модель пользователя системы.
+    User model for the system.
 
-    Содержит основную информацию о пользователе, его настройки, статистику и связи с другими сущностями.
-    Модель спроектирована с учетом микросервисной архитектуры, где некоторые связи (например, с комнатами)
-    являются внешними по отношению к сервису аутентификации.
+    Contains core information about the user, their settings, statistics, and relationships with other entities.
+    The model is designed with a microservices architecture in mind, where some relationships (e.g., with rooms)
+    are external to the authentication service.
 
-    Основные группы полей:
-    - Идентификация: id, email, username, hashed_password
-    - Персональная информация: first_name, last_name, avatar_url, bio, location, preferred_language
-    - Статистика: rating
-    - Статус и роль: is_active, is_verified, role
-    - Аутентификация: auth_provider, oauth_providers
-    - Временные метки: created_at, updated_at, last_login_at
-    - Связи: refresh_tokens, rooms
-    - Настройки: privacy_settings, settings
+    Main field groups:
+    - Identification: id, email, username, hashed_password
+    - Personal information: first_name, last_name, avatar_url, bio, location, preferred_language
+    - Statistics: rating
+    - Status and role: is_active, is_verified, role
+    - Authentication: auth_provider, oauth_providers
+    - Timestamps: created_at, updated_at, last_login_at
+    - Relationships: refresh_tokens, rooms
+    - Settings: privacy_settings, settings
     """
     __tablename__ = "users"
 
-    # Идентификация
+    # Identification
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
     username = Column(String, unique=True, index=True, nullable=False)
-    hashed_password = Column(String, nullable=True)  # Может быть NULL для OAuth пользователей
+    hashed_password = Column(String, nullable=True)  # Can be NULL for OAuth users
 
-    # Персональная информация
+    # Personal information
     first_name = Column(String, nullable=True)
     last_name = Column(String, nullable=True)
     avatar_url = Column(String, nullable=True)
-    bio = Column(Text, nullable=True)  # Краткая биография
-    location = Column(String, nullable=True)  # Местоположение
-    preferred_language = Column(String, default="ru")  # Предпочитаемый язык
+    bio = Column(Text, nullable=True)  # Brief biography
+    location = Column(String, nullable=True)  # Location
+    preferred_language = Column(String, default="en")  # Preferred language
 
-    # Статистика и рейтинг
-    rating = Column(Integer, default=0)  # Рейтинг пользователя
+    # Statistics and rating
+    rating = Column(Integer, default=0)  # User rating
 
-    # Статус и роль
+    # Status and role
     is_active = Column(Boolean, default=True)
     is_verified = Column(Boolean, default=False)
     role = Column(SQLAlchemyEnum(UserRole), default=UserRole.USER)
 
-    # Основной провайдер аутентификации
+    # Main authentication provider
     auth_provider = Column(SQLAlchemyEnum(OAuthProvider), default=OAuthProvider.EMAIL)
 
-    # Временные метки
+    # Timestamps
     created_at = Column(DateTime, default=lambda: datetime.now(UTC))
     updated_at = Column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
     last_login_at = Column(DateTime, nullable=True)
 
-    # Отношения с другими таблицами
+    # Relationships with other tables
     refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
 
-    # OAuth провайдеры пользователя
+    # User's OAuth providers
     oauth_providers = relationship(
         "OAuthProvider",
         secondary=user_oauth_providers,
         collection_class=list,
     )
 
-    # Комнаты, в которых участвует пользователь
+    # Rooms in which the user participates
     rooms = relationship(
         "Room",
         secondary=user_rooms,
@@ -136,15 +79,23 @@ class User(Base):
         backref="users",
     )
 
-    # Настройки приватности
+    # Privacy settings
     privacy_settings = relationship("UserPrivacy", uselist=False, back_populates="user", cascade="all, delete-orphan")
 
-    # Дополнительные настройки пользователя в формате JSON
+    # Additional user settings in JSON format
     settings = Column(JSON, default=dict)
 
     def __init__(self, **kwargs):
+        """
+        Initialize a new User instance.
+
+        Automatically creates privacy settings when a user is created.
+
+        Args:
+            **kwargs: Keyword arguments for user attributes
+        """
         super().__init__(**kwargs)
-        # Автоматически создаем настройки приватности при создании пользователя
+        # Automatically create privacy settings when creating a user
         if not self.privacy_settings:
             self.privacy_settings = UserPrivacy()
 
@@ -152,18 +103,3 @@ class User(Base):
 # Заглушка для модели Room, которая будет определена в room_service
 class Room:
     id = None
-
-
-class RefreshToken(Base):
-    __tablename__ = "refresh_tokens"
-
-    id = Column(Integer, primary_key=True, index=True)
-    token = Column(String, unique=True, index=True, nullable=False)
-    expires_at = Column(DateTime, nullable=False)
-    revoked = Column(Boolean, default=False)
-
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    user = relationship("User", back_populates="refresh_tokens")
-
-    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
-    updated_at = Column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))

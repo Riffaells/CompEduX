@@ -4,11 +4,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
-from app.db.session import get_db
-from app.models.user import User
-from app.schemas.user import Token, TokenRefresh, UserCreate, UserResponse
-from app.services.auth import (
+from ...core import settings
+from ...db.session import get_db
+from ...models.user import User
+from ...models.auth import RefreshToken
+from ...schemas import Token, TokenRefresh, UserCreate, UserResponse
+from ...services.auth import (
     authenticate_user,
     create_access_token,
     create_refresh_token,
@@ -22,13 +23,18 @@ router = APIRouter()
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(user_data: UserCreate, db: Session = Depends(get_db)):
-    """Регистрация нового пользователя"""
+    """
+    Register a new user.
+
+    Email and password are required. Username is optional and will be automatically
+    generated based on the email if not provided.
+    """
     return create_user(db, user_data)
 
 
 @router.post("/login", response_model=Token)
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    """Аутентификация пользователя и получение токенов"""
+    """Authenticate user and get tokens"""
     user = authenticate_user(db, form_data.username, form_data.password)
 
     if not user:
@@ -38,14 +44,14 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Создаем токен доступа
+    # Create access token
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": str(user.id)},
         expires_delta=access_token_expires
     )
 
-    # Создаем токен обновления
+    # Create refresh token
     refresh_token = create_refresh_token(user.id, db)
 
     return {
@@ -57,7 +63,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
 
 @router.post("/refresh", response_model=Token)
 async def refresh_token(token_data: TokenRefresh, db: Session = Depends(get_db)):
-    """Обновление токена доступа с помощью токена обновления"""
+    """Refresh access token using refresh token"""
     return refresh_access_token(token_data, db)
 
 
@@ -67,8 +73,8 @@ async def logout(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Выход из системы (отзыв токена обновления)"""
-    # Находим токен обновления в базе данных
+    """Logout (revoke refresh token)"""
+    # Find refresh token in database
     db_token = db.query(RefreshToken).filter(
         RefreshToken.token == token_data.refresh_token,
         RefreshToken.user_id == current_user.id,
@@ -76,7 +82,7 @@ async def logout(
     ).first()
 
     if db_token:
-        # Отмечаем токен как отозванный
+        # Mark token as revoked
         db_token.revoked = True
         db.commit()
 
@@ -85,5 +91,5 @@ async def logout(
 
 @router.get("/me", response_model=UserResponse)
 async def read_users_me(current_user: User = Depends(get_current_user)):
-    """Получение информации о текущем пользователе"""
+    """Get information about current user"""
     return current_user

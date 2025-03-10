@@ -6,30 +6,43 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    """
+    Application settings.
+
+    All settings can be overridden by environment variables.
+    """
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
-    # Общие настройки
+    # General settings
     ENV: str = "development"
     DEBUG: bool = True
+    PROJECT_NAME: str = "Auth Service"
+    VERSION: str = "0.1.0"
+    DESCRIPTION: str = "Authentication and User Management Service"
 
-    # Настройки API
+    # API settings
     API_V1_STR: str = "/api/v1"
 
-    # Настройки безопасности
+    # Security settings
     AUTH_SECRET_KEY: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
-    # Настройки CORS
+    # CORS settings
     BACKEND_CORS_ORIGINS: List[str] = ["*"]
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     def assemble_cors_origins(cls, v):
+        """
+        Parse CORS origins from string to list.
+
+        Allows setting CORS origins as a comma-separated string in .env file.
+        """
         if isinstance(v, str) and not v.startswith("["):
             return [i.strip() for i in v.split(",")]
         return v
 
-    # Настройки базы данных
+    # Database settings
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
     POSTGRES_DB: str
@@ -38,9 +51,12 @@ class Settings(BaseSettings):
 
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> PostgresDsn:
+        """
+        Construct PostgreSQL connection URI from individual settings.
+        """
         return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
-    # OAuth настройки
+    # OAuth settings
     GOOGLE_CLIENT_ID: Optional[str] = None
     GOOGLE_CLIENT_SECRET: Optional[str] = None
     GOOGLE_REDIRECT_URI: Optional[str] = None
@@ -49,5 +65,17 @@ class Settings(BaseSettings):
     GITHUB_CLIENT_SECRET: Optional[str] = None
     GITHUB_REDIRECT_URI: Optional[str] = None
 
+    # Email settings
+    SMTP_HOST: Optional[str] = None
+    SMTP_PORT: Optional[int] = 587
+    SMTP_USER: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
+    EMAILS_FROM_EMAIL: Optional[str] = None
+    EMAILS_FROM_NAME: Optional[str] = None
 
+    # Rate limiting
+    RATE_LIMIT_PER_MINUTE: int = 60
+
+
+# Create settings instance
 settings = Settings()

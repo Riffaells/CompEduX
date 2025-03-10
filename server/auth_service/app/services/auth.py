@@ -1,5 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Optional
+import random
+import string
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -7,37 +9,39 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
-from app.db.session import get_db
-from app.models.user import RefreshToken, User
-from app.schemas.user import TokenRefresh, UserCreate
+from ..core.config import settings
+from ..db.session import get_db
+from ..models.auth import RefreshToken
+from ..models.user import User
+from ..schemas.auth import TokenRefresh
+from ..schemas.user import UserCreate
 
-# Настройка JWT
+# JWT settings
 ALGORITHM = "HS256"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login")
 
-# Настройка хеширования паролей
+# Password hashing settings
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Проверка пароля"""
+    """Verify password against hash"""
     return pwd_context.verify(plain_password, hashed_password)
 
 
 def get_password_hash(password: str) -> str:
-    """Хеширование пароля"""
+    """Hash password"""
     return pwd_context.hash(password)
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    """Создание JWT токена доступа"""
+    """Create JWT access token"""
     to_encode = data.copy()
 
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(UTC) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = datetime.now(UTC) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
 
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, settings.AUTH_SECRET_KEY, algorithm=ALGORITHM)
@@ -46,15 +50,15 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 
 
 def create_refresh_token(user_id: int, db: Session) -> str:
-    """Создание токена обновления"""
+    """Create refresh token"""
     expires_delta = timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-    expires_at = datetime.utcnow() + expires_delta
+    expires_at = datetime.now(UTC) + expires_delta
 
-    # Генерируем токен
+    # Generate token
     token_data = {"sub": str(user_id), "type": "refresh"}
     token = jwt.encode(token_data, settings.AUTH_SECRET_KEY, algorithm=ALGORITHM)
 
-    # Сохраняем в базу данных
+    # Save to database
     db_token = RefreshToken(
         token=token,
         expires_at=expires_at,
@@ -68,22 +72,22 @@ def create_refresh_token(user_id: int, db: Session) -> str:
 
 
 def get_user_by_email(db: Session, email: str) -> Optional[User]:
-    """Получение пользователя по email"""
+    """Get user by email"""
     return db.query(User).filter(User.email == email).first()
 
 
 def get_user_by_username(db: Session, username: str) -> Optional[User]:
-    """Получение пользователя по username"""
+    """Get user by username"""
     return db.query(User).filter(User.username == username).first()
 
 
 def get_user_by_id(db: Session, user_id: int) -> Optional[User]:
-    """Получение пользователя по ID"""
+    """Get user by ID"""
     return db.query(User).filter(User.id == user_id).first()
 
 
 def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
-    """Аутентификация пользователя"""
+    """Authenticate user"""
     user = get_user_by_email(db, email)
 
     if not user or not user.hashed_password:
@@ -92,32 +96,86 @@ def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
     if not verify_password(password, user.hashed_password):
         return None
 
+    # Update last login timestamp
+    user.last_login_at = datetime.now(UTC)
+    db.commit()
+
     return user
 
 
+def generate_username(email: str, db: Session) -> str:
+    """
+    Generate a unique username based on the email address.
+
+    Args:
+        email: User's email address
+        db: Database session
+
+    Returns:
+        A unique username that follows validation rules
+    """
+    # Start with the part before @ in email
+    base_username = email.split('@')[0].lower()
+
+    # Replace special characters with underscore
+    base_username = ''.join(c if c.isalnum() else '_' for c in base_username)
+
+    # Remove consecutive underscores
+    while '__' in base_username:
+        base_username = base_username.replace('__', '_')
+
+    # Remove leading/trailing underscores
+    base_username = base_username.strip('_')
+
+    # If username is too short, add some random characters
+    if len(base_username) < 3:
+        base_username += ''.join(random.choices(string.ascii_lowercase, k=3-len(base_username)))
+
+    # If username is too long, truncate it
+    if len(base_username) > 25:  # Leave room for numbers
+        base_username = base_username[:25]
+
+    # Check if username exists
+    username = base_username
+    counter = 1
+
+    while get_user_by_username(db, username):
+        # If username exists, add a number to it
+        username = f"{base_username}{counter}"
+        counter += 1
+
+    return username
+
+
 def create_user(db: Session, user_data: UserCreate) -> User:
-    """Создание нового пользователя"""
-    # Проверяем, что пользователь с таким email или username не существует
+    """Create new user"""
+    # Check if user with this email already exists
     if get_user_by_email(db, user_data.email):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered"
         )
 
-    if get_user_by_username(db, user_data.username):
+    # Generate username if not provided
+    username = user_data.username
+    if not username:
+        username = generate_username(user_data.email, db)
+    elif get_user_by_username(db, username):
+        # If provided username is taken
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Username already taken"
         )
 
-    # Создаем пользователя
+    # Create user
     hashed_password = get_password_hash(user_data.password)
     db_user = User(
         email=user_data.email,
-        username=user_data.username,
+        username=username,
         hashed_password=hashed_password,
         first_name=user_data.first_name,
-        last_name=user_data.last_name
+        last_name=user_data.last_name,
+        preferred_language=user_data.preferred_language or "en"
     )
 
     db.add(db_user)
@@ -128,7 +186,7 @@ def create_user(db: Session, user_data: UserCreate) -> User:
 
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
-    """Получение текущего пользователя из токена"""
+    """Get current user from token"""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -160,9 +218,9 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
 
 def refresh_access_token(refresh_token_data: TokenRefresh, db: Session) -> dict:
-    """Обновление токена доступа с помощью токена обновления"""
+    """Refresh access token using refresh token"""
     try:
-        # Проверяем токен обновления
+        # Verify refresh token
         payload = jwt.decode(
             refresh_token_data.refresh_token,
             settings.AUTH_SECRET_KEY,
@@ -179,11 +237,11 @@ def refresh_access_token(refresh_token_data: TokenRefresh, db: Session) -> dict:
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-        # Проверяем токен в базе данных
+        # Check token in database
         db_token = db.query(RefreshToken).filter(
             RefreshToken.token == refresh_token_data.refresh_token,
             RefreshToken.revoked == False,
-            RefreshToken.expires_at > datetime.utcnow()
+            RefreshToken.expires_at > datetime.now(UTC)
         ).first()
 
         if not db_token:
@@ -193,7 +251,7 @@ def refresh_access_token(refresh_token_data: TokenRefresh, db: Session) -> dict:
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-        # Получаем пользователя
+        # Get user
         user = get_user_by_id(db, int(user_id))
 
         if not user or not user.is_active:
@@ -203,17 +261,17 @@ def refresh_access_token(refresh_token_data: TokenRefresh, db: Session) -> dict:
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-        # Создаем новый токен доступа
+        # Create new access token
         access_token = create_access_token(
             data={"sub": str(user.id)},
             expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         )
 
-        # Отмечаем старый токен обновления как отозванный
+        # Mark old refresh token as revoked
         db_token.revoked = True
         db.commit()
 
-        # Создаем новый токен обновления
+        # Create new refresh token
         new_refresh_token = create_refresh_token(user.id, db)
 
         return {

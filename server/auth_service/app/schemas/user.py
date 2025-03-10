@@ -1,17 +1,21 @@
 from datetime import datetime
+import re
 from typing import Dict, List, Optional
 
-from pydantic import BaseModel, EmailStr, Field, HttpUrl
+from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator, ConfigDict
 
-from app.models.user import OAuthProvider, PrivacyLevel, UserRole
+from .base import UserBase
+from .privacy import PrivacySettings
+from .associations import UserOAuthProvider, UserRoom
+from ..models.enums import UserRole, PrivacyLevel, OAuthProvider
 
 
-# Схема для настроек приватности
+# Privacy settings schema
 class PrivacySettings(BaseModel):
     """
-    Схема для настроек приватности пользователя.
+    Schema for user privacy settings.
 
-    Определяет, какие данные пользователя видны другим пользователям.
+    Defines which user data is visible to other users.
     """
     email_privacy: PrivacyLevel = PrivacyLevel.PRIVATE
     location_privacy: PrivacyLevel = PrivacyLevel.FRIENDS
@@ -26,9 +30,9 @@ class PrivacySettings(BaseModel):
 # Схема для OAuth провайдера
 class UserOAuthProvider(BaseModel):
     """
-    Схема для OAuth провайдера пользователя.
+    Schema for user's OAuth provider.
 
-    Содержит информацию о подключенном OAuth провайдере.
+    Contains information about the connected OAuth provider.
     """
     provider: OAuthProvider
     provider_user_id: str
@@ -40,9 +44,9 @@ class UserOAuthProvider(BaseModel):
 # Схема для комнаты
 class UserRoom(BaseModel):
     """
-    Схема для комнаты, в которой участвует пользователь.
+    Schema for a room in which the user participates.
 
-    TODO: В будущем будет расширена с учетом модели Room из room_service.
+    TODO: Will be expanded in the future with the Room model from room_service.
     """
     room_id: str
     joined_at: datetime
@@ -51,48 +55,46 @@ class UserRoom(BaseModel):
         from_attributes = True
 
 
-# Базовая схема пользователя
-class UserBase(BaseModel):
-    """
-    Базовая схема пользователя с основными полями.
-
-    Используется как основа для других схем пользователя.
-    """
-    email: EmailStr
-    username: str
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    avatar_url: Optional[HttpUrl] = None
-    bio: Optional[str] = None
-    location: Optional[str] = None
-    preferred_language: str = "ru"
-    rating: int = 0
-    is_active: bool = True
-    role: UserRole = UserRole.USER
-    auth_provider: OAuthProvider = OAuthProvider.EMAIL
+# Username validation pattern: letters, numbers, underscore, hyphen
+USERNAME_PATTERN = re.compile(r'^[a-zA-Z0-9_-]+$')
 
 
 # Схема для создания пользователя
 class UserCreate(BaseModel):
     """
-    Схема для создания нового пользователя.
+    Schema for creating a new user.
 
-    Содержит только необходимые поля для регистрации.
+    Contains only the necessary fields for registration.
+    Email and password are required, username is optional and will be generated if not provided.
+    Username can only contain letters, numbers, underscore (_) and hyphen (-).
     """
     email: EmailStr
-    username: str
+    username: Optional[str] = None
     password: str = Field(..., min_length=8)
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     preferred_language: Optional[str] = None
 
+    @field_validator('username')
+    @classmethod
+    def validate_username(cls, v):
+        if v is not None:
+            if len(v) < 3:
+                raise ValueError('Username must be at least 3 characters long')
+            if len(v) > 30:
+                raise ValueError('Username must be at most 30 characters long')
+            if not USERNAME_PATTERN.match(v):
+                raise ValueError('Username can only contain letters, numbers, underscore (_) and hyphen (-)')
+        return v
+
 
 # Схема для обновления пользователя
 class UserUpdate(BaseModel):
     """
-    Схема для обновления данных пользователя.
+    Schema for updating user data.
 
-    Все поля опциональны, обновляются только предоставленные поля.
+    All fields are optional, only provided fields are updated.
+    Username can only contain letters, numbers, underscore (_) and hyphen (-).
     """
     email: Optional[EmailStr] = None
     username: Optional[str] = None
@@ -107,13 +109,25 @@ class UserUpdate(BaseModel):
     is_verified: Optional[bool] = None
     role: Optional[UserRole] = None
 
+    @field_validator('username')
+    @classmethod
+    def validate_username(cls, v):
+        if v is not None:
+            if len(v) < 3:
+                raise ValueError('Username must be at least 3 characters long')
+            if len(v) > 30:
+                raise ValueError('Username must be at most 30 characters long')
+            if not USERNAME_PATTERN.match(v):
+                raise ValueError('Username can only contain letters, numbers, underscore (_) and hyphen (-)')
+        return v
+
 
 # Схема для обновления настроек приватности
 class PrivacySettingsUpdate(BaseModel):
     """
-    Схема для обновления настроек приватности пользователя.
+    Schema for updating user privacy settings.
 
-    Все поля опциональны, обновляются только предоставленные поля.
+    All fields are optional, only provided fields are updated.
     """
     email_privacy: Optional[PrivacyLevel] = None
     location_privacy: Optional[PrivacyLevel] = None
@@ -125,9 +139,9 @@ class PrivacySettingsUpdate(BaseModel):
 # Схема для ответа с данными пользователя
 class UserResponse(UserBase):
     """
-    Схема для ответа с полными данными пользователя.
+    Schema for user response with full data.
 
-    Используется для возврата данных аутентифицированному пользователю.
+    Used for returning user data to the authenticated user.
     """
     id: int
     is_verified: bool
@@ -139,17 +153,16 @@ class UserResponse(UserBase):
     rooms: List[UserRoom] = []
     settings: Dict = {}
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Схема для публичного профиля пользователя (с учетом настроек приватности)
 class UserPublicProfile(BaseModel):
     """
-    Схема для публичного профиля пользователя.
+    Schema for user's public profile.
 
-    Содержит только те поля, которые могут быть видны другим пользователям
-    в соответствии с настройками приватности.
+    Contains only fields that can be visible to other users
+    according to privacy settings.
     """
     id: int
     username: str
@@ -160,16 +173,15 @@ class UserPublicProfile(BaseModel):
     role: UserRole
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Схема для аутентификации
 class UserLogin(BaseModel):
     """
-    Схема для аутентификации пользователя.
+    Schema for user authentication.
 
-    Используется для входа в систему.
+    Used for logging into the system.
     """
     email: EmailStr
     password: str
@@ -178,9 +190,9 @@ class UserLogin(BaseModel):
 # Схема для токенов
 class Token(BaseModel):
     """
-    Схема для токенов аутентификации.
+    Schema for authentication tokens.
 
-    Содержит токен доступа и токен обновления.
+    Contains access token and refresh token.
     """
     access_token: str
     refresh_token: str
@@ -190,8 +202,8 @@ class Token(BaseModel):
 # Схема для обновления токена
 class TokenRefresh(BaseModel):
     """
-    Схема для обновления токена доступа.
+    Schema for refreshing access token.
 
-    Используется для получения нового токена доступа с помощью токена обновления.
+    Used to obtain a new access token using a refresh token.
     """
     refresh_token: str
