@@ -15,4 +15,9 @@ class AndroidWindowSizeHelper : WindowSizeHelper {
         val configuration = LocalConfiguration.current
         return configuration.screenWidthDp.dp
     }
+
+    @Composable
+    override fun isLargeScreen(): Boolean {
+        return super.isLargeScreen()
+    }
 }
