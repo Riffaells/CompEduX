@@ -24,4 +24,11 @@ object RIcons {
     val NotGuessed = Icons.Outlined.ThumbUp
     val Home = Icons.Rounded.Home
     val Settings = Icons.Rounded.Settings
+
+    // Experimental icons
+    val Experiment = Icons.Rounded.Science
+    val ExperimentLab = Icons.Filled.Science
+    val ExperimentNew = Icons.Rounded.NewReleases
+    val ExperimentBeta = Icons.Rounded.BugReport
+    val ExperimentWIP = Icons.Rounded.Construction
 }
