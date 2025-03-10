@@ -48,6 +48,7 @@ class Settings(BaseSettings):
     POSTGRES_DB: str
     POSTGRES_HOST: str = "localhost"
     POSTGRES_PORT: str = "5432"
+    POSTGRES_ADMIN_PASSWORD: str = "secure_password"  # Пароль администратора PostgreSQL
 
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> PostgresDsn:

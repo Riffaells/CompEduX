@@ -1,20 +1,22 @@
 # Models Package
 from .base import Base
 from .enums import UserRole, OAuthProvider, PrivacyLevel
-from .user import User
-from .privacy import UserPrivacy
-from .auth import RefreshToken
-from .associations import Room, user_oauth_providers, user_rooms
+from .user import UserModel
+from .privacy import UserPrivacyModel
+from .auth import RefreshTokenModel
+# Temporarily removed user_rooms and RoomModel imports for troubleshooting
+from .associations import UserOAuthProviderModel, user_oauth_providers
 
 __all__ = [
     'Base',
-    'User',
+    'UserModel',
     'UserRole',
     'OAuthProvider',
     'PrivacyLevel',
-    'UserPrivacy',
-    'RefreshToken',
-    'Room',
+    'UserPrivacyModel',
+    'RefreshTokenModel',
+    # Temporarily removed RoomModel for troubleshooting
+    'UserOAuthProviderModel',
     'user_oauth_providers',
-    'user_rooms'
+    # Temporarily removed user_rooms for troubleshooting
 ]

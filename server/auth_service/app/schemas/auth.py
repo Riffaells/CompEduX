@@ -1,7 +1,7 @@
 from pydantic import BaseModel, EmailStr
 
 
-class UserLogin(BaseModel):
+class UserLoginSchema(BaseModel):
     """
     Schema for user authentication.
 
@@ -11,7 +11,7 @@ class UserLogin(BaseModel):
     password: str
 
 
-class Token(BaseModel):
+class TokenSchema(BaseModel):
     """
     Schema for authentication tokens.
 
@@ -22,7 +22,7 @@ class Token(BaseModel):
     token_type: str = "bearer"
 
 
-class TokenRefresh(BaseModel):
+class TokenRefreshSchema(BaseModel):
     """
     Schema for refreshing access token.
 

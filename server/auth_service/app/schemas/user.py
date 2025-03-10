@@ -1,17 +1,23 @@
 from datetime import datetime
 import re
 from typing import Dict, List, Optional
+from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator, ConfigDict
 
-from .base import UserBase
-from .privacy import PrivacySettings
-from .associations import UserOAuthProvider, UserRoom
+from .base import UserBaseSchema
+from .privacy import PrivacySettingsSchema
+# Temporarily commented out UserRoomSchema for troubleshooting
+from .associations import UserOAuthProviderSchema  # , UserRoomSchema
 from ..models.enums import UserRole, PrivacyLevel, OAuthProvider
 
 
+# Username validation pattern: letters, numbers, underscore, hyphen
+USERNAME_PATTERN = re.compile(r'^[a-zA-Z0-9_-]+$')
+
+
 # Privacy settings schema
-class PrivacySettings(BaseModel):
+class PrivacySettingsSchema(BaseModel):
     """
     Schema for user privacy settings.
 
@@ -23,44 +29,43 @@ class PrivacySettings(BaseModel):
     rooms_privacy: PrivacyLevel = PrivacyLevel.PUBLIC
     rating_privacy: PrivacyLevel = PrivacyLevel.PUBLIC
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
-# Схема для OAuth провайдера
-class UserOAuthProvider(BaseModel):
+# OAuth provider schema
+class UserOAuthProviderSchema(BaseModel):
     """
     Schema for user's OAuth provider.
 
     Contains information about the connected OAuth provider.
     """
+    id: UUID
     provider: OAuthProvider
     provider_user_id: str
+    access_token: str = None
+    refresh_token: str = None
+    expires_at: datetime = None
+    created_at: datetime
+    updated_at: datetime
 
-    class Config:
-        from_attributes = True
-
-
-# Схема для комнаты
-class UserRoom(BaseModel):
-    """
-    Schema for a room in which the user participates.
-
-    TODO: Will be expanded in the future with the Room model from room_service.
-    """
-    room_id: str
-    joined_at: datetime
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
-# Username validation pattern: letters, numbers, underscore, hyphen
-USERNAME_PATTERN = re.compile(r'^[a-zA-Z0-9_-]+$')
+# Room schema - Temporarily commented out for troubleshooting
+# class UserRoomSchema(BaseModel):
+#     """
+#     Schema for a room in which the user participates.
+#
+#     TODO: Will be expanded in the future with the Room model from room_service.
+#     """
+#     room_id: str
+#     joined_at: datetime
+#
+#     model_config = ConfigDict(from_attributes=True)
 
 
 # Схема для создания пользователя
-class UserCreate(BaseModel):
+class UserCreateSchema(BaseModel):
     """
     Schema for creating a new user.
 
@@ -75,8 +80,7 @@ class UserCreate(BaseModel):
     last_name: Optional[str] = None
     preferred_language: Optional[str] = None
 
-    @field_validator('username')
-    @classmethod
+    @field_validator('username', mode='before')
     def validate_username(cls, v):
         if v is not None:
             if len(v) < 3:
@@ -89,7 +93,7 @@ class UserCreate(BaseModel):
 
 
 # Схема для обновления пользователя
-class UserUpdate(BaseModel):
+class UserUpdateSchema(BaseModel):
     """
     Schema for updating user data.
 
@@ -109,8 +113,7 @@ class UserUpdate(BaseModel):
     is_verified: Optional[bool] = None
     role: Optional[UserRole] = None
 
-    @field_validator('username')
-    @classmethod
+    @field_validator('username', mode='before')
     def validate_username(cls, v):
         if v is not None:
             if len(v) < 3:
@@ -123,7 +126,7 @@ class UserUpdate(BaseModel):
 
 
 # Схема для обновления настроек приватности
-class PrivacySettingsUpdate(BaseModel):
+class PrivacySettingsUpdateSchema(BaseModel):
     """
     Schema for updating user privacy settings.
 
@@ -137,34 +140,35 @@ class PrivacySettingsUpdate(BaseModel):
 
 
 # Схема для ответа с данными пользователя
-class UserResponse(UserBase):
+class UserResponseSchema(UserBaseSchema):
     """
     Schema for user response with full data.
 
     Used for returning user data to the authenticated user.
     """
-    id: int
+    id: UUID
     is_verified: bool
     created_at: datetime
     updated_at: datetime
     last_login_at: Optional[datetime] = None
-    privacy_settings: PrivacySettings
-    oauth_providers: List[UserOAuthProvider] = []
-    rooms: List[UserRoom] = []
+    privacy_settings: PrivacySettingsSchema
+    oauth_providers: List[UserOAuthProviderSchema] = []
+    # Temporarily commented out rooms for troubleshooting
+    # rooms: List[UserRoomSchema] = []
     settings: Dict = {}
 
     model_config = ConfigDict(from_attributes=True)
 
 
 # Схема для публичного профиля пользователя (с учетом настроек приватности)
-class UserPublicProfile(BaseModel):
+class UserPublicProfileSchema(BaseModel):
     """
     Schema for user's public profile.
 
     Contains only fields that can be visible to other users
     according to privacy settings.
     """
-    id: int
+    id: UUID
     username: str
     avatar_url: Optional[HttpUrl] = None
     bio: Optional[str] = None
@@ -177,7 +181,7 @@ class UserPublicProfile(BaseModel):
 
 
 # Схема для аутентификации
-class UserLogin(BaseModel):
+class UserLoginSchema(BaseModel):
     """
     Schema for user authentication.
 
@@ -188,7 +192,7 @@ class UserLogin(BaseModel):
 
 
 # Схема для токенов
-class Token(BaseModel):
+class TokenSchema(BaseModel):
     """
     Schema for authentication tokens.
 
@@ -200,7 +204,7 @@ class Token(BaseModel):
 
 
 # Схема для обновления токена
-class TokenRefresh(BaseModel):
+class TokenRefreshSchema(BaseModel):
     """
     Schema for refreshing access token.
 

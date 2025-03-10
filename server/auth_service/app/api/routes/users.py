@@ -1,17 +1,18 @@
 from typing import List
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status, Path
 from sqlalchemy.orm import Session
 
 from ...db.session import get_db
-from ...models.user import User, UserRole
-from ...schemas import UserResponse, UserUpdate, UserPublicProfile
+from ...models.user import UserModel, UserRole
+from ...schemas import UserResponseSchema, UserUpdateSchema, UserPublicProfileSchema
 from ...services.auth import get_current_user, get_user_by_id, get_user_by_username
 
 router = APIRouter()
 
 
-def get_current_admin_user(current_user: User = Depends(get_current_user)) -> User:
+def get_current_admin_user(current_user: UserModel = Depends(get_current_user)) -> UserModel:
     """Check if the current user is an administrator"""
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(
@@ -21,22 +22,22 @@ def get_current_admin_user(current_user: User = Depends(get_current_user)) -> Us
     return current_user
 
 
-@router.get("/", response_model=List[UserResponse])
+@router.get("/", response_model=List[UserResponseSchema])
 async def read_users(
     skip: int = 0,
     limit: int = 100,
-    current_user: User = Depends(get_current_admin_user),
+    current_user: UserModel = Depends(get_current_admin_user),
     db: Session = Depends(get_db)
 ):
     """Get a list of users (admin only)"""
-    users = db.query(User).offset(skip).limit(limit).all()
+    users = db.query(UserModel).offset(skip).limit(limit).all()
     return users
 
 
-@router.get("/id/{user_id}", response_model=UserResponse)
+@router.get("/id/{user_id}", response_model=UserResponseSchema)
 async def read_user(
-    user_id: int,
-    current_user: User = Depends(get_current_user),
+    user_id: UUID,
+    current_user: UserModel = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get user information by ID"""
@@ -58,11 +59,11 @@ async def read_user(
     return user
 
 
-@router.patch("/id/{user_id}", response_model=UserResponse)
+@router.patch("/id/{user_id}", response_model=UserResponseSchema)
 async def update_user(
-    user_id: int,
-    user_data: UserUpdate,
-    current_user: User = Depends(get_current_user),
+    user_id: UUID,
+    user_data: UserUpdateSchema,
+    current_user: UserModel = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Update user information"""
@@ -89,7 +90,7 @@ async def update_user(
         )
 
     # Update user fields
-    user_data_dict = user_data.dict(exclude_unset=True)
+    user_data_dict = user_data.model_dump(exclude_unset=True)
 
     for key, value in user_data_dict.items():
         if key == "password" and value:
@@ -106,8 +107,8 @@ async def update_user(
 
 @router.delete("/id/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(
-    user_id: int,
-    current_user: User = Depends(get_current_admin_user),
+    user_id: UUID,
+    current_user: UserModel = Depends(get_current_admin_user),
     db: Session = Depends(get_db)
 ):
     """Delete a user (admin only)"""
@@ -132,11 +133,11 @@ async def delete_user(
     return None
 
 
-@router.get("/username/{username}", response_model=UserPublicProfile)
+@router.get("/username/{username}", response_model=UserPublicProfileSchema)
 async def get_user_profile(
     username: str = Path(..., min_length=3, max_length=30),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: UserModel = Depends(get_current_user)
 ):
     """
     Get a user's public profile by username.

@@ -1,7 +1,9 @@
 from datetime import UTC, datetime, timedelta
-from typing import Optional
+from typing import Optional, Dict, Any, Union
 import random
 import string
+import uuid
+from uuid import UUID
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -11,10 +13,10 @@ from sqlalchemy.orm import Session
 
 from ..core.config import settings
 from ..db.session import get_db
-from ..models.auth import RefreshToken
-from ..models.user import User
-from ..schemas.auth import TokenRefresh
-from ..schemas.user import UserCreate
+from ..models.auth import RefreshTokenModel
+from ..models.user import UserModel
+from ..schemas.auth import TokenRefreshSchema
+from ..schemas.user import UserCreateSchema
 
 # JWT settings
 ALGORITHM = "HS256"
@@ -34,7 +36,7 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
     """Create JWT access token"""
     to_encode = data.copy()
 
@@ -49,7 +51,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     return encoded_jwt
 
 
-def create_refresh_token(user_id: int, db: Session) -> str:
+def create_refresh_token(user_id: UUID, db: Session) -> str:
     """Create refresh token"""
     expires_delta = timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     expires_at = datetime.now(UTC) + expires_delta
@@ -59,7 +61,7 @@ def create_refresh_token(user_id: int, db: Session) -> str:
     token = jwt.encode(token_data, settings.AUTH_SECRET_KEY, algorithm=ALGORITHM)
 
     # Save to database
-    db_token = RefreshToken(
+    db_token = RefreshTokenModel(
         token=token,
         expires_at=expires_at,
         user_id=user_id
@@ -71,22 +73,22 @@ def create_refresh_token(user_id: int, db: Session) -> str:
     return token
 
 
-def get_user_by_email(db: Session, email: str) -> Optional[User]:
+def get_user_by_email(db: Session, email: str) -> Optional[UserModel]:
     """Get user by email"""
-    return db.query(User).filter(User.email == email).first()
+    return db.query(UserModel).filter(UserModel.email == email).first()
 
 
-def get_user_by_username(db: Session, username: str) -> Optional[User]:
+def get_user_by_username(db: Session, username: str) -> Optional[UserModel]:
     """Get user by username"""
-    return db.query(User).filter(User.username == username).first()
+    return db.query(UserModel).filter(UserModel.username == username).first()
 
 
-def get_user_by_id(db: Session, user_id: int) -> Optional[User]:
+def get_user_by_id(db: Session, user_id: UUID) -> Optional[UserModel]:
     """Get user by ID"""
-    return db.query(User).filter(User.id == user_id).first()
+    return db.query(UserModel).filter(UserModel.id == user_id).first()
 
 
-def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
+def authenticate_user(db: Session, email: str, password: str) -> Optional[UserModel]:
     """Authenticate user"""
     user = get_user_by_email(db, email)
 
@@ -147,7 +149,7 @@ def generate_username(email: str, db: Session) -> str:
     return username
 
 
-def create_user(db: Session, user_data: UserCreate) -> User:
+def create_user(db: Session, user_data: UserCreateSchema) -> UserModel:
     """Create new user"""
     # Check if user with this email already exists
     if get_user_by_email(db, user_data.email):
@@ -169,7 +171,8 @@ def create_user(db: Session, user_data: UserCreate) -> User:
 
     # Create user
     hashed_password = get_password_hash(user_data.password)
-    db_user = User(
+    db_user = UserModel(
+        id=uuid.uuid4(),
         email=user_data.email,
         username=username,
         hashed_password=hashed_password,
@@ -185,7 +188,7 @@ def create_user(db: Session, user_data: UserCreate) -> User:
     return db_user
 
 
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> UserModel:
     """Get current user from token"""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -203,7 +206,10 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     except JWTError:
         raise credentials_exception
 
-    user = get_user_by_id(db, int(user_id))
+    try:
+        user = get_user_by_id(db, UUID(user_id))
+    except ValueError:
+        raise credentials_exception
 
     if user is None:
         raise credentials_exception
@@ -217,7 +223,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     return user
 
 
-def refresh_access_token(refresh_token_data: TokenRefresh, db: Session) -> dict:
+def refresh_access_token(refresh_token_data: TokenRefreshSchema, db: Session) -> Dict[str, str]:
     """Refresh access token using refresh token"""
     try:
         # Verify refresh token
@@ -238,10 +244,10 @@ def refresh_access_token(refresh_token_data: TokenRefresh, db: Session) -> dict:
             )
 
         # Check token in database
-        db_token = db.query(RefreshToken).filter(
-            RefreshToken.token == refresh_token_data.refresh_token,
-            RefreshToken.revoked == False,
-            RefreshToken.expires_at > datetime.now(UTC)
+        db_token = db.query(RefreshTokenModel).filter(
+            RefreshTokenModel.token == refresh_token_data.refresh_token,
+            RefreshTokenModel.revoked == False,
+            RefreshTokenModel.expires_at > datetime.now(UTC)
         ).first()
 
         if not db_token:
@@ -252,7 +258,14 @@ def refresh_access_token(refresh_token_data: TokenRefresh, db: Session) -> dict:
             )
 
         # Get user
-        user = get_user_by_id(db, int(user_id))
+        try:
+            user = get_user_by_id(db, UUID(user_id))
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid user ID in token",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
 
         if not user or not user.is_active:
             raise HTTPException(

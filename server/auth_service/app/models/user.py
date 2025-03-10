@@ -1,15 +1,17 @@
 from datetime import UTC, datetime
+import uuid
 from sqlalchemy import (Boolean, Column, DateTime, Enum as SQLAlchemyEnum,
                         ForeignKey, Integer, String, Text, JSON)
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from .base import Base
-from .enums import UserRole, OAuthProvider
-from .associations import user_oauth_providers, user_rooms, Room
-from .privacy import UserPrivacy
+from .enums import UserRole, OAuthProvider, PrivacyLevel
+from .associations import user_oauth_providers, UserOAuthProviderModel
+from .privacy import UserPrivacyModel
 
 
-class User(Base):
+class UserModel(Base):
     """
     User model for the system.
 
@@ -30,7 +32,7 @@ class User(Base):
     __tablename__ = "users"
 
     # Identification
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
     username = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=True)  # Can be NULL for OAuth users
@@ -60,27 +62,26 @@ class User(Base):
     last_login_at = Column(DateTime, nullable=True)
 
     # Relationships with other tables
-    refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
+    refresh_tokens = relationship("RefreshTokenModel", back_populates="user", cascade="all, delete-orphan")
 
     # User's OAuth providers
     oauth_providers = relationship(
-        "OAuthProvider",
+        "UserOAuthProviderModel",
         secondary=user_oauth_providers,
+        back_populates="users",
         collection_class=list,
     )
 
-    # Rooms in which the user participates
-    rooms = relationship(
-        "Room",
-        secondary=user_rooms,
-        collection_class=list,
-        primaryjoin="User.id == user_rooms.c.user_id",
-        secondaryjoin="Room.id == user_rooms.c.room_id",
-        backref="users",
-    )
+    # Rooms in which the user participates - Temporarily commented out to troubleshoot database connection issues
+    # rooms = relationship(
+    #     "RoomModel",
+    #     secondary=user_rooms,
+    #     collection_class=list,
+    #     backref="users",
+    # )
 
     # Privacy settings
-    privacy_settings = relationship("UserPrivacy", uselist=False, back_populates="user", cascade="all, delete-orphan")
+    privacy_settings = relationship("UserPrivacyModel", uselist=False, back_populates="user", cascade="all, delete-orphan")
 
     # Additional user settings in JSON format
     settings = Column(JSON, default=dict)
@@ -97,9 +98,9 @@ class User(Base):
         super().__init__(**kwargs)
         # Automatically create privacy settings when creating a user
         if not self.privacy_settings:
-            self.privacy_settings = UserPrivacy()
+            self.privacy_settings = UserPrivacyModel()
 
 
 # Заглушка для модели Room, которая будет определена в room_service
-class Room:
+class RoomModel:
     id = None
