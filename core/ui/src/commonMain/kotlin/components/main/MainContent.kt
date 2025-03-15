@@ -22,10 +22,9 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.TextMeasurer
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -33,8 +32,6 @@ import component.app.main.MainComponent
 import component.app.main.store.MainStore
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.jetbrains.skia.Font
-import org.jetbrains.skia.Typeface
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -160,7 +157,9 @@ fun MainContent(component: MainComponent) {
                             ),
                     exit = fadeOut()
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(
+                        modifier = Modifier,
+                        horizontalAlignment = Alignment.CenterHorizontally) {
                         Button(
                             onClick = { component.onAction(MainStore.Intent.OpenSettings) },
                             modifier = Modifier
@@ -207,6 +206,8 @@ fun MainContent(component: MainComponent) {
                         ) {
                             Text("Открыть комнату")
                         }
+
+//                        BlurStyleDemo()
                     }
                 }
 

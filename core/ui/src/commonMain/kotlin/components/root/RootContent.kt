@@ -33,6 +33,8 @@ import utils.getScreenWidth
 import settings.AppearanceSettings
 import component.navigation.*
 import component.root.store.RootStore
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 
 /**
  * Корневой композабл, который отображает текущий дочерний компонент
@@ -79,6 +81,19 @@ fun RootContent(
     // Инициализируем состояние при первом запуске
     LaunchedEffect(Unit) {
         component.onEvent(RootStore.Intent.Init)
+    }
+
+    val hazeState = remember { HazeState() }
+
+    // Выбираем тип размытия в зависимости от темы
+    val blurType = remember(isDarkTheme) {
+        if (isDarkTheme == true) {
+            // В темной теме используем более сильное размытие для лучшей видимости
+            BlurType.ACRYLIC
+        } else {
+            // В светлой теме используем более легкое размытие
+            BlurType.FROSTED
+        }
     }
 
     // Создаем конфигурацию навигации
@@ -169,7 +184,9 @@ fun RootContent(
                 Box(modifier = Modifier.weight(1f)) {
                     // Основной контент занимает всё пространство
                     Box(
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .hazeSource(hazeState)
                     ) {
                         // Передаем contentPadding в RenderContent для правильной прокрутки
                         RenderContent(
@@ -183,10 +200,18 @@ fun RootContent(
                         Box(
                             modifier = Modifier
                                 .fillMaxHeight()
+                                .padding(top = 16.dp)
                                 .zIndex(100f)
                                 .graphicsLayer(alpha = sideNavAlpha)
                         ) {
-                            FloatingNavigationRail {
+                            FloatingNavigationRail(
+                                hazeState = hazeState,
+                                blurType = blurType,
+                                backgroundColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.75f),
+                                useProgressiveBlur = true
+                            ) {
+                                Spacer(modifier = Modifier.height(16.dp))
+
                                 navigationConfig.items.forEach { item ->
                                     val isSelected = item.id == selectedItemId
                                     FloatingNavigationRailItem(
@@ -213,7 +238,12 @@ fun RootContent(
                                 .zIndex(100f)
                                 .graphicsLayer(alpha = bottomNavAlpha)
                         ) {
-                            FloatingNavigationBar {
+                            FloatingNavigationBar(
+                                hazeState = hazeState,
+                                blurType = blurType,
+                                backgroundColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.75f),
+                                useProgressiveBlur = true
+                            ) {
                                 navigationConfig.items.forEach { item ->
                                     val isSelected = item.id == selectedItemId
                                     FloatingNavigationBarItem(

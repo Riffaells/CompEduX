@@ -1,5 +1,6 @@
 package repository.auth
 
+import api.auth.AuthState
 import kotlinx.coroutines.flow.StateFlow
 import model.auth.*
 

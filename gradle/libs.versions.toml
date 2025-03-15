@@ -52,6 +52,7 @@ kermit = "2.0.5"
 zoomimageComposeCoil = "1.1.0"
 compose-hot-reload = "1.0.0-dev.34.1"
 skiko = "0.8.18"
+haze = "1.5.0"
 
 kotlinx-browser = "0.8.0"
 
@@ -111,7 +112,9 @@ ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "kto
 
 # Логирование
 napier = { module = "io.github.aakira:napier", version.ref = "napier" }
+
 skiko = { module = "org.jetbrains.skiko:skiko", version.ref = "skiko" }
+haze = { group = "dev.chrisbanes.haze",  name="haze",version.ref = "haze" }
 
 [plugins]
 

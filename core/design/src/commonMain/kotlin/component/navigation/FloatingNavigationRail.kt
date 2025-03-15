@@ -16,12 +16,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import component.navigation.effects.SimpleBlurEffect
+import dev.chrisbanes.haze.*
 
 /**
  * Кастомный компонент боковой навигации с эффектом "парения" и размытием фона.
@@ -31,6 +30,9 @@ import component.navigation.effects.SimpleBlurEffect
  * @param contentColor Цвет содержимого навигационной панели
  * @param elevation Высота тени для эффекта "парения"
  * @param cornerRadius Радиус скругления углов
+ * @param blurType Тип эффекта размытия
+ * @param hazeState Состояние эффекта размытия, должно быть общим с источником размытия
+ * @param useProgressiveBlur Использовать ли прогрессивное размытие (градиент)
  * @param content Содержимое навигационной панели
  */
 @Composable
@@ -40,41 +42,45 @@ fun FloatingNavigationRail(
     contentColor: Color = MaterialTheme.colorScheme.onSurface,
     elevation: Float = 8f,
     cornerRadius: Float = 24f,
+    blurType: BlurType = BlurType.FROSTED,
+    hazeState: HazeState? = null,
+    useProgressiveBlur: Boolean = true,
     content: @Composable ColumnScope.() -> Unit
 ) {
     Box(
         modifier = modifier
             .fillMaxHeight()
             .padding(horizontal = 8.dp, vertical = 16.dp),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.TopCenter
     ) {
-        // Контейнер с тенью и скруглением
-        Box(
+        // Используем базовый контейнер для навигации
+        BaseNavigationContainer(
             modifier = Modifier
                 .width(72.dp)
-                .fillMaxHeight()
-                .shadow(
-                    elevation = elevation.dp,
-                    shape = RoundedCornerShape(cornerRadius.dp),
-                    spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                )
-                .clip(RoundedCornerShape(cornerRadius.dp))
-        ) {
-            // Применяем эффект полупрозрачного фона
-            SimpleBlurEffect(
-                backgroundColor = backgroundColor,
-                alpha = 0.9f,
-                shape = RoundedCornerShape(cornerRadius.dp),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                // Содержимое навигационной панели
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
-                    content = content
+                .fillMaxHeight(0.6f),
+            backgroundColor = backgroundColor,
+            contentColor = contentColor,
+            elevation = elevation,
+            cornerRadius = cornerRadius,
+            blurType = blurType,
+            hazeState = hazeState,
+            useProgressiveBlur = useProgressiveBlur,
+            contentAlignment = Alignment.TopCenter,
+            progressiveBlurCreator = {
+                // Горизонтальный градиент размытия - сильнее слева, слабее справа
+                HazeProgressive.horizontalGradient(
+                    startIntensity = 1.0f, // Левая сторона (больше размытия)
+                    endIntensity = 0.7f    // Правая сторона (меньше размытия)
                 )
             }
+        ) {
+            // Содержимое навигационной панели
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top),
+                content = content
+            )
         }
     }
 }

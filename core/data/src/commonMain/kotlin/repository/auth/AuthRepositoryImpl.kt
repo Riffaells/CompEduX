@@ -2,7 +2,6 @@ package repository.auth
 
 import api.auth.AuthApi
 import api.auth.AuthState
-import api.auth.TokenManager
 import kotlinx.coroutines.flow.StateFlow
 import model.auth.*
 
@@ -11,7 +10,6 @@ import model.auth.*
  */
 class AuthRepositoryImpl(
     private val authApi: AuthApi,
-    private val tokenManager: TokenManager
 ) : AuthRepository {
 
     override val authState: StateFlow<AuthState> = tokenManager.authState

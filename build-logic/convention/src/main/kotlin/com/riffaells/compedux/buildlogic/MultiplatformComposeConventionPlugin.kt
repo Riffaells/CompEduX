@@ -74,6 +74,7 @@ class MultiplatformComposeConventionPlugin : Plugin<Project> {
                         implementation(compose.material3AdaptiveNavigationSuite)
 
                         implementation(libs.skiko)
+                        implementation(libs.haze)
                     }
                 }
 
