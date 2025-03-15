@@ -5,6 +5,8 @@ import android.content.Context
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
 import com.riffaells.compedux.di.appDI
+import io.github.aakira.napier.DebugAntilog
+import io.github.aakira.napier.Napier
 import org.kodein.di.DI
 import org.kodein.di.DIAware
 import org.kodein.di.bindSingleton
@@ -26,13 +28,16 @@ class App : Application(), DIAware {
     override fun onCreate() {
         super.onCreate()
 
+        // Инициализируем Napier для логирования
+        Napier.base(DebugAntilog())
+        Napier.d("Initializing application")
+
         // Отключаем проверку главного потока для Android
         System.setProperty("mvikotlin.enableThreadAssertions", "false")
 
         // Устанавливаем обработчик необработанных исключений
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
-            println("Uncaught exception in thread $thread: ${throwable.message}")
-            throwable.printStackTrace()
+            Napier.e("Uncaught exception in thread $thread", throwable)
         }
 
         // Инициализируем необходимые компоненты

@@ -1,6 +1,6 @@
 package di
 
-import MultiplatformSettings
+import settings.MultiplatformSettings
 import api.ApiClient
 import api.auth.AuthApi
 import api.auth.AuthApiImpl

@@ -8,13 +8,11 @@ import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
-import MultiplatformSettings
 
 /**
  * Базовый клиент API для выполнения сетевых запросов
  */
 class ApiClient(
-    private val settings: MultiplatformSettings
 ) {
     /**
      * Создает и настраивает HTTP клиент с необходимыми плагинами
@@ -55,7 +53,7 @@ class ApiClient(
      * Получает базовый URL сервера из настроек
      */
     fun getBaseUrl(): String {
-        return settings.serverUrlFlow.value
+        return "settings.serverUrlFlow.value"
     }
 
     /**

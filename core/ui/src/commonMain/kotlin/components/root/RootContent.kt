@@ -1,10 +1,8 @@
 package components.root
 
 import androidx.compose.animation.*
-import androidx.compose.animation.core.EaseInQuart
-import androidx.compose.animation.core.EaseOutQuart
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
@@ -16,12 +14,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import com.arkivanov.decompose.extensions.compose.stack.Children
-import com.arkivanov.decompose.extensions.compose.stack.animation.fade
-import com.arkivanov.decompose.extensions.compose.stack.animation.plus
-import com.arkivanov.decompose.extensions.compose.stack.animation.scale
-import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
+import com.arkivanov.decompose.extensions.compose.stack.animation.*
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import component.root.RootComponent
 import component.root.RootComponent.Child.*
@@ -31,9 +29,10 @@ import components.room.RoomContent
 import components.settings.SettingsContent
 import components.skiko.SkikoContent
 import ui.theme.AppTheme
-import ui.theme.LocalThemeIsDark
-import utils.isLargeScreen
-import MultiplatformSettings
+import utils.getScreenWidth
+import settings.AppearanceSettings
+import component.navigation.*
+import component.root.store.RootStore
 
 /**
  * Корневой композабл, который отображает текущий дочерний компонент
@@ -43,17 +42,20 @@ import MultiplatformSettings
 fun RootContent(
     modifier: Modifier = Modifier,
     component: RootComponent,
-    desktopContent: @Composable ((component: Any, isSpace: Boolean) -> Unit)? = null
+    desktopTopContent: @Composable ((component: Any, isSpace: Boolean) -> Unit)? = null
 ) {
     val childStack by component.childStack.subscribeAsState()
     val state by component.state.collectAsState()
 
     val settings = component.settings
-    val theme by settings.themeFlow.collectAsState()
-    val blackBackground by settings.blackBackgroundFlow.collectAsState()
+    val appearance = settings.appearance
+    val theme by appearance.themeFlow.collectAsState()
+    val blackBackground by appearance.blackBackgroundFlow.collectAsState()
 
-    // Используем платформо-независимую функцию
-    val isLargeScreen = isLargeScreen()
+    // Получаем ширину экрана напрямую
+    val screenWidth = getScreenWidth()
+    // Определяем большой ли экран, используя пороговое значение
+    val isLargeScreen = screenWidth > 840.dp
 
     // Запоминаем предыдущее состояние для анимации
     var wasLargeScreen by remember { mutableStateOf(isLargeScreen) }
@@ -68,10 +70,83 @@ fun RootContent(
 
     // Определяем, какую тему использовать на основе настроек
     val isDarkTheme = when (theme) {
-        MultiplatformSettings.ThemeOption.THEME_SYSTEM -> null // null означает использовать системную тему
-        MultiplatformSettings.ThemeOption.THEME_DARK -> true
-        MultiplatformSettings.ThemeOption.THEME_LIGHT -> false
+        AppearanceSettings.ThemeOption.THEME_SYSTEM -> null // null означает использовать системную тему
+        AppearanceSettings.ThemeOption.THEME_DARK -> true
+        AppearanceSettings.ThemeOption.THEME_LIGHT -> false
         else -> null
+    }
+
+    // Инициализируем состояние при первом запуске
+    LaunchedEffect(Unit) {
+        component.onEvent(RootStore.Intent.Init)
+    }
+
+    // Создаем конфигурацию навигации
+    val navigationConfig = remember {
+        NavigationConfig().apply {
+            addItem(
+                id = "main",
+                icon = Icons.Default.Home,
+                label = "Главная",
+                contentDescription = "Перейти на главную страницу",
+                onClick = { component.onMainClicked() }
+            )
+            addItem(
+                id = "settings",
+                icon = Icons.Default.Settings,
+                label = "Настройки",
+                contentDescription = "Перейти в настройки",
+                onClick = { component.onSettingsClicked() }
+            )
+            addItem(
+                id = "map",
+                icon = Icons.Default.Map,
+                label = "Карта развития",
+                contentDescription = "Перейти на карту развития",
+                onClick = { component.onDevelopmentMapClicked() }
+            )
+            addItem(
+                id = "profile",
+                icon = Icons.Default.Person,
+                label = "Профиль",
+                contentDescription = "Перейти в профиль",
+                onClick = { component.onAuthClicked() }
+            )
+        }
+    }
+
+    // Определяем выбранный элемент навигации
+    val selectedItemId = remember(childStack.active.instance) {
+        when (childStack.active.instance) {
+            is MainChild -> "main"
+            is SettingsChild -> "settings"
+            is SkikoChild -> "map"
+            is AuthChild -> "profile"
+            else -> "main"
+        }
+    }
+
+    // Анимируемые значения для плавных переходов
+    val sideNavAlpha by animateFloatAsState(
+        targetValue = if (isLargeScreen) 1f else 0f,
+        animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing),
+        label = "SideNavAlpha"
+    )
+
+    val bottomNavAlpha by animateFloatAsState(
+        targetValue = if (!isLargeScreen) 1f else 0f,
+        animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing),
+        label = "BottomNavAlpha"
+    )
+
+    // Создаем PaddingValues для прокручиваемого контента
+    val contentPadding = remember(isLargeScreen) {
+        PaddingValues(
+            // Не добавляем отступы, так как навигация будет поверх контента
+            // Но оставляем небольшой отступ снизу и сбоку для лучшей читаемости
+            start = if (isLargeScreen) 16.dp else 0.dp,
+            bottom = if (!isLargeScreen) 16.dp else 0.dp
+        )
     }
 
     // Применяем тему на уровне всего контента
@@ -79,111 +154,80 @@ fun RootContent(
         isDarkTheme = isDarkTheme,
         useBlackBackground = blackBackground
     ) {
-        // Получаем текущую тему после применения AppTheme
-        val currentIsDark by LocalThemeIsDark.current
-
         Surface(
             modifier = modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background
         ) {
+            // Основная структура с Column для правильного размещения элементов
             Column(modifier = Modifier.fillMaxSize()) {
-                // Отображаем desktopContent сверху для всех типов экранов, если он есть
-                if (desktopContent != null) {
-                    desktopContent(childStack.active.instance, false)
+                // Элементы управления окном (если есть) всегда сверху
+                if (desktopTopContent != null) {
+                    desktopTopContent(childStack.active.instance, false)
                 }
 
-                // Используем AnimatedContent для плавного перехода между разными типами навигации
-                AnimatedContent(
-                    targetState = isLargeScreen,
-                    transitionSpec = {
-                        fadeIn(animationSpec = tween(500, easing = EaseOutQuart)) with
-                                fadeOut(animationSpec = tween(500, easing = EaseInQuart))
-                    },
-                    modifier = Modifier.weight(1f),
-                    label = "NavigationTypeAnimation"
-                ) { targetIsLargeScreen ->
-                    if (targetIsLargeScreen) {
-                        // Для больших экранов используем NavigationRail слева
-                        Row(
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            // Анимированный NavigationRail
-                            NavigationRail {
-                                NavigationRailItem(
-                                    selected = childStack.active.instance is MainChild,
-                                    onClick = { component.onMainClicked() },
-                                    icon = { Icon(Icons.Default.Home, contentDescription = "Главная") },
-                                    label = { Text("Главная") }
-                                )
-                                NavigationRailItem(
-                                    selected = childStack.active.instance is SettingsChild,
-                                    onClick = { component.onSettingsClicked() },
-                                    icon = { Icon(Icons.Default.Settings, contentDescription = "Настройки") },
-                                    label = { Text("Настройки") }
-                                )
-                                NavigationRailItem(
-                                    selected = childStack.active.instance is SkikoChild,
-                                    onClick = { component.onDevelopmentMapClicked() },
-                                    icon = { Icon(Icons.Default.Map, contentDescription = "Карта развития") },
-                                    label = { Text("Карта развития") }
-                                )
-                                NavigationRailItem(
-                                    selected = childStack.active.instance is AuthChild,
-                                    onClick = { component.onAuthClicked() },
-                                    icon = { Icon(Icons.Default.Person, contentDescription = "Профиль") },
-                                    label = { Text("Профиль") }
-                                )
-                            }
+                // Основной контейнер для контента и навигации
+                Box(modifier = Modifier.weight(1f)) {
+                    // Основной контент занимает всё пространство
+                    Box(
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        // Передаем contentPadding в RenderContent для правильной прокрутки
+                        RenderContent(
+                            component = component,
+                            contentPadding = contentPadding
+                        )
+                    }
 
-                            // Контент справа от NavigationRail
-                            Surface(
-                                modifier = Modifier.fillMaxSize(),
-                                color = MaterialTheme.colorScheme.background
-                            ) {
-                                RenderContent(component, null)
+                    // Боковая навигация (для больших экранов)
+                    if (sideNavAlpha > 0.01f) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .zIndex(100f)
+                                .graphicsLayer(alpha = sideNavAlpha)
+                        ) {
+                            FloatingNavigationRail {
+                                navigationConfig.items.forEach { item ->
+                                    val isSelected = item.id == selectedItemId
+                                    FloatingNavigationRailItem(
+                                        selected = isSelected,
+                                        onClick = { item.onClick() },
+                                        icon = { item.IconContent() },
+                                        label = {
+                                            Text(
+                                                text = item.label,
+                                                style = MaterialTheme.typography.labelSmall
+                                            )
+                                        }
+                                    )
+                                }
                             }
                         }
-                    } else {
-                        // Для маленьких экранов используем NavigationBar внизу
-                        Column(
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            // Контент над NavigationBar
-                            Surface(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .weight(1f),
-                                color = MaterialTheme.colorScheme.background
-                            ) {
-                                RenderContent(component, null)
-                            }
+                    }
 
-                            // Нижняя навигация
-                            NavigationBar {
-                                NavigationBarItem(
-                                    selected = childStack.active.instance is MainChild,
-                                    onClick = { component.onMainClicked() },
-                                    icon = { Icon(Icons.Default.Home, contentDescription = "Главная") },
-                                    label = { Text("Главная") }
-                                )
-                                NavigationBarItem(
-                                    selected = childStack.active.instance is SettingsChild,
-                                    onClick = { component.onSettingsClicked() },
-                                    icon = { Icon(Icons.Default.Settings, contentDescription = "Настройки") },
-                                    label = { Text("Настройки") }
-                                )
-                                NavigationBarItem(
-                                    selected = childStack.active.instance is SkikoChild,
-                                    onClick = { component.onDevelopmentMapClicked() },
-                                    icon = { Icon(Icons.Default.Map, contentDescription = "Карта развития") },
-                                    label = { Text("Карта развития") }
-                                )
-                                NavigationBarItem(
-                                    selected = childStack.active.instance is AuthChild,
-                                    onClick = { component.onAuthClicked() },
-                                    icon = { Icon(Icons.Default.Person, contentDescription = "Профиль") },
-                                    label = { Text("Профиль") }
-                                )
+                    // Нижняя навигация (для маленьких экранов)
+                    if (bottomNavAlpha > 0.01f) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .zIndex(100f)
+                                .graphicsLayer(alpha = bottomNavAlpha)
+                        ) {
+                            FloatingNavigationBar {
+                                navigationConfig.items.forEach { item ->
+                                    val isSelected = item.id == selectedItemId
+                                    FloatingNavigationBarItem(
+                                        selected = isSelected,
+                                        onClick = { item.onClick() },
+                                        icon = { item.IconContent() },
+                                        label = {
+                                            Text(
+                                                text = item.label,
+                                                style = MaterialTheme.typography.labelSmall
+                                            )
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
@@ -196,24 +240,30 @@ fun RootContent(
 @Composable
 private fun RenderContent(
     component: RootComponent,
-    desktopContent: @Composable ((component: Any, isSpace: Boolean) -> Unit)?
+    contentPadding: PaddingValues = PaddingValues(0.dp)
 ) {
     // Улучшенная анимация для переключения между экранами
     Children(
         stack = component.childStack,
         animation = stackAnimation(
             fade(animationSpec = tween(300)) +
-                    scale(animationSpec = tween(300, easing = FastOutSlowInEasing))
+                    scale(animationSpec = tween(300, easing = FastOutSlowInEasing)) +
+                    slide(animationSpec = tween(400, easing = FastOutSlowInEasing))
         ),
         modifier = Modifier.fillMaxSize()
     ) { child ->
-        val instance = child.instance
-        when (instance) {
-            is MainChild -> MainContent(instance.component)
-            is SettingsChild -> SettingsContent(instance.component)
-            is SkikoChild -> SkikoContent(instance.component)
-            is AuthChild -> AuthContent(instance.component)
-            is RoomChild -> RoomContent(instance.component)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(contentPadding)
+        ) {
+            when (val instance = child.instance) {
+                is MainChild -> MainContent(instance.component)
+                is SettingsChild -> SettingsContent(instance.component)
+                is SkikoChild -> SkikoContent(instance.component)
+                is AuthChild -> AuthContent(instance.component)
+                is RoomChild -> RoomContent(instance.component)
+            }
         }
     }
 }

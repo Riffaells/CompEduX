@@ -1,7 +1,6 @@
 package di
 
 import api.auth.AuthApi
-import api.auth.TokenManager
 import org.kodein.di.DI
 import org.kodein.di.bind
 import org.kodein.di.instance
@@ -14,7 +13,5 @@ import repository.auth.AuthRepositoryImpl
  */
 val dataModule = DI.Module("dataModule") {
     // Репозиторий аутентификации
-    bind<AuthRepository>() with singleton {
-        AuthRepositoryImpl(instance<AuthApi>(), instance<TokenManager>())
-    }
+
 }

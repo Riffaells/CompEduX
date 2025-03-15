@@ -1,0 +1,82 @@
+<resources>
+    <!-- Общие строки -->
+    <string name="app_name">CompEduX</string>
+
+    <!-- Строки для настроек -->
+    <string name="settings_title">Настройки</string>
+    <string name="settings_app_settings">Настройки приложения</string>
+    <string name="settings_back">Назад</string>
+    <string name="settings_menu">Меню</string>
+    <string name="settings_additional">Дополнительные настройки</string>
+    <string name="settings_coming_soon">будут доступны в будущих версиях</string>
+    <string name="settings_planned_features">Планируется добавить:</string>
+
+    <!-- Категории настроек -->
+    <string name="settings_category_profile">Профиль пользователя</string>
+    <string name="settings_category_profile_desc">Личные данные, приватность</string>
+    <string name="settings_category_appearance">Внешний вид</string>
+    <string name="settings_category_appearance_desc">Тема, цвета, анимации</string>
+    <string name="settings_category_language">Язык и локализация</string>
+    <string name="settings_category_language_desc">Язык интерфейса</string>
+    <string name="settings_category_network">Настройки сервера</string>
+    <string name="settings_category_network_desc">URL сервера, API</string>
+    <string name="settings_category_security">Безопасность</string>
+    <string name="settings_category_security_desc">Биометрия, автовыход</string>
+    <string name="settings_category_experimental">Экспериментальные функции</string>
+    <string name="settings_category_experimental_desc">Тестовые возможности</string>
+    <string name="settings_category_notifications">Уведомления</string>
+    <string name="settings_category_storage">Хранение данных</string>
+    <string name="settings_category_system">Система</string>
+
+    <!-- Настройки профиля -->
+    <string name="profile_settings_title">Настройки профиля</string>
+    <string name="profile_username">Имя пользователя</string>
+    <string name="profile_email">Email</string>
+    <string name="profile_avatar_url">URL аватара</string>
+    <string name="profile_status">Статус</string>
+    <string name="profile_public">Публичный профиль</string>
+    <string name="profile_public_desc">Другие пользователи смогут видеть ваш профиль</string>
+    <string name="profile_notifications">Уведомления профиля</string>
+    <string name="profile_notifications_desc">Получать уведомления о действиях с вашим профилем</string>
+    <string name="profile_clear_data">Очистить данные профиля</string>
+    <string name="profile_complete">Профиль заполнен</string>
+    <string name="profile_incomplete">Профиль не заполнен</string>
+
+    <!-- Настройки внешнего вида -->
+    <string name="appearance_settings_title">Настройки внешнего вида</string>
+    <string name="appearance_theme">Тема приложения</string>
+    <string name="appearance_theme_system">Системная</string>
+    <string name="appearance_theme_light">Светлая</string>
+    <string name="appearance_theme_dark">Темная</string>
+    <string name="appearance_black_bg">Черный фон</string>
+    <string name="appearance_black_bg_desc">Использовать полностью черный фон в темной теме (AMOLED)</string>
+    <string name="appearance_starry_sky">Звездное небо</string>
+    <string name="appearance_starry_sky_desc">Включить анимацию звездного неба на главном экране</string>
+    <string name="appearance_language">Язык интерфейса</string>
+    <string name="appearance_language_ru">Русский</string>
+    <string name="appearance_language_en">Английский</string>
+
+    <!-- Настройки сети -->
+    <string name="network_settings_title">Настройки сети</string>
+    <string name="network_server_settings">Настройки сервера</string>
+    <string name="network_server_url">URL сервера</string>
+    <string name="network_server_url_desc">Введите адрес сервера для подключения</string>
+    <string name="network_additional_settings">Дополнительные настройки</string>
+
+    <!-- Настройки безопасности -->
+    <string name="security_settings_title">Настройки безопасности</string>
+    <string name="security_biometric">Биометрическая аутентификация</string>
+    <string name="security_biometric_desc">Использовать отпечаток пальца или Face ID для входа в приложение</string>
+    <string name="security_auto_logout">Автоматический выход</string>
+    <string name="security_auto_logout_desc">Время бездействия до автоматического выхода из приложения</string>
+    <string name="security_auto_logout_never">Никогда</string>
+    <string name="security_auto_logout_5min">5 минут</string>
+    <string name="security_auto_logout_15min">15 минут</string>
+    <string name="security_auto_logout_30min">30 минут</string>
+    <string name="security_auto_logout_1hour">1 час</string>
+    <string name="security_additional_settings">Дополнительные настройки</string>
+    <string name="security_feature_2fa">Двухфакторная аутентификация</string>
+    <string name="security_feature_encryption">Шифрование данных</string>
+    <string name="security_feature_passwords">Управление паролями</string>
+    <string name="security_feature_lockout">Блокировка после неудачных попыток входа</string>
+</resources>

@@ -1,6 +1,6 @@
 package component.root.store
 
-import MultiplatformSettings
+import settings.MultiplatformSettings
 import com.arkivanov.mvikotlin.core.store.Reducer
 import com.arkivanov.mvikotlin.core.store.SimpleBootstrapper
 import com.arkivanov.mvikotlin.core.store.Store
@@ -77,7 +77,7 @@ internal class RootStoreFactory(
             scope.launch {
                 try {
                     // Загрузка настроек
-                    val theme = settings.themeFlow.first()
+                    val theme = settings.appearance.themeFlow.first()
                     // Обновление UI
                      safeDispatch(Msg.UpdateTheme(theme))
                     // safeDispatch(Msg.UpdateLanguage(language))
@@ -127,14 +127,14 @@ internal class RootStoreFactory(
 
 
         private fun saveThemeSettings(value: Int) {
-            settings.saveThemeSettings(value)
+            settings.appearance.saveTheme(value)
             dispatch(Msg.UpdateTheme(value))
 
         }
 
         private fun readThemeSettings() {
             scope.launch {
-                val theme = settings.themeFlow.first()
+                val theme = settings.appearance.themeFlow.first()
 
                 dispatch(Msg.UpdateTheme(theme))
             }

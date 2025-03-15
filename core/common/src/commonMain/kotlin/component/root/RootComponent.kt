@@ -1,6 +1,6 @@
 package component.root
 
-import MultiplatformSettings
+import settings.MultiplatformSettings
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.router.stack.*

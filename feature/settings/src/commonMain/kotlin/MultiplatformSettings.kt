@@ -1,117 +1,173 @@
+package settings
+
 import com.russhwolf.settings.Settings
 import kotlinx.coroutines.flow.*
+import settings.AppearanceSettings
+import settings.NetworkSettings
+import settings.SystemSettings
+import settings.SecuritySettings
+import settings.NotificationSettings
+import settings.StorageSettings
+import settings.ProfileSettings
+import settings.AppearanceSettingsImpl
+import settings.NetworkSettingsImpl
+import settings.SystemSettingsImpl
+import settings.SecuritySettingsImpl
+import settings.NotificationSettingsImpl
+import settings.StorageSettingsImpl
+import settings.ProfileSettingsImpl
+import settings.BaseSettings
 
+/**
+ * Главный интерфейс для доступа ко всем настройкам приложения
+ *
+ * // TODO: Добавить поддержку профилей настроек для разных пользователей
+ * // TODO: Реализовать механизм синхронизации настроек между устройствами
+ * // TODO: Добавить поддержку облачного хранения настроек
+ */
 interface MultiplatformSettings {
+    /**
+     * Настройки внешнего вида приложения
+     */
+    val appearance: AppearanceSettings
 
+    /**
+     * Настройки сети
+     */
+    val network: NetworkSettings
 
-    val themeFlow: StateFlow<Int>
-    fun saveThemeSettings(value: Int)
+    /**
+     * Системные настройки
+     */
+    val system: SystemSettings
 
-    val langFlow: StateFlow<String>
-    fun saveLangSettings(value: String)
+    /**
+     * Настройки безопасности
+     */
+    val security: SecuritySettings
 
-    val starrySkyFlow: StateFlow<Boolean>
-    fun saveStarrySkySettings(value: Boolean)
+    /**
+     * Настройки уведомлений
+     */
+    val notifications: NotificationSettings
 
-    val blackBackgroundFlow: StateFlow<Boolean>
-    fun saveBlackBackgroundSettings(value: Boolean)
+    /**
+     * Настройки хранения данных
+     */
+    val storage: StorageSettings
 
-    val versionFlow: StateFlow<Int>
-    fun saveVersionSettings(value: Int)
+    /**
+     * Настройки профиля пользователя
+     */
+    val profile: ProfileSettings
 
-    val serverUrlFlow: StateFlow<String>
-    fun saveServerUrlSettings(value: String)
+    /**
+     * Сбросить все настройки до значений по умолчанию
+     */
+    fun resetAllSettings()
 
-    object ThemeOption {
-        const val KEY = "THEME_OPTION"
-        const val THEME_LIGHT = 1
-        const val THEME_DARK = 0
-        const val THEME_SYSTEM = -1
-        const val DEFAULT = THEME_SYSTEM
-    }
+    /**
+     * Проверить, запущено ли приложение в первый раз
+     */
+    fun isFirstRun(): Boolean
+
+    /**
+     * Отметить, что приложение уже было запущено
+     */
+    fun markFirstRunComplete()
+
+    /**
+     * Экспортировать все настройки в JSON
+     *
+     * // TODO: Реализовать полноценную сериализацию всех настроек в JSON
+     */
+    fun exportSettings(): String
+
+    /**
+     * Импортировать настройки из JSON
+     *
+     * // TODO: Реализовать полноценную десериализацию настроек из JSON
+     */
+    fun importSettings(json: String): Boolean
+
+    // TODO: Добавить метод для наблюдения за изменениями любой настройки
+    // TODO: Реализовать механизм транзакций для атомарного изменения нескольких настроек
 }
 
-internal class MultiplatformSettingsImpl(private val settings: Settings) : MultiplatformSettings {
+/**
+ * Реализация главного интерфейса настроек
+ */
+internal class MultiplatformSettingsImpl(settings: Settings) : BaseSettings(settings), MultiplatformSettings {
 
-    private class Setting<T>(
-        private val key: String,
-        private val defaultValue: T,
-        private val settings: Settings,
-        private val get: (Settings, String, T) -> T,
-        private val put: (Settings, String, T) -> Unit
-    ) {
-        private val _flow = MutableStateFlow(get(settings, key, defaultValue))
-        val flow: StateFlow<T> = _flow
+    override val appearance: AppearanceSettings = AppearanceSettingsImpl(settings)
 
-        fun save(value: T) {
-            put(settings, key, value)
-            _flow.value = value
+    override val network: NetworkSettings = NetworkSettingsImpl(settings)
+
+    override val system: SystemSettings = SystemSettingsImpl(settings)
+
+    override val security: SecuritySettings = SecuritySettingsImpl(settings)
+
+    override val notifications: NotificationSettings = NotificationSettingsImpl(settings)
+
+    override val storage: StorageSettings = StorageSettingsImpl(settings)
+
+    override val profile: ProfileSettings = ProfileSettingsImpl(settings)
+
+    private val firstRunKey = "APP_FIRST_RUN"
+    private val appVersionKey = "APP_VERSION"
+
+    override fun resetAllSettings() {
+        // Сохраняем значение первого запуска и версии приложения
+        val isFirstRun = isFirstRun()
+        val appVersion = system.versionFlow.value
+
+        // Очищаем все настройки
+        clearAll()
+
+        // Восстанавливаем значение первого запуска и версии
+        if (!isFirstRun) {
+            markFirstRunComplete()
+        }
+        system.saveVersion(appVersion)
+
+        // TODO: Добавить событие для оповещения о сбросе настроек
+    }
+
+    override fun isFirstRun(): Boolean {
+        return !contains(firstRunKey)
+    }
+
+    override fun markFirstRunComplete() {
+        settings.putBoolean(firstRunKey, true)
+    }
+
+    override fun exportSettings(): String {
+        // Простая реализация - в реальном приложении нужно использовать JSON-сериализацию
+        val result = StringBuilder()
+        result.append("{")
+
+        // Добавляем все настройки в JSON
+        // В реальном приложении здесь будет полноценная сериализация
+        result.append("\"version\": ${system.versionFlow.value}")
+
+        result.append("}")
+        return result.toString()
+
+        // TODO: Реализовать полноценную сериализацию всех настроек с использованием kotlinx.serialization
+    }
+
+    override fun importSettings(json: String): Boolean {
+        // Простая реализация - в реальном приложении нужно использовать JSON-десериализацию
+        try {
+            // Здесь должен быть код для разбора JSON и применения настроек
+            return true
+
+            // TODO: Реализовать полноценную десериализацию настроек с валидацией и применением
+        } catch (e: Exception) {
+            return false
         }
     }
 
-    private val theme = Setting(
-        key = MultiplatformSettings.ThemeOption.KEY,
-        defaultValue = MultiplatformSettings.ThemeOption.DEFAULT,
-        settings = settings,
-        get = Settings::getInt,
-        put = Settings::putInt
-    )
-
-    override val themeFlow: StateFlow<Int> get() = theme.flow
-    override fun saveThemeSettings(value: Int) = theme.save(value)
-
-    private val lang = Setting(
-        key = "LANGUAGE_WORD_OPTION",
-        defaultValue = "ru",
-        settings = settings,
-        get = Settings::getString,
-        put = Settings::putString
-    )
-
-    override val langFlow: StateFlow<String> get() = lang.flow
-    override fun saveLangSettings(value: String) = lang.save(value)
-
-    private val starrySky = Setting(
-        key = "STARRY_SKY_OPTION",
-        defaultValue = false,
-        settings = settings,
-        get = Settings::getBoolean,
-        put = Settings::putBoolean
-    )
-
-    override val starrySkyFlow: StateFlow<Boolean> get() = starrySky.flow
-    override fun saveStarrySkySettings(value: Boolean) = starrySky.save(value)
-
-    private val blackBackground = Setting(
-        key = "BLACK_BACKGROUND_OPTION",
-        defaultValue = false,
-        settings = settings,
-        get = Settings::getBoolean,
-        put = Settings::putBoolean
-    )
-
-    override val blackBackgroundFlow: StateFlow<Boolean> get() = blackBackground.flow
-    override fun saveBlackBackgroundSettings(value: Boolean) = blackBackground.save(value)
-
-    private val version = Setting(
-        key = "APP_VERSION",
-        defaultValue = 0,
-        settings = settings,
-        get = Settings::getInt,
-        put = Settings::putInt
-    )
-
-    override val versionFlow: StateFlow<Int> get() = version.flow
-    override fun saveVersionSettings(value: Int) = version.save(value)
-
-    private val serverUrl = Setting(
-        key = "SERVER_URL_OPTION",
-        defaultValue = "https://api.example.com",
-        settings = settings,
-        get = Settings::getString,
-        put = Settings::putString
-    )
-
-    override val serverUrlFlow: StateFlow<String> get() = serverUrl.flow
-    override fun saveServerUrlSettings(value: String) = serverUrl.save(value)
+    // TODO: Добавить поддержку автоматического резервного копирования настроек
+    // TODO: Реализовать механизм отслеживания изменений настроек для аналитики
 }

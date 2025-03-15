@@ -1,45 +1,37 @@
 package components.settings
 
-import MultiplatformSettings
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.arkivanov.decompose.extensions.compose.stack.Children
+import com.arkivanov.decompose.extensions.compose.stack.animation.fade
+import com.arkivanov.decompose.extensions.compose.stack.animation.plus
+import com.arkivanov.decompose.extensions.compose.stack.animation.slide
+import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
+import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import compedux.core.ui.generated.resources.Res
+import compedux.core.ui.generated.resources.*
 import component.app.settings.SettingsComponent
 import component.app.settings.store.SettingsStore
-import component.settings.SettingDropdown
-import component.settings.SettingSection
-import component.settings.SettingTextField
-import component.settings.SettingToggle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.kodein.di.compose.rememberInstance
-import ui.theme.LocalThemeIsDark
+import org.jetbrains.compose.resources.ExperimentalResourceApi
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * Композабл для отображения экрана настроек
@@ -47,24 +39,30 @@ import ui.theme.LocalThemeIsDark
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsContent(component: SettingsComponent) {
+    val childStack by component.childStack.subscribeAsState()
+
+    Children(
+        stack = childStack,
+        animation = stackAnimation(fade() + slide()),
+    ) { child ->
+        when (val instance = child.instance) {
+            is SettingsComponent.Child.MainChild -> SettingsCategoriesScreen(component)
+            is SettingsComponent.Child.CategoryChild -> SettingsCategoryScreen(
+                component = component,
+                category = instance.category
+            )
+        }
+    }
+}
+
+/**
+ * Экран с категориями настроек
+ */
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalResourceApi::class)
+@Composable
+fun SettingsCategoriesScreen(component: SettingsComponent) {
     // Получаем состояние из компонента
     val state by component.state.collectAsState()
-
-    // Получаем настройки напрямую для отображения дополнительных опций
-    val settings: MultiplatformSettings by rememberInstance()
-    val starrySky by settings.starrySkyFlow.collectAsState()
-    val blackBackground by settings.blackBackgroundFlow.collectAsState()
-    val themeOption by settings.themeFlow.collectAsState()
-    val serverUrl by settings.serverUrlFlow.collectAsState()
-
-    // Получаем текущую тему из LocalThemeIsDark
-    val isDarkTheme by LocalThemeIsDark.current
-
-    // Локальное состояние для выбора темы
-    var selectedThemeOption by remember { mutableStateOf(themeOption) }
-
-    // Локальное состояние для URL сервера
-    var serverUrlValue by remember { mutableStateOf(serverUrl) }
 
     // Состояние для управления drawer
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -90,7 +88,7 @@ fun SettingsContent(component: SettingsComponent) {
                     modifier = Modifier.padding(16.dp),
                     style = MaterialTheme.typography.titleMedium
                 )
-                Divider()
+                HorizontalDivider()
 
                 // Анимированные элементы drawer
                 val drawerItems = listOf(
@@ -150,7 +148,7 @@ fun SettingsContent(component: SettingsComponent) {
                     .padding(padding)
                     .padding(16.dp)
                     .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // Анимация заголовка
                 AnimatedVisibility(
@@ -168,132 +166,195 @@ fun SettingsContent(component: SettingsComponent) {
                     )
                 }
 
-                // Секция "Внешний вид"
-                SettingSection(
-                    title = "Внешний вид",
-                    showContent = showContent,
-                    animationDelay = 600,
-                    showTopDivider = false, // Первая секция без верхнего разделителя
-                    showBottomDivider = true
-                ) {
-                    // Настройка темы с использованием компонента выбора из списка
-                    val themeOptions = listOf(
-                        "Системная" to MultiplatformSettings.ThemeOption.THEME_SYSTEM,
-                        "Светлая" to MultiplatformSettings.ThemeOption.THEME_LIGHT,
-                        "Темная" to MultiplatformSettings.ThemeOption.THEME_DARK
+                // Список категорий настроек
+                val categories = listOf(
+                    SettingCategory(
+                        title = stringResource(Res.string.settings_category_profile),
+                        description = stringResource(Res.string.settings_category_profile_desc),
+                        icon = Icons.Default.AccountCircle,
+                        category = SettingsComponent.SettingsCategory.PROFILE
+                    ),
+                    SettingCategory(
+                        title = stringResource(Res.string.settings_category_appearance),
+                        description = stringResource(Res.string.settings_category_appearance_desc),
+                        icon = Icons.Default.Brush,
+                        category = SettingsComponent.SettingsCategory.APPEARANCE
+                    ),
+                    SettingCategory(
+                        title = stringResource(Res.string.settings_category_language),
+                        description = stringResource(Res.string.settings_category_language_desc),
+                        icon = Icons.Default.Language,
+                        category = SettingsComponent.SettingsCategory.LANGUAGE
+                    ),
+                    SettingCategory(
+                        title = stringResource(Res.string.settings_category_network),
+                        description = stringResource(Res.string.settings_category_network_desc),
+                        icon = Icons.Default.Web,
+                        category = SettingsComponent.SettingsCategory.NETWORK
+                    ),
+                    SettingCategory(
+                        title = stringResource(Res.string.settings_category_security),
+                        description = stringResource(Res.string.settings_category_security_desc),
+                        icon = Icons.Default.Security,
+                        category = SettingsComponent.SettingsCategory.SECURITY
+                    ),
+                    SettingCategory(
+                        title = stringResource(Res.string.settings_category_experimental),
+                        description = stringResource(Res.string.settings_category_experimental_desc),
+                        icon = Icons.Default.Science,
+                        category = SettingsComponent.SettingsCategory.EXPERIMENTAL
                     )
+                )
 
-                    SettingDropdown(
-                        title = "Тема",
-                        description = "Выберите тему оформления приложения",
-                        options = themeOptions.map { it.first },
-                        selectedIndex = themeOptions.indexOfFirst { it.second == selectedThemeOption },
-                        onOptionSelected = { index ->
-                            val option = themeOptions[index].second
-                            selectedThemeOption = option
-                            component.onAction(SettingsStore.Intent.UpdateTheme(option))
-                        }
-                    )
-
-                    // Настройка черного фона (только для темной темы)
-                    SettingToggle(
-                        title = "Черный фон",
-                        description = "Использовать полностью черный фон в темной теме (AMOLED)",
-                        isChecked = blackBackground,
-                        onCheckedChange = {
-                            component.onAction(SettingsStore.Intent.UpdateBlackBackground(it))
-                        },
-                        enabled = selectedThemeOption != MultiplatformSettings.ThemeOption.THEME_LIGHT
-                    )
-
-                    // Настройка звездного неба с использованием компонента переключателя
-                    SettingToggle(
-                        title = "Звездное небо",
-                        description = "Включить анимацию звездного неба на главном экране",
-                        isChecked = starrySky,
-                        onCheckedChange = { settings.saveStarrySkySettings(it) },
-                        isExperimental = true
-                    )
-                }
-
-                // Секция "Язык и локализация"
-                SettingSection(
-                    title = "Язык и локализация",
-                    showContent = showContent,
-                    animationDelay = 700,
-                    showTopDivider = false, // Используем только нижний разделитель
-                    showBottomDivider = true
-                ) {
-                    // Настройка языка с использованием компонента выбора из списка
-                    val languageOptions = listOf("Русский" to "ru", "Английский" to "en")
-
-                    SettingDropdown(
-                        title = "Язык интерфейса",
-                        description = "Выберите язык интерфейса приложения",
-                        options = languageOptions.map { it.first },
-                        selectedIndex = languageOptions.indexOfFirst { it.second == state.language },
-                        onOptionSelected = { index ->
-                            val newLanguage = languageOptions[index].second
-                            component.onAction(SettingsStore.Intent.UpdateLanguage(newLanguage))
-                        }
-                    )
-                }
-
-                // Секция "Настройки сервера"
-                SettingSection(
-                    title = "Настройки сервера",
-                    showContent = showContent,
-                    animationDelay = 750,
-                    showTopDivider = false,
-                    showBottomDivider = true
-                ) {
-                    // Текстовое поле для ввода URL сервера
-                    SettingTextField(
-                        title = "URL сервера",
-                        description = "Введите адрес сервера для подключения",
-                        value = serverUrlValue,
-                        onValueChange = { newValue ->
-                            serverUrlValue = newValue
-                            component.onAction(SettingsStore.Intent.UpdateServerUrl(newValue))
-                        }
-                    )
-                }
-
-                // Секция "Экспериментальные функции"
-                SettingSection(
-                    title = "Экспериментальные функции",
-                    showContent = showContent,
-                    animationDelay = 800,
-                    showTopDivider = false, // Используем только нижний разделитель
-                    showBottomDivider = true
-                ) {
-                    // Текстовое поле для ввода пользовательского значения
-                    SettingTextField(
-                        title = "API ключ",
-                        description = "Введите ключ API для доступа к экспериментальным функциям",
-                        value = "",
-                        onValueChange = { /* Сохранение значения */ },
-                        isExperimental = true
-                    )
-
-                    // Дополнительные экспериментальные настройки
-                    SettingToggle(
-                        title = "Расширенная аналитика",
-                        description = "Включить сбор расширенной аналитики для улучшения приложения",
-                        isChecked = false,
-                        onCheckedChange = { /* Сохранение значения */ },
-                        isExperimental = true
-                    )
-
-                    SettingToggle(
-                        title = "Новый интерфейс",
-                        description = "Включить новый экспериментальный интерфейс (может быть нестабильно)",
-                        isChecked = false,
-                        onCheckedChange = { /* Сохранение значения */ },
-                        isExperimental = true
-                    )
+                categories.forEachIndexed { index, category ->
+                    AnimatedVisibility(
+                        visible = showContent,
+                        enter = fadeIn(animationSpec = tween(500)) +
+                                slideInHorizontally(
+                                    initialOffsetX = { it / 2 },
+                                    animationSpec = tween(500 + index * 100)
+                                )
+                    ) {
+                        SettingCategoryItem(
+                            category = category,
+                            onClick = { component.onCategorySelected(category.category) }
+                        )
+                    }
                 }
             }
+        }
+    }
+}
+
+/**
+ * Экран с конкретной категорией настроек
+ */
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalResourceApi::class)
+@Composable
+fun SettingsCategoryScreen(
+    component: SettingsComponent,
+    category: SettingsComponent.SettingsCategory
+) {
+    val state by component.state.collectAsState()
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        when (category) {
+                            SettingsComponent.SettingsCategory.APPEARANCE -> stringResource(Res.string.settings_category_appearance)
+                            SettingsComponent.SettingsCategory.LANGUAGE -> stringResource(Res.string.settings_category_language)
+                            SettingsComponent.SettingsCategory.NETWORK -> stringResource(Res.string.settings_category_network)
+                            SettingsComponent.SettingsCategory.SECURITY -> stringResource(Res.string.settings_category_security)
+                            SettingsComponent.SettingsCategory.NOTIFICATIONS -> stringResource(Res.string.settings_category_notifications)
+                            SettingsComponent.SettingsCategory.STORAGE -> stringResource(Res.string.settings_category_storage)
+                            SettingsComponent.SettingsCategory.EXPERIMENTAL -> stringResource(Res.string.settings_category_experimental)
+                            SettingsComponent.SettingsCategory.SYSTEM -> stringResource(Res.string.settings_category_system)
+                            SettingsComponent.SettingsCategory.PROFILE -> stringResource(Res.string.settings_category_profile)
+                        }
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = { component.onBackFromCategory() }) {
+                        Icon(Icons.Rounded.ArrowBack, contentDescription = stringResource(Res.string.settings_back))
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        when (category) {
+            SettingsComponent.SettingsCategory.APPEARANCE -> AppearanceSettingsContent(
+                state = state,
+                onAction = component::onAction,
+                modifier = Modifier.padding(padding)
+            )
+            SettingsComponent.SettingsCategory.NETWORK -> NetworkSettingsContent(
+                state = state,
+                onAction = component::onAction,
+                modifier = Modifier.padding(padding)
+            )
+            SettingsComponent.SettingsCategory.SECURITY -> SecuritySettingsContent(
+                state = state,
+                onAction = component::onAction,
+                modifier = Modifier.padding(padding)
+            )
+            SettingsComponent.SettingsCategory.PROFILE -> ProfileSettingsContent(
+                state = state,
+                onAction = component::onAction,
+                modifier = Modifier.padding(padding)
+            )
+
+            SettingsComponent.SettingsCategory.LANGUAGE -> TODO()
+            SettingsComponent.SettingsCategory.NOTIFICATIONS -> TODO()
+            SettingsComponent.SettingsCategory.STORAGE -> TODO()
+            SettingsComponent.SettingsCategory.EXPERIMENTAL -> TODO()
+            SettingsComponent.SettingsCategory.SYSTEM -> TODO()
+        }
+    }
+}
+
+/**
+ * Модель категории настроек
+ */
+data class SettingCategory(
+    val title: String,
+    val description: String,
+    val icon: ImageVector,
+    val category: SettingsComponent.SettingsCategory
+)
+
+/**
+ * Элемент категории настроек
+ */
+@Composable
+fun SettingCategoryItem(
+    category: SettingCategory,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = category.icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp)
+            )
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 16.dp)
+            ) {
+                Text(
+                    text = category.title,
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = category.description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Icon(
+                imageVector = Icons.Rounded.ChevronRight,
+                contentDescription = "Перейти",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
