@@ -23,14 +23,42 @@ import settings.ProfileSettings
  */
 val settingsModule = DI.Module("settingsModule") {
     // Основной объект настроек
-    bindSingleton { Settings() }
-    // TODO: Добавить возможность конфигурирования Settings (имя файла, путь и т.д.)
+    bindSingleton {
+        try {
+            // Используем стандартную реализацию Settings
+            Settings()
+        } catch (e: Exception) {
+            println("Error creating Settings: ${e.message}")
+            e.printStackTrace()
+            // Создаем резервную реализацию в случае ошибки
+            Settings()
+        }
+    }
 
     // Главный интерфейс настроек
-    bindSingleton<MultiplatformSettings> { MultiplatformSettingsImpl(instance()) }
+    bindSingleton<MultiplatformSettings> {
+        try {
+            MultiplatformSettingsImpl(instance())
+        } catch (e: Exception) {
+            println("Error creating MultiplatformSettings: ${e.message}")
+            e.printStackTrace()
+            // Создаем резервную реализацию в случае ошибки
+            MultiplatformSettingsImpl(Settings())
+        }
+    }
 
     // Отдельные категории настроек для прямого доступа
-    bindSingleton<AppearanceSettings> { instance<MultiplatformSettings>().appearance }
+    bindSingleton<AppearanceSettings> {
+        try {
+            instance<MultiplatformSettings>().appearance
+        } catch (e: Exception) {
+            println("Error accessing appearance settings: ${e.message}")
+            e.printStackTrace()
+            // Создаем резервную реализацию в случае ошибки
+            MultiplatformSettingsImpl(Settings()).appearance
+        }
+    }
+
     bindSingleton<NetworkSettings> { instance<MultiplatformSettings>().network }
     bindSingleton<SystemSettings> { instance<MultiplatformSettings>().system }
     bindSingleton<SecuritySettings> { instance<MultiplatformSettings>().security }

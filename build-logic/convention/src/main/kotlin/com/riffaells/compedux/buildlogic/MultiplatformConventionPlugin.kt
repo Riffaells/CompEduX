@@ -27,6 +27,7 @@ class MultiplatformConventionPlugin : Plugin<Project> {
 
                 commonMain.dependencies {
                     implementation(libs.kotlinx.serialization.json)
+                    implementation(libs.kotlinx.datetime)
                     implementation(libs.kotlin.stdlib)
                     implementation(libs.napier)
 
@@ -36,6 +37,7 @@ class MultiplatformConventionPlugin : Plugin<Project> {
 
 
                     implementation(libs.coroutines)
+
                 }
 
                 commonTest.dependencies {

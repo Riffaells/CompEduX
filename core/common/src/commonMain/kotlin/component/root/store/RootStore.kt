@@ -6,8 +6,10 @@ import com.arkivanov.mvikotlin.core.store.SimpleBootstrapper
 import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import org.kodein.di.DI
 import org.kodein.di.DIAware
@@ -27,6 +29,7 @@ interface RootStore : Store<RootStore.Intent, RootStore.State, Nothing> {
         val theme: Int = 0,
         val language: String = "en",
         val loading: Boolean = false,
+        val initialized: Boolean = false,
     )
 }
 
@@ -35,16 +38,18 @@ internal class RootStoreFactory(
     override val di: DI,
 ) : DIAware {
 
-    val settings by instance<MultiplatformSettings>()
-//    val teamUseCases by instance<TeamUseCases>()
-//    val useCasesCategory by instance<CategoryUseCases>()
-//    val useCasesWord by instance<WordUseCases>()
+    // Получаем настройки через DI
+    private val settings: MultiplatformSettings by di.instance()
+
+    // Флаг для отслеживания, загружены ли настройки
+    private var settingsLoaded = false
 
     fun create(): RootStore =
         object : RootStore,
             Store<RootStore.Intent, RootStore.State, Nothing> by storeFactory.create(
                 name = "RootStore",
                 initialState = RootStore.State(),
+                // Отключаем автоматический bootstrapper для ускорения запуска
                 bootstrapper = SimpleBootstrapper(Unit),
                 executorFactory = ::ExecutorImpl,
                 reducer = ReducerImpl
@@ -53,6 +58,7 @@ internal class RootStoreFactory(
     private sealed interface Msg {
         data object LoadingData : Msg
         data object LoadData : Msg
+        data object InitializationComplete : Msg
         data class UpdateTheme(val theme: Int) : Msg
         data class UpdateLanguage(val language: String) : Msg
     }
@@ -62,28 +68,31 @@ internal class RootStoreFactory(
             rDispatchers.main
         ) {
 
+        // Флаг для предотвращения повторной инициализации
+        private var isInitializing = false
+
         override fun executeAction(action: Unit) {
-            try {
-                dispatch(Msg.LoadData)
-                // Здесь можно загрузить настройки из хранилища
-                loadInitialSettings()
-            } catch (e: Exception) {
-                println("Error in executeAction: ${e.message}")
-            }
+            // Не делаем ничего в executeAction, чтобы не блокировать запуск
+            // Инициализация будет выполнена позже по требованию
         }
 
-        private fun loadInitialSettings() {
-            // Загружаем начальные настройки
-            scope.launch {
-                try {
-                    // Загрузка настроек
-                    val theme = settings.appearance.themeFlow.first()
+        private suspend fun loadInitialSettings() {
+            try {
+                // Проверяем, загружены ли настройки
+                if (!settingsLoaded) {
+                    // Загрузка настроек в фоновом потоке
+                    val theme = withContext(Dispatchers.Default) {
+                        // Безопасный доступ к настройкам
+
+                        settings.appearance.themeFlow.first()
+                    }
                     // Обновление UI
-                     safeDispatch(Msg.UpdateTheme(theme))
-                    // safeDispatch(Msg.UpdateLanguage(language))
-                } catch (e: Exception) {
-                    println("Error loading initial settings: ${e.message}")
+                    safeDispatch(Msg.UpdateTheme(theme))
+                    settingsLoaded = true
                 }
+            } catch (e: Exception) {
+                println("Error loading initial settings: ${e.message}")
+                e.printStackTrace()
             }
         }
 
@@ -93,50 +102,90 @@ internal class RootStoreFactory(
                 dispatch(msg)
             } catch (e: Exception) {
                 println("Error in dispatch: ${e.message}")
+                e.printStackTrace()
             }
         }
 
         override fun executeIntent(intent: RootStore.Intent): Unit =
-            try {
-                when (intent) {
-                    is RootStore.Intent.Init -> {
-                        safeDispatch(Msg.LoadData)
-                        loadInitialSettings()
-                    }
-                    is RootStore.Intent.UpdateTheme -> readThemeSettings()
-                    is RootStore.Intent.UpdateLanguage -> {
-                        // Сохранение настроек
-                        scope.launch {
-                            try {
-                                // Асинхронное сохранение настроек
-                                // settings.putString("language", intent.language)
+            when (intent) {
+                is RootStore.Intent.Init -> {
+                    // Проверяем, инициализирован ли уже стор и не выполняется ли инициализация
+                    if (!state().initialized && !isInitializing) {
+                        isInitializing = true
 
-                                // Обновление UI
-                                safeDispatch(Msg.UpdateLanguage(intent.language))
-                            } catch (e: Exception) {
-                                println("Error updating language: ${e.message}")
+                        // Не блокируем UI при инициализации
+                        scope.launch {
+                            // Задержка перед началом загрузки настроек
+                            // Это позволит UI полностью отрисоваться
+                            kotlinx.coroutines.delay(500)
+
+                            dispatch(Msg.LoadingData)
+
+                            // Загружаем настройки в фоновом потоке
+                            withContext(Dispatchers.Default) {
+                                loadInitialSettings()
                             }
+
+                            dispatch(Msg.LoadData)
+                            dispatch(Msg.InitializationComplete)
+                            isInitializing = false
                         }
-                        Unit
                     }
+                    Unit
                 }
-            } catch (e: Exception) {
-                println("Error in executeIntent: ${e.message}")
+
+                is RootStore.Intent.UpdateTheme -> {
+                    readThemeSettings()
+                    Unit
+                }
+
+                is RootStore.Intent.UpdateLanguage -> {
+                    // Сохранение настроек
+                    scope.launch {
+                        try {
+                            // Асинхронное сохранение настроек
+                            // settings.putString("language", intent.language)
+
+                            // Обновление UI
+                            safeDispatch(Msg.UpdateLanguage(intent.language))
+                        } catch (e: Exception) {
+                            println("Error updating language: ${e.message}")
+                            e.printStackTrace()
+                        }
+                    }
+                    Unit
+                }
             }
 
-
-
         private fun saveThemeSettings(value: Int) {
-            settings.appearance.saveTheme(value)
-            dispatch(Msg.UpdateTheme(value))
+            scope.launch {
+                try {
+                    // Выполняем сохранение в фоновом потоке
+                    withContext(Dispatchers.Default) {
 
+                        settings.appearance.saveTheme(value)
+                    }
+                    safeDispatch(Msg.UpdateTheme(value))
+                } catch (e: Exception) {
+                    println("Error saving theme settings: ${e.message}")
+                    e.printStackTrace()
+                }
+            }
         }
 
         private fun readThemeSettings() {
             scope.launch {
-                val theme = settings.appearance.themeFlow.first()
+                try {
+                    // Читаем настройки в фоновом потоке
+                    val theme = withContext(Dispatchers.Default) {
 
-                dispatch(Msg.UpdateTheme(theme))
+                        settings.appearance.themeFlow.first()
+                    }
+                    safeDispatch(Msg.UpdateTheme(theme))
+                } catch (e: Exception) {
+                    println("Error reading theme settings: ${e.message}")
+                    e.printStackTrace()
+                }
             }
         }
     }
@@ -146,6 +195,7 @@ internal class RootStoreFactory(
             when (msg) {
                 Msg.LoadData -> copy(loading = false)
                 Msg.LoadingData -> copy(loading = true)
+                Msg.InitializationComplete -> copy(initialized = true)
                 is Msg.UpdateTheme -> copy(theme = msg.theme)
                 is Msg.UpdateLanguage -> copy(language = msg.language)
             }

@@ -4,7 +4,6 @@ import api.auth.AuthApi
 import api.auth.AuthState
 import kotlinx.coroutines.flow.StateFlow
 import model.auth.*
-
 /**
  * Реализация репозитория аутентификации
  */

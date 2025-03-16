@@ -19,6 +19,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
@@ -27,8 +28,7 @@ import androidx.compose.ui.unit.dp
  *
  * @param selected Выбран ли данный элемент
  * @param onClick Обработчик нажатия на элемент
- * @param icon Иконка элемента
- * @param label Текстовая метка элемента (опционально)
+ * @param modifier Модификатор для настройки внешнего вида
  * @param selectedColor Цвет элемента в выбранном состоянии
  * @param unselectedColor Цвет элемента в невыбранном состоянии
  * @param contentDescription Описание содержимого для доступности
@@ -164,45 +164,50 @@ fun FloatingNavigationRailItem(
     unselectedColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
     contentDescription: String? = null
 ) {
-    Column(
-        modifier = modifier.padding(vertical = 4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        BaseNavigationItem(
-            selected = selected,
-            onClick = onClick,
-            selectedColor = selectedColor,
-            unselectedColor = unselectedColor,
-            contentDescription = contentDescription,
-            selectedSize = 56.dp,
-            unselectedSize = 48.dp
-        ) { backgroundColor, itemSize ->
-            // Фон элемента с анимацией
-            Box(
-                modifier = Modifier
-                    .size(itemSize)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(backgroundColor),
-                contentAlignment = Alignment.Center
+    BaseNavigationItem(
+        selected = selected,
+        onClick = onClick,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp, horizontal = 8.dp),
+        selectedColor = selectedColor,
+        unselectedColor = unselectedColor,
+        contentDescription = contentDescription,
+        selectedSize = 56.dp,
+        unselectedSize = 48.dp
+    ) { backgroundColor, itemSize ->
+        Box(
+            modifier = Modifier
+                .size(itemSize)
+                .clip(RoundedCornerShape(16.dp))
+                .background(backgroundColor),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.padding(8.dp)
             ) {
-                // Иконка с анимацией прозрачности
                 Box(
-                    modifier = Modifier
-                        .padding(8.dp)
-                        .graphicsLayer {
-                            alpha = if (selected) 1f else 0.7f
-                        },
+                    modifier = Modifier.graphicsLayer {
+                        alpha = if (selected) 1f else 0.7f
+                    },
                     contentAlignment = Alignment.Center
                 ) {
                     icon()
                 }
-            }
-        }
 
-        // Метка (если есть)
-        if (label != null && selected) {
-            Spacer(modifier = Modifier.height(4.dp))
-            label()
+                if (label != null) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Box(
+                        modifier = Modifier.graphicsLayer {
+                            alpha = if (selected) 1f else 0.5f
+                        }
+                    ) {
+                        label()
+                    }
+                }
+            }
         }
     }
 }

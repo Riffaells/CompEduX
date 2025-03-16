@@ -41,7 +41,9 @@ import kotlin.math.sin
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainContent(component: MainComponent) {
+fun MainContent(
+    modifier: Modifier = Modifier,
+    component: MainComponent) {
     // Получаем состояние из компонента
     val state by component.state.collectAsState()
 
@@ -68,6 +70,7 @@ fun MainContent(component: MainComponent) {
 
     // Создаем постоянный drawer с дополнительными опциями
     ModalNavigationDrawer(
+        modifier = modifier,
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet {

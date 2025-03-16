@@ -18,9 +18,6 @@ class CompEduXNetworkingPlugin : Plugin<Project> {
                     implementation(libs.ktor.serialization.kotlinx.json)
                     implementation(libs.ktor.client.logging)
                     implementation(libs.ktor.client.auth)
-
-                    // KotlinX DateTime
-                    implementation(libs.kotlinx.datetime)
                 }
 
                 // Платформо-специфичные зависимости
