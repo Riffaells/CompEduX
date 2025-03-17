@@ -9,7 +9,9 @@ import androidx.compose.ui.unit.dp
 import component.app.skiko.SkikoComponent
 
 @Composable
-fun SkikoContent(component: SkikoComponent) {
+fun SkikoContent(
+    modifier: Modifier = Modifier,
+    component: SkikoComponent) {
     val state by component.state.collectAsState()
 
     Column(

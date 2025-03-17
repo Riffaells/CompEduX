@@ -2,9 +2,7 @@ package components.main
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -129,108 +127,115 @@ fun MainContent(
                 )
             }
         ) { padding ->
-            Column(
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Анимация появления текста
-                AnimatedVisibility(
-                    visible = showContent,
-                    enter = fadeIn(animationSpec = tween(500)) +
-                            expandVertically(animationSpec = tween(500)),
-                    exit = fadeOut()
+                // Используем Column с verticalScroll для возможности прокрутки
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(
-                        text = "Главный экран",
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
-
-                // Анимация появления кнопок
-                AnimatedVisibility(
-                    visible = showContent,
-                    enter = fadeIn(animationSpec = tween(700)) +
-                            slideInVertically(
-                                initialOffsetY = { it / 2 },
-                                animationSpec = tween(700)
-                            ),
-                    exit = fadeOut()
-                ) {
-                    Column(
-                        modifier = Modifier,
-                        horizontalAlignment = Alignment.CenterHorizontally) {
-                        Button(
-                            onClick = { component.onAction(MainStore.Intent.OpenSettings) },
-                            modifier = Modifier
-                                .padding(top = 16.dp)
-                                .scale(buttonScale)
-                        ) {
-                            Text("Открыть настройки")
-                        }
-
-                        Button(
-                            onClick = { component.onAction(MainStore.Intent.UpdateTitle("Обновленный заголовок")) },
-                            modifier = Modifier
-                                .padding(top = 8.dp)
-                                .scale(buttonScale)
-                        ) {
-                            Text("Обновить заголовок")
-                        }
-
-                        Button(
-                            onClick = { showSkiaDemo = !showSkiaDemo },
-                            modifier = Modifier
-                                .padding(top = 16.dp)
-                                .scale(buttonScale)
-                        ) {
-                            Text(if (showSkiaDemo) "Скрыть Skia демо" else "Показать Skia демо")
-                        }
-
-                        // Добавляем кнопку для открытия карты развития
-                        Button(
-                            onClick = { /*component.onAction(MainStore.Intent.OpenDevelopmentMap)*/ },
-                            modifier = Modifier
-                                .padding(top = 16.dp)
-                                .scale(buttonScale)
-                        ) {
-                            Text("Открыть карту развития")
-                        }
-
-                        // Добавляем кнопку для открытия комнаты
-                        Button(
-                            onClick = { component.onRoomClicked() },
-                            modifier = Modifier
-                                .padding(top = 16.dp)
-                                .scale(buttonScale)
-                        ) {
-                            Text("Открыть комнату")
-                        }
-
-//                        BlurStyleDemo()
-                    }
-                }
-
-                // Skia демонстрация
-                AnimatedVisibility(
-                    visible = showSkiaDemo,
-                    enter = fadeIn(animationSpec = tween(500)),
-                    exit = fadeOut(animationSpec = tween(500))
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .padding(top = 24.dp)
-                            .fillMaxWidth()
-                            .aspectRatio(1f)
-                            .shadow(8.dp, RoundedCornerShape(16.dp))
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp))
+                    // Анимация появления текста
+                    AnimatedVisibility(
+                        visible = showContent,
+                        enter = fadeIn(animationSpec = tween(500)) +
+                                expandVertically(animationSpec = tween(500)),
+                        exit = fadeOut()
                     ) {
-                        SkiaDemo()
+                        Text(
+                            text = "Главный экран",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+
+                    // Анимация появления кнопок
+                    AnimatedVisibility(
+                        visible = showContent,
+                        enter = fadeIn(animationSpec = tween(700)) +
+                                slideInVertically(
+                                    initialOffsetY = { it / 2 },
+                                    animationSpec = tween(700)
+                                ),
+                        exit = fadeOut()
+                    ) {
+                        Column(
+                            modifier = Modifier,
+                            horizontalAlignment = Alignment.CenterHorizontally) {
+                            Button(
+                                onClick = { component.onAction(MainStore.Intent.OpenSettings) },
+                                modifier = Modifier
+                                    .padding(top = 16.dp)
+                                    .scale(buttonScale)
+                            ) {
+                                Text("Открыть настройки")
+                            }
+
+                            Button(
+                                onClick = { component.onAction(MainStore.Intent.UpdateTitle("Обновленный заголовок")) },
+                                modifier = Modifier
+                                    .padding(top = 8.dp)
+                                    .scale(buttonScale)
+                            ) {
+                                Text("Обновить заголовок")
+                            }
+
+                            Button(
+                                onClick = { showSkiaDemo = !showSkiaDemo },
+                                modifier = Modifier
+                                    .padding(top = 16.dp)
+                                    .scale(buttonScale)
+                            ) {
+                                Text(if (showSkiaDemo) "Скрыть Skia демо" else "Показать Skia демо")
+                            }
+
+                            // Добавляем кнопку для открытия карты развития
+                            Button(
+                                onClick = { /*component.onAction(MainStore.Intent.OpenDevelopmentMap)*/ },
+                                modifier = Modifier
+                                    .padding(top = 16.dp)
+                                    .scale(buttonScale)
+                            ) {
+                                Text("Открыть карту развития")
+                            }
+
+                            // Добавляем кнопку для открытия комнаты
+                            Button(
+                                onClick = { component.onRoomClicked() },
+                                modifier = Modifier
+                                    .padding(top = 16.dp)
+                                    .scale(buttonScale)
+                            ) {
+                                Text("Открыть комнату")
+                            }
+
+//                            BlurStyleDemo()
+                        }
+                    }
+
+                    // Skia демонстрация
+                    AnimatedVisibility(
+                        visible = showSkiaDemo,
+                        enter = fadeIn(animationSpec = tween(500)),
+                        exit = fadeOut(animationSpec = tween(500))
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .padding(top = 24.dp)
+                                .fillMaxWidth()
+                                .aspectRatio(1f)
+                                .shadow(8.dp, RoundedCornerShape(16.dp))
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp))
+                        ) {
+                            SkiaDemo()
+                        }
                     }
                 }
             }

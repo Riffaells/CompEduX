@@ -38,7 +38,10 @@ import org.jetbrains.compose.resources.stringResource
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsContent(component: SettingsComponent) {
+fun SettingsContent(
+    modifier: Modifier = Modifier,
+    component: SettingsComponent
+) {
     val childStack by component.childStack.subscribeAsState()
 
     Children(
@@ -46,8 +49,9 @@ fun SettingsContent(component: SettingsComponent) {
         animation = stackAnimation(fade() + slide()),
     ) { child ->
         when (val instance = child.instance) {
-            is SettingsComponent.Child.MainChild -> SettingsCategoriesScreen(component)
+            is SettingsComponent.Child.MainChild -> SettingsCategoriesScreen(modifier, component)
             is SettingsComponent.Child.CategoryChild -> SettingsCategoryScreen(
+                modifier = modifier,
                 component = component,
                 category = instance.category
             )
@@ -58,9 +62,11 @@ fun SettingsContent(component: SettingsComponent) {
 /**
  * Экран с категориями настроек
  */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalResourceApi::class)
 @Composable
-fun SettingsCategoriesScreen(component: SettingsComponent) {
+fun SettingsCategoriesScreen(
+    modifier: Modifier = Modifier,
+    component: SettingsComponent
+) {
     // Получаем состояние из компонента
     val state by component.state.collectAsState()
 
@@ -79,6 +85,7 @@ fun SettingsCategoriesScreen(component: SettingsComponent) {
 
     // Создаем drawer с дополнительными опциями
     ModalNavigationDrawer(
+        modifier = modifier,
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet {
@@ -142,83 +149,89 @@ fun SettingsCategoriesScreen(component: SettingsComponent) {
                 )
             }
         ) { padding ->
-            Column(
+            Box(
                 modifier = Modifier
-                    .fillMaxSize()
                     .padding(padding)
-                    .padding(16.dp)
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .fillMaxSize()
             ) {
-                // Анимация заголовка
-                AnimatedVisibility(
-                    visible = showContent,
-                    enter = fadeIn(animationSpec = tween(500)) +
-                            slideInHorizontally(
-                                initialOffsetX = { -it / 2 },
-                                animationSpec = tween(500)
-                            ),
-                    exit = fadeOut()
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp)
+                        .padding(bottom = 100.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Text(
-                        text = "Настройки приложения",
-                        style = MaterialTheme.typography.headlineSmall
-                    )
-                }
-
-                // Список категорий настроек
-                val categories = listOf(
-                    SettingCategory(
-                        title = stringResource(Res.string.settings_category_profile),
-                        description = stringResource(Res.string.settings_category_profile_desc),
-                        icon = Icons.Default.AccountCircle,
-                        category = SettingsComponent.SettingsCategory.PROFILE
-                    ),
-                    SettingCategory(
-                        title = stringResource(Res.string.settings_category_appearance),
-                        description = stringResource(Res.string.settings_category_appearance_desc),
-                        icon = Icons.Default.Brush,
-                        category = SettingsComponent.SettingsCategory.APPEARANCE
-                    ),
-                    SettingCategory(
-                        title = stringResource(Res.string.settings_category_language),
-                        description = stringResource(Res.string.settings_category_language_desc),
-                        icon = Icons.Default.Language,
-                        category = SettingsComponent.SettingsCategory.LANGUAGE
-                    ),
-                    SettingCategory(
-                        title = stringResource(Res.string.settings_category_network),
-                        description = stringResource(Res.string.settings_category_network_desc),
-                        icon = Icons.Default.Web,
-                        category = SettingsComponent.SettingsCategory.NETWORK
-                    ),
-                    SettingCategory(
-                        title = stringResource(Res.string.settings_category_security),
-                        description = stringResource(Res.string.settings_category_security_desc),
-                        icon = Icons.Default.Security,
-                        category = SettingsComponent.SettingsCategory.SECURITY
-                    ),
-                    SettingCategory(
-                        title = stringResource(Res.string.settings_category_experimental),
-                        description = stringResource(Res.string.settings_category_experimental_desc),
-                        icon = Icons.Default.Science,
-                        category = SettingsComponent.SettingsCategory.EXPERIMENTAL
-                    )
-                )
-
-                categories.forEachIndexed { index, category ->
+                    // Анимация заголовка
                     AnimatedVisibility(
                         visible = showContent,
                         enter = fadeIn(animationSpec = tween(500)) +
                                 slideInHorizontally(
-                                    initialOffsetX = { it / 2 },
-                                    animationSpec = tween(500 + index * 100)
-                                )
+                                    initialOffsetX = { -it / 2 },
+                                    animationSpec = tween(500)
+                                ),
+                        exit = fadeOut()
                     ) {
-                        SettingCategoryItem(
-                            category = category,
-                            onClick = { component.onCategorySelected(category.category) }
+                        Text(
+                            text = "Настройки приложения",
+                            style = MaterialTheme.typography.headlineSmall
                         )
+                    }
+
+                    // Список категорий настроек
+                    val categories = listOf(
+                        SettingCategory(
+                            title = stringResource(Res.string.settings_category_profile),
+                            description = stringResource(Res.string.settings_category_profile_desc),
+                            icon = Icons.Default.AccountCircle,
+                            category = SettingsComponent.SettingsCategory.PROFILE
+                        ),
+                        SettingCategory(
+                            title = stringResource(Res.string.settings_category_appearance),
+                            description = stringResource(Res.string.settings_category_appearance_desc),
+                            icon = Icons.Default.Brush,
+                            category = SettingsComponent.SettingsCategory.APPEARANCE
+                        ),
+                        SettingCategory(
+                            title = stringResource(Res.string.settings_category_language),
+                            description = stringResource(Res.string.settings_category_language_desc),
+                            icon = Icons.Default.Language,
+                            category = SettingsComponent.SettingsCategory.LANGUAGE
+                        ),
+                        SettingCategory(
+                            title = stringResource(Res.string.settings_category_network),
+                            description = stringResource(Res.string.settings_category_network_desc),
+                            icon = Icons.Default.Web,
+                            category = SettingsComponent.SettingsCategory.NETWORK
+                        ),
+                        SettingCategory(
+                            title = stringResource(Res.string.settings_category_security),
+                            description = stringResource(Res.string.settings_category_security_desc),
+                            icon = Icons.Default.Security,
+                            category = SettingsComponent.SettingsCategory.SECURITY
+                        ),
+                        SettingCategory(
+                            title = stringResource(Res.string.settings_category_experimental),
+                            description = stringResource(Res.string.settings_category_experimental_desc),
+                            icon = Icons.Default.Science,
+                            category = SettingsComponent.SettingsCategory.EXPERIMENTAL
+                        )
+                    )
+
+                    categories.forEachIndexed { index, category ->
+                        AnimatedVisibility(
+                            visible = showContent,
+                            enter = fadeIn(animationSpec = tween(500)) +
+                                    slideInHorizontally(
+                                        initialOffsetX = { it / 2 },
+                                        animationSpec = tween(500 + index * 100)
+                                    )
+                        ) {
+                            SettingCategoryItem(
+                                category = category,
+                                onClick = { component.onCategorySelected(category.category) }
+                            )
+                        }
                     }
                 }
             }
@@ -263,33 +276,42 @@ fun SettingsCategoryScreen(
             )
         }
     ) { padding ->
-        when (category) {
-            SettingsComponent.SettingsCategory.APPEARANCE -> AppearanceSettingsContent(
-                state = state,
-                onAction = component::onAction,
-                modifier = Modifier.padding(padding)
-            )
-            SettingsComponent.SettingsCategory.NETWORK -> NetworkSettingsContent(
-                state = state,
-                onAction = component::onAction,
-                modifier = Modifier.padding(padding)
-            )
-            SettingsComponent.SettingsCategory.SECURITY -> SecuritySettingsContent(
-                state = state,
-                onAction = component::onAction,
-                modifier = Modifier.padding(padding)
-            )
-            SettingsComponent.SettingsCategory.PROFILE -> ProfileSettingsContent(
-                state = state,
-                onAction = component::onAction,
-                modifier = Modifier.padding(padding)
-            )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            when (category) {
+                SettingsComponent.SettingsCategory.APPEARANCE -> AppearanceSettingsContent(
+                    state = state,
+                    onAction = component::onAction,
+                    modifier = Modifier.fillMaxSize()
+                )
 
-            SettingsComponent.SettingsCategory.LANGUAGE -> TODO()
-            SettingsComponent.SettingsCategory.NOTIFICATIONS -> TODO()
-            SettingsComponent.SettingsCategory.STORAGE -> TODO()
-            SettingsComponent.SettingsCategory.EXPERIMENTAL -> TODO()
-            SettingsComponent.SettingsCategory.SYSTEM -> TODO()
+                SettingsComponent.SettingsCategory.NETWORK -> NetworkSettingsContent(
+                    state = state,
+                    onAction = component::onAction,
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                SettingsComponent.SettingsCategory.SECURITY -> SecuritySettingsContent(
+                    state = state,
+                    onAction = component::onAction,
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                SettingsComponent.SettingsCategory.PROFILE -> ProfileSettingsContent(
+                    state = state,
+                    onAction = component::onAction,
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                SettingsComponent.SettingsCategory.LANGUAGE -> TODO()
+                SettingsComponent.SettingsCategory.NOTIFICATIONS -> TODO()
+                SettingsComponent.SettingsCategory.STORAGE -> TODO()
+                SettingsComponent.SettingsCategory.EXPERIMENTAL -> TODO()
+                SettingsComponent.SettingsCategory.SYSTEM -> TODO()
+            }
         }
     }
 }

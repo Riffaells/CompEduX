@@ -4,6 +4,9 @@ import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
@@ -18,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.arkivanov.decompose.extensions.compose.stack.Children
@@ -71,7 +75,6 @@ fun RootContent(
     // Запоминаем предыдущее состояние для анимации
     var wasLargeScreen by remember { mutableStateOf(isLargeScreen) }
     val isChangingLayout = wasLargeScreen != isLargeScreen
-
 
     // Если размер экрана изменился, обновляем состояние
     LaunchedEffect(isLargeScreen) {
@@ -172,6 +175,39 @@ fun RootContent(
         label = "BottomNavAlpha"
     )
 
+    // Анимация позиции для боковой навигации
+    val sideNavOffsetX by animateDpAsState(
+        targetValue = if (isLargeScreen) 0.dp else (-80).dp,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "SideNavOffsetX"
+    )
+
+    // Анимация позиции для нижней навигации
+    val bottomNavOffsetY by animateDpAsState(
+        targetValue = if (!isLargeScreen) 0.dp else 80.dp,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "BottomNavOffsetY"
+    )
+
+    // Анимация масштаба для обеих навигаций
+    val sideNavScale by animateFloatAsState(
+        targetValue = if (isLargeScreen) 1f else 0.8f,
+        animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing),
+        label = "SideNavScale"
+    )
+
+    val bottomNavScale by animateFloatAsState(
+        targetValue = if (!isLargeScreen) 1f else 0.8f,
+        animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing),
+        label = "BottomNavScale"
+    )
+
     // Создаем PaddingValues для прокручиваемого контента
     val contentPadding = remember(isLargeScreen) {
         Napier.d("RootContent: Создание PaddingValues для контента")
@@ -180,6 +216,19 @@ fun RootContent(
             // Но оставляем небольшой отступ снизу и сбоку для лучшей читаемости
             start = if (isLargeScreen) 16.dp else 0.dp,
             bottom = if (!isLargeScreen) 16.dp else 0.dp
+        )
+    }
+
+    // Создаем модификатор безопасной области для контента, который учитывает навигацию
+    val safeAreaModifier = remember(isLargeScreen) {
+        Napier.d("RootContent: Создание модификатора безопасной области")
+        Modifier.padding(
+            // Добавляем отступ слева для боковой навигации на больших экранах
+            start = if (isLargeScreen) 100.dp else 0.dp,
+            // Добавляем отступ снизу для нижней навигации на маленьких экранах
+            bottom = if (!isLargeScreen) 100.dp else 0.dp,
+            // Добавляем дополнительный отступ для возможности прокрутки дальше
+            end = 16.dp
         )
     }
 
@@ -225,7 +274,8 @@ fun RootContent(
                             RenderContent(
                                 modifier = Modifier.fillMaxSize(),
                                 component = component,
-                                contentPadding = contentPadding
+                                contentPadding = contentPadding,
+                                safeAreaModifier = safeAreaModifier
                             )
                         }
 
@@ -245,31 +295,53 @@ fun RootContent(
                                 .fillMaxHeight()
                                 .padding(top = 16.dp)
                                 .zIndex(100f)
-                                .graphicsLayer(alpha = sideNavAlpha)
+                                .graphicsLayer(
+                                    alpha = sideNavAlpha,
+                                    translationX = sideNavOffsetX.value,
+                                    scaleX = sideNavScale,
+                                    scaleY = sideNavScale,
+                                    transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0.5f)
+                                )
                         ) {
                             FloatingNavigationRail(
                                 hazeState = hazeState,
                                 blurType = blurType,
-                                backgroundColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.7f), // Уменьшаем непрозрачность для лучшего эффекта размытия
-                                useProgressiveBlur = true // Включаем прогрессивное размытие
+                                backgroundColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.7f),
+                                useProgressiveBlur = true,
+                                animationProgress = sideNavAlpha
                             ) {
                                 Spacer(modifier = Modifier.height(16.dp))
 
-                                navigationConfig.items.forEach { item ->
-
+                                navigationConfig.items.forEachIndexed { index, item ->
                                     val isSelected = item.id == selectedItemId
-                                    FloatingNavigationRailItem(
-                                        selected = isSelected,
-                                        onClick = { item.onClick() },
-                                        icon = { item.IconContent() },
-                                        label = {
-                                            Text(
-                                                text = item.label,
-                                                style = MaterialTheme.typography.labelSmall
-                                            )
-                                        }
+
+                                    // Анимация для каждого элемента навигации
+                                    val animState = rememberNavigationAnimationState(
+                                        isVisible = isLargeScreen,
+                                        itemIndex = index
                                     )
 
+                                    Box(
+                                        modifier = Modifier
+                                            .graphicsLayer(
+                                                alpha = animState.alpha,
+                                                scaleX = animState.scale,
+                                                scaleY = animState.scale,
+                                                translationX = animState.offset.value
+                                            )
+                                    ) {
+                                        FloatingNavigationRailItem(
+                                            selected = isSelected,
+                                            onClick = { item.onClick() },
+                                            icon = { item.IconContent() },
+                                            label = {
+                                                Text(
+                                                    text = item.label,
+                                                    style = MaterialTheme.typography.labelSmall
+                                                )
+                                            }
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -288,29 +360,52 @@ fun RootContent(
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
                                 .zIndex(100f)
-                                .graphicsLayer(alpha = bottomNavAlpha)
+                                .graphicsLayer(
+                                    alpha = bottomNavAlpha,
+                                    translationY = bottomNavOffsetY.value,
+                                    scaleX = bottomNavScale,
+                                    scaleY = bottomNavScale,
+                                    transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 1f)
+                                )
                         ) {
                             FloatingNavigationBar(
                                 modifier = Modifier,
                                 hazeState = hazeState,
                                 blurType = blurType,
-                                backgroundColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.7f), // Уменьшаем непрозрачность для лучшего эффекта размытия
-                                useProgressiveBlur = true // Включаем прогрессивное размытие
+                                backgroundColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.7f),
+                                useProgressiveBlur = true,
+                                animationProgress = bottomNavAlpha
                             ) {
-                                navigationConfig.items.forEach { item ->
+                                navigationConfig.items.forEachIndexed { index, item ->
                                     val isSelected = item.id == selectedItemId
-                                    FloatingNavigationBarItem(
-                                        selected = isSelected,
-                                        onClick = { item.onClick() },
-                                        icon = { item.IconContent() },
-                                        label = {
-                                            Text(
-                                                text = item.label,
-                                                style = MaterialTheme.typography.labelSmall
-                                            )
-                                        }
+
+                                    // Анимация для каждого элемента нижней навигации
+                                    val animState = rememberNavigationAnimationState(
+                                        isVisible = !isLargeScreen,
+                                        itemIndex = index
                                     )
 
+                                    Box(
+                                        modifier = Modifier
+                                            .graphicsLayer(
+                                                alpha = animState.alpha,
+                                                scaleX = animState.scale,
+                                                scaleY = animState.scale,
+                                                translationY = -animState.offset.value
+                                            )
+                                    ) {
+                                        FloatingNavigationBarItem(
+                                            selected = isSelected,
+                                            onClick = { item.onClick() },
+                                            icon = { item.IconContent() },
+                                            label = {
+                                                Text(
+                                                    text = item.label,
+                                                    style = MaterialTheme.typography.labelSmall
+                                                )
+                                            }
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -333,7 +428,8 @@ fun RootContent(
 private fun RenderContent(
     modifier: Modifier,
     component: RootComponent,
-    contentPadding: PaddingValues = PaddingValues(0.dp)
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+    safeAreaModifier: Modifier = Modifier
 ) {
     // Логируем начало рендеринга контента
     Napier.d("RenderContent: Начало рендеринга дочерних компонентов")
@@ -347,17 +443,18 @@ private fun RenderContent(
                     scale(animationSpec = tween(300, easing = FastOutSlowInEasing)) +
                     slide(animationSpec = tween(400, easing = FastOutSlowInEasing))
         ),
-        modifier = modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
     ) { child ->
         Napier.d("RenderContent: Рендеринг компонента ${child.instance::class.simpleName}")
         val instanceStartTime = Clock.System.now().toEpochMilliseconds()
 
         when (val instance = child.instance) {
             is MainChild -> MainContent(modifier, instance.component)
-            is SettingsChild -> SettingsContent(instance.component)
-            is SkikoChild -> SkikoContent(instance.component)
-            is AuthChild -> AuthContent(instance.component)
-            is RoomChild -> RoomContent(instance.component)
+            is SettingsChild -> SettingsContent(modifier, instance.component)
+            is SkikoChild -> SkikoContent(modifier, instance.component)
+            is AuthChild -> AuthContent(modifier, instance.component)
+            is RoomChild -> RoomContent(modifier, instance.component)
         }
 
         Napier.d(
@@ -374,3 +471,63 @@ private fun RenderContent(
         }ms"
     )
 }
+
+/**
+ * Обертка для контента, которая добавляет невидимые элементы для прокрутки,
+ * чтобы пользователь мог прокрутить контент за пределы навигации
+ */
+
+
+// Дополнительно анимируем состояние для навигационных элементов
+// Создадим класс для анимации появления/исчезновения элементов навигации
+@Composable
+private fun rememberNavigationAnimationState(
+    isVisible: Boolean,
+    baseDelay: Long = 0,
+    itemIndex: Int = 0
+): NavigationItemAnimationState {
+    // Анимация видимости (alpha) с задержкой для каскадного эффекта
+    val delay = baseDelay + (itemIndex * 50L)
+    val alpha by animateFloatAsState(
+        targetValue = if (isVisible) 1f else 0f,
+        animationSpec = tween(
+            durationMillis = 300,
+            delayMillis = delay.toInt(),
+            easing = FastOutSlowInEasing
+        ),
+        label = "NavItemAlpha"
+    )
+
+    // Анимация позиции (смещение)
+    val offset by animateDpAsState(
+        targetValue = if (isVisible) 0.dp else 20.dp,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow,
+            visibilityThreshold = 1.dp
+        ),
+        label = "NavItemOffset"
+    )
+
+    // Анимация масштаба
+    val scale by animateFloatAsState(
+        targetValue = if (isVisible) 1f else 0.8f,
+        animationSpec = tween(
+            durationMillis = 300,
+            delayMillis = delay.toInt(),
+            easing = FastOutSlowInEasing
+        ),
+        label = "NavItemScale"
+    )
+
+    return remember(alpha, offset, scale) {
+        NavigationItemAnimationState(alpha, offset, scale)
+    }
+}
+
+// Класс для хранения состояния анимации элемента навигации
+data class NavigationItemAnimationState(
+    val alpha: Float,
+    val offset: Dp,
+    val scale: Float
+)

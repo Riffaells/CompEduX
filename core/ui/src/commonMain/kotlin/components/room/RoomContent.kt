@@ -24,13 +24,16 @@ import component.app.room.RoomComponent
 import component.app.room.store.RoomStore
 import components.room.achievement.AchievementContent
 import components.room.diagram.DiagramContent
+import ui.icon.RIcons
 
 /**
  * Композабл для отображения комнаты с диаграммами и достижениями
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RoomContent(component: RoomComponent) {
+fun RoomContent(
+    modifier: Modifier = Modifier,
+    component: RoomComponent) {
     // Получаем состояние из компонента
     val state by component.state.collectAsState()
     val diagramSlot by component.diagramSlot.subscribeAsState()
@@ -57,13 +60,13 @@ fun RoomContent(component: RoomComponent) {
                 title = { Text(state.roomName) },
                 navigationIcon = {
                     IconButton(onClick = { component.onBackClicked() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Назад")
+                        Icon(RIcons.ArrowBack, contentDescription = "Назад")
                     }
                 },
                 actions = {
                     IconButton(onClick = { component.onEvent(RoomStore.Intent.ToggleAchievement) }) {
                         Icon(
-                            imageVector = Icons.Default.Edit,
+                            imageVector = RIcons.Add,
                             contentDescription = if (state.showAchievement) "Скрыть достижения" else "Показать достижения"
                         )
                     }

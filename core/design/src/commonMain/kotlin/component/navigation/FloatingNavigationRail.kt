@@ -4,6 +4,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -33,6 +34,7 @@ import dev.chrisbanes.haze.*
  * @param blurType Тип эффекта размытия
  * @param hazeState Состояние эффекта размытия, должно быть общим с источником размытия
  * @param useProgressiveBlur Использовать ли прогрессивное размытие (градиент)
+ * @param animationProgress Прогресс анимации появления/исчезновения (0.0-1.0)
  * @param content Содержимое навигационной панели
  */
 @Composable
@@ -45,8 +47,37 @@ fun FloatingNavigationRail(
     blurType: BlurType = BlurType.FROSTED,
     hazeState: HazeState,
     useProgressiveBlur: Boolean = true,
+    animationProgress: Float = 1f,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    // Анимируем ширину контейнера в зависимости от прогресса анимации
+    val containerWidth by animateFloatAsState(
+        targetValue = 72f * animationProgress,
+        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+        label = "ContainerWidth"
+    )
+
+    // Анимируем прозрачность фона
+    val backgroundAlpha by animateFloatAsState(
+        targetValue = animationProgress,
+        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+        label = "BackgroundAlpha"
+    )
+
+    // Анимируем радиус скругления
+    val animatedCornerRadius by animateFloatAsState(
+        targetValue = cornerRadius * animationProgress,
+        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+        label = "CornerRadius"
+    )
+
+    // Анимируем высоту контейнера
+    val containerHeightFraction by animateFloatAsState(
+        targetValue = 0.6f * animationProgress,
+        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+        label = "ContainerHeightFraction"
+    )
+
     Box(
         modifier = modifier
             .fillMaxHeight()
@@ -56,12 +87,12 @@ fun FloatingNavigationRail(
         // Используем базовый контейнер для навигации
         BaseNavigationContainer(
             modifier = Modifier
-                .width(72.dp)
-                .fillMaxHeight(0.6f),
-            backgroundColor = backgroundColor,
+                .width(containerWidth.dp)
+                .fillMaxHeight(containerHeightFraction),
+            backgroundColor = backgroundColor.copy(alpha = backgroundAlpha * backgroundColor.alpha),
             contentColor = contentColor,
-            elevation = elevation,
-            cornerRadius = cornerRadius,
+            elevation = elevation * animationProgress,
+            cornerRadius = animatedCornerRadius,
             blurType = blurType,
             hazeState = hazeState,
             useProgressiveBlur = useProgressiveBlur,
@@ -69,8 +100,8 @@ fun FloatingNavigationRail(
             progressiveBlurCreator = {
                 // Горизонтальный градиент размытия - сильнее слева, слабее справа
                 HazeProgressive.horizontalGradient(
-                    startIntensity = 1.0f, // Левая сторона (больше размытия)
-                    endIntensity = 0.7f    // Правая сторона (меньше размытия)
+                    startIntensity = 1.0f * animationProgress, // Левая сторона (больше размытия)
+                    endIntensity = 0.7f * animationProgress    // Правая сторона (меньше размытия)
                 )
             }
         ) {

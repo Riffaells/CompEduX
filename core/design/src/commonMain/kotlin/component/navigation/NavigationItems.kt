@@ -98,7 +98,8 @@ fun FloatingNavigationBarItem(
     label: @Composable (() -> Unit)? = null,
     selectedColor: Color = MaterialTheme.colorScheme.primary,
     unselectedColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-    contentDescription: String? = null
+    contentDescription: String? = null,
+    isLabel: Boolean = false,
 ) {
     BaseNavigationItem(
         selected = selected,
@@ -133,7 +134,7 @@ fun FloatingNavigationBarItem(
                     icon()
                 }
 
-                if (label != null && selected) {
+                if (isLabel && label != null && selected) {
                     Spacer(modifier = Modifier.height(4.dp))
                     label()
                 }
@@ -197,16 +198,16 @@ fun FloatingNavigationRailItem(
                     icon()
                 }
 
-                if (label != null) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Box(
-                        modifier = Modifier.graphicsLayer {
-                            alpha = if (selected) 1f else 0.5f
-                        }
-                    ) {
-                        label()
-                    }
-                }
+//                if (label != null) {
+//                    Spacer(modifier = Modifier.height(4.dp))
+//                    Box(
+//                        modifier = Modifier.graphicsLayer {
+//                            alpha = if (selected) 1f else 0.5f
+//                        }
+//                    ) {
+//                        label()
+//                    }
+//                }
             }
         }
     }

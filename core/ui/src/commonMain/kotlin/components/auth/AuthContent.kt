@@ -1,6 +1,7 @@
 package components.auth
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.stack.animation.fade
 import com.arkivanov.decompose.extensions.compose.stack.animation.plus
@@ -13,7 +14,7 @@ import component.app.auth.AuthComponent.Child.*
  * Основной композабл для отображения компонентов аутентификации
  */
 @Composable
-fun AuthContent(component: AuthComponent) {
+fun AuthContent(modifier: Modifier, component: AuthComponent) {
     // Отображаем текущий дочерний компонент с анимацией
     Children(
         stack = component.childStack,
