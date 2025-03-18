@@ -14,26 +14,17 @@ import utils.rDispatchers
 interface ProfileStore : Store<ProfileStore.Intent, ProfileStore.State, Nothing> {
 
     sealed interface Intent {
-        data object EditProfile : Intent
-        data object ChangePassword : Intent
-        data object SaveProfile : Intent
+        data object Init : Intent
         data object Logout : Intent
+        data object Back : Intent
     }
 
     @Serializable
     data class State(
-        val user: User? = null,
-        val isEditing: Boolean = false,
-        val isLoading: Boolean = false,
+        val username: String = "",
+        val email: String = "",
+        val loading: Boolean = false,
         val error: String? = null
-    )
-
-    @Serializable
-    data class User(
-        val id: String,
-        val name: String,
-        val email: String,
-        val avatarUrl: String? = null
     )
 }
 
@@ -42,45 +33,34 @@ internal class ProfileStoreFactory(
     override val di: DI
 ) : DIAware {
 
-    // Интерфейс для фабрики, используемый в ComponentModule
-    interface Factory {
-        fun create(): ProfileStore
-    }
-
-    fun create(): ProfileStore =
+    fun create(
+        onLogout: () -> Unit,
+        onBack: () -> Unit
+    ): ProfileStore =
         object : ProfileStore, Store<ProfileStore.Intent, ProfileStore.State, Nothing> by storeFactory.create(
             name = "ProfileStore",
-            initialState = ProfileStore.State(
-                // Для примера создаем тестового пользователя
-                user = ProfileStore.User(
-                    id = "1",
-                    name = "Тестовый Пользователь",
-                    email = "test@example.com",
-                    avatarUrl = null
-                )
-            ),
+            initialState = ProfileStore.State(),
             bootstrapper = SimpleBootstrapper(Unit),
-            executorFactory = ::ExecutorImpl,
+            executorFactory = { ExecutorImpl(onLogout, onBack) },
             reducer = ReducerImpl
         ) {}
 
     private sealed interface Msg {
-        data object StartEditing : Msg
-        data object StopEditing : Msg
-        data class ErrorOccurred(val error: String) : Msg
-        data object Loading : Msg
-        data object SaveSuccess : Msg
-        data object LogoutSuccess : Msg
+        data object SetLoading : Msg
+        data object ClearLoading : Msg
+        data class SetError(val error: String) : Msg
     }
 
-    private inner class ExecutorImpl :
-        CoroutineExecutor<ProfileStore.Intent, Unit, ProfileStore.State, Msg, Nothing>(
-            rDispatchers.main
-        ) {
+    private inner class ExecutorImpl(
+        private val onLogout: () -> Unit,
+        private val onBack: () -> Unit
+    ) : CoroutineExecutor<ProfileStore.Intent, Unit, ProfileStore.State, Msg, Nothing>(
+        rDispatchers.main
+    ) {
 
         override fun executeAction(action: Unit) {
             try {
-                // TODO: Загрузить данные профиля пользователя из API или локального хранилища
+                // Инициализация, если необходимо
             } catch (e: Exception) {
                 println("Error in executeAction: ${e.message}")
             }
@@ -95,67 +75,41 @@ internal class ProfileStoreFactory(
             }
         }
 
-        override fun executeIntent(intent: ProfileStore.Intent): Unit =
-            try {
-                when (intent) {
-                    is ProfileStore.Intent.EditProfile -> {
-                        safeDispatch(Msg.StartEditing)
-                    }
-                    is ProfileStore.Intent.SaveProfile -> {
-                        safeDispatch(Msg.Loading)
+        override fun executeIntent(intent: ProfileStore.Intent): Unit {
+            when (intent) {
+                is ProfileStore.Intent.Init -> {
+                    // Инициализация, если необходимо
+                }
 
-                        scope.launch {
-                            try {
-                                // TODO: Реализовать реальную логику сохранения профиля с использованием API
-                                // Для примера просто имитируем задержку
-                                kotlinx.coroutines.delay(1000)
-
-                                safeDispatch(Msg.SaveSuccess)
-                            } catch (e: Exception) {
-                                safeDispatch(Msg.ErrorOccurred(e.message ?: "Неизвестная ошибка"))
-                                println("Error in saving profile: ${e.message}")
-                            }
+                is ProfileStore.Intent.Logout -> {
+                    scope.launch {
+                        try {
+                            safeDispatch(Msg.SetLoading)
+                            // Здесь будет реальная логика выхода
+                            kotlinx.coroutines.delay(500) // Имитация задержки сети
+                            onLogout()
+                        } catch (e: Exception) {
+                            safeDispatch(Msg.SetError(e.message ?: "Unknown error"))
+                        } finally {
+                            safeDispatch(Msg.ClearLoading)
                         }
-                        Unit
-                    }
-                    is ProfileStore.Intent.ChangePassword -> {
-                        // TODO: Реализовать логику смены пароля
-                        // Для примера просто выводим ошибку, что функция не реализована
-                        safeDispatch(Msg.ErrorOccurred("Функция смены пароля пока не реализована"))
-                        Unit
-                    }
-                    is ProfileStore.Intent.Logout -> {
-                        safeDispatch(Msg.Loading)
-
-                        scope.launch {
-                            try {
-                                // TODO: Реализовать реальную логику выхода из системы с использованием API
-                                // Для примера просто имитируем задержку
-                                kotlinx.coroutines.delay(500)
-
-                                safeDispatch(Msg.LogoutSuccess)
-                            } catch (e: Exception) {
-                                safeDispatch(Msg.ErrorOccurred(e.message ?: "Неизвестная ошибка"))
-                                println("Error in logout: ${e.message}")
-                            }
-                        }
-                        Unit
                     }
                 }
-            } catch (e: Exception) {
-                println("Error in executeIntent: ${e.message}")
+
+                is ProfileStore.Intent.Back -> {
+                    onBack()
+                }
             }
+
+        }
     }
 
     private object ReducerImpl : Reducer<ProfileStore.State, Msg> {
         override fun ProfileStore.State.reduce(msg: Msg): ProfileStore.State =
             when (msg) {
-                is Msg.StartEditing -> copy(isEditing = true)
-                is Msg.StopEditing -> copy(isEditing = false)
-                is Msg.ErrorOccurred -> copy(error = msg.error, isLoading = false)
-                is Msg.Loading -> copy(isLoading = true, error = null)
-                is Msg.SaveSuccess -> copy(isLoading = false, error = null, isEditing = false)
-                is Msg.LogoutSuccess -> copy(isLoading = false, error = null, user = null)
+                is Msg.SetLoading -> copy(loading = true, error = null)
+                is Msg.ClearLoading -> copy(loading = false)
+                is Msg.SetError -> copy(error = msg.error)
             }
     }
 }

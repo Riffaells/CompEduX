@@ -34,6 +34,7 @@ interface RootComponent {
 
     fun onEvent(event: RootStore.Intent)
     fun onMainClicked()
+    fun setDrawerHandler(handler: () -> Unit)
     fun onSettingsClicked()
     fun onDevelopmentMapClicked()
     fun onAuthClicked()
@@ -61,6 +62,11 @@ class DefaultRootComponent(
 
     private val navigation = StackNavigation<Config>()
 
+    private var drawerHandler: (() -> Unit)? = null
+
+    override fun setDrawerHandler(handler: () -> Unit) {
+        drawerHandler = handler
+    }
 
     override val settings by instance<MultiplatformSettings>()
 

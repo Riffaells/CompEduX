@@ -1,15 +1,11 @@
 package components.auth
 
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,6 +17,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import component.app.auth.LoginComponent
+import component.app.auth.store.LoginStore
+import ui.icon.RIcons
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,159 +26,192 @@ fun LoginContent(component: LoginComponent) {
     val state by component.state.collectAsState()
     var passwordVisible by remember { mutableStateOf(false) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
     ) {
-        Card(
+        Surface(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                .fillMaxWidth(0.9f)
+                .padding(16.dp),
+            shape = RoundedCornerShape(32.dp),
+            tonalElevation = 8.dp
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .padding(horizontal = 32.dp, vertical = 48.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                Text(
-                    text = "Добро пожаловать",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 16.dp),
-                    horizontalArrangement = Arrangement.Center
+                // Header with animation
+                AnimatedVisibility(
+                    visible = true,
+                    enter = fadeIn() + slideInVertically()
                 ) {
-                    Text("Вход через: ")
-                    TextButton(onClick = { component.onToggleLoginMethod() }) {
-                        Text(if (state.useEmailLogin) "Email" else "Имя пользователя")
-                    }
-                }
-
-                AnimatedVisibility(visible = !state.useEmailLogin) {
-                    OutlinedTextField(
-                        value = state.username,
-                        onValueChange = { component.onUsernameChanged(it) },
-                        label = { Text("Имя пользователя") },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = "Имя пользователя"
-                            )
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 8.dp),
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Text,
-                            imeAction = ImeAction.Next
-                        ),
-                        singleLine = true
-                    )
-                }
-
-                AnimatedVisibility(visible = state.useEmailLogin) {
-                    OutlinedTextField(
-                        value = state.email,
-                        onValueChange = { component.onEmailChanged(it) },
-                        label = { Text("Email") },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.Email,
-                                contentDescription = "Email"
-                            )
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 8.dp),
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Email,
-                            imeAction = ImeAction.Next
-                        ),
-                        singleLine = true
-                    )
-                }
-
-                OutlinedTextField(
-                    value = state.password,
-                    onValueChange = { component.onPasswordChanged(it) },
-                    label = { Text("Пароль") },
-                    leadingIcon = {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         Icon(
-                            imageVector = Icons.Default.Lock,
-                            contentDescription = "Пароль"
+                            imageVector = Icons.Default.AccountCircle,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = MaterialTheme.colorScheme.primary
                         )
-                    },
-                    trailingIcon = {
-                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                            Icon(
-                                imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                contentDescription = if (passwordVisible) "Скрыть пароль" else "Показать пароль"
-                            )
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 16.dp),
-                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Password,
-                        imeAction = ImeAction.Done
-                    ),
-                    singleLine = true
-                )
-
-                AnimatedVisibility(visible = state.error != null) {
-                    Text(
-                        text = state.error ?: "",
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodyMedium,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 16.dp)
-                    )
-                }
-
-                Button(
-                    onClick = { component.onLoginClicked() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp),
-                    enabled = !state.isLoading
-                ) {
-                    if (state.isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            color = MaterialTheme.colorScheme.onPrimary
+                        Text(
+                            text = "С возвращением!",
+                            style = MaterialTheme.typography.headlineMedium
                         )
-                    } else {
-                        Text("Войти")
+                        Text(
+                            text = "Мы скучали по вам",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
 
-                TextButton(
-                    onClick = { component.onRegisterClicked() },
-                    modifier = Modifier.padding(top = 8.dp)
+                // Input Fields with animations
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Text("Нет аккаунта? Зарегистрироваться")
+                    OutlinedTextField(
+                        value = state.identifier,
+                        onValueChange = { value ->
+                            if (value.length <= 50) { // Максимальная длина для email
+                                component.onEvent(LoginStore.Intent.UpdateIdentifier(value))
+                            }
+                        },
+                        label = { Text(if (state.identifier.contains("@")) "Email" else "Имя пользователя") },
+                        leadingIcon = {
+                            Icon(
+                                if (state.identifier.contains("@")) Icons.Default.Email else Icons.Default.Person,
+                                null
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        singleLine = true,
+                        supportingText = {
+                            Text("${state.identifier.length}/${if (state.identifier.contains("@")) 50 else 20}")
+                        }
+                    )
+
+                    OutlinedTextField(
+                        value = state.password,
+                        onValueChange = { value ->
+                            if (value.length <= 32) { // Ограничение длины
+                                component.onEvent(LoginStore.Intent.UpdatePassword(value))
+                            }
+                        },
+                        label = { Text("Пароль") },
+                        leadingIcon = { Icon(Icons.Default.Lock, null) },
+                        trailingIcon = {
+                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                Icon(
+                                    if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                    null
+                                )
+                            }
+                        },
+                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        singleLine = true,
+                        supportingText = {
+                            Text("${state.password.length}/32")
+                        }
+                    )
                 }
 
-                TextButton(
-                    onClick = { component.onBackClicked() },
-                    modifier = Modifier.padding(top = 4.dp)
+                // Error Message with animation
+                AnimatedVisibility(
+                    visible = state.error != null,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically()
                 ) {
-                    Text("Назад")
+                    Surface(
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = state.error ?: "",
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            style = MaterialTheme.typography.bodyMedium,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp)
+                        )
+                    }
+                }
+
+                // Actions with animations
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = { component.onEvent(LoginStore.Intent.Login) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
+                            .animateContentSize(),
+                        shape = RoundedCornerShape(16.dp),
+                        enabled = !state.loading && state.identifier.isNotEmpty() && state.password.isNotEmpty()
+                    ) {
+                        AnimatedContent(
+                            targetState = state.loading,
+                            transitionSpec = {
+                                fadeIn() with fadeOut()
+                            }
+                        ) { isLoading ->
+                            if (isLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
+                            } else {
+                                Row(
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(Icons.Default.Login, null)
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("Войти")
+                                }
+                            }
+                        }
+                    }
+
+                    TextButton(
+                        onClick = { component.onEvent(LoginStore.Intent.NavigateToRegister) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.PersonAdd, null)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Создать аккаунт")
+                        }
+                    }
+
+                    TextButton(
+                        onClick = { component.onEvent(LoginStore.Intent.Back) },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.outline
+                        )
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(RIcons.ArrowBack, null)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Назад")
+                        }
+                    }
                 }
             }
         }

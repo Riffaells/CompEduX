@@ -14,21 +14,20 @@ import utils.rDispatchers
 interface LoginStore : Store<LoginStore.Intent, LoginStore.State, Nothing> {
 
     sealed interface Intent {
-        data class UpdateUsername(val username: String) : Intent
-        data class UpdateEmail(val email: String) : Intent
+        data object Init : Intent
+        data class UpdateIdentifier(val identifier: String) : Intent
         data class UpdatePassword(val password: String) : Intent
         data object Login : Intent
-        data object ToggleLoginMethod : Intent
+        data object NavigateToRegister : Intent
+        data object Back : Intent
     }
 
     @Serializable
     data class State(
-        val username: String = "",
-        val email: String = "",
+        val identifier: String = "",
         val password: String = "",
-        val isLoading: Boolean = false,
-        val error: String? = null,
-        val useEmailLogin: Boolean = true
+        val loading: Boolean = false,
+        val error: String? = null
     )
 }
 
@@ -37,38 +36,38 @@ internal class LoginStoreFactory(
     override val di: DI
 ) : DIAware {
 
-    // Интерфейс для фабрики, используемый в ComponentModule
-    interface Factory {
-        fun create(): LoginStore
-    }
-
-    fun create(): LoginStore =
+    fun create(
+        onLoginSuccess: () -> Unit,
+        onNavigateToRegister: () -> Unit,
+        onBack: () -> Unit
+    ): LoginStore =
         object : LoginStore, Store<LoginStore.Intent, LoginStore.State, Nothing> by storeFactory.create(
             name = "LoginStore",
             initialState = LoginStore.State(),
             bootstrapper = SimpleBootstrapper(Unit),
-            executorFactory = ::ExecutorImpl,
+            executorFactory = { ExecutorImpl(onLoginSuccess, onNavigateToRegister, onBack) },
             reducer = ReducerImpl
         ) {}
 
     private sealed interface Msg {
-        data class UsernameChanged(val username: String) : Msg
-        data class EmailChanged(val email: String) : Msg
-        data class PasswordChanged(val password: String) : Msg
-        data class ErrorOccurred(val error: String) : Msg
-        data object Loading : Msg
-        data object LoginSuccess : Msg
-        data object ToggleLoginMethod : Msg
+        data object SetLoading : Msg
+        data object ClearLoading : Msg
+        data class SetError(val error: String) : Msg
+        data class UpdateIdentifier(val identifier: String) : Msg
+        data class UpdatePassword(val password: String) : Msg
     }
 
-    private inner class ExecutorImpl :
-        CoroutineExecutor<LoginStore.Intent, Unit, LoginStore.State, Msg, Nothing>(
-            rDispatchers.main
-        ) {
+    private inner class ExecutorImpl(
+        private val onLoginSuccess: () -> Unit,
+        private val onNavigateToRegister: () -> Unit,
+        private val onBack: () -> Unit
+    ) : CoroutineExecutor<LoginStore.Intent, Unit, LoginStore.State, Msg, Nothing>(
+        rDispatchers.main
+    ) {
 
         override fun executeAction(action: Unit) {
             try {
-                // TODO: Инициализация, если необходимо (например, загрузка сохраненных данных)
+                // Инициализация, если необходимо
             } catch (e: Exception) {
                 println("Error in executeAction: ${e.message}")
             }
@@ -83,84 +82,54 @@ internal class LoginStoreFactory(
             }
         }
 
-        override fun executeIntent(intent: LoginStore.Intent): Unit =
-            try {
-                when (intent) {
-                    is LoginStore.Intent.UpdateUsername -> {
-                        safeDispatch(Msg.UsernameChanged(intent.username))
-                    }
-                    is LoginStore.Intent.UpdateEmail -> {
-                        safeDispatch(Msg.EmailChanged(intent.email))
-                    }
-                    is LoginStore.Intent.UpdatePassword -> {
-                        safeDispatch(Msg.PasswordChanged(intent.password))
-                    }
-                    is LoginStore.Intent.ToggleLoginMethod -> {
-                        safeDispatch(Msg.ToggleLoginMethod)
-                    }
-                    is LoginStore.Intent.Login -> {
-                        safeDispatch(Msg.Loading)
+        override fun executeIntent(intent: LoginStore.Intent): Unit {
+            when (intent) {
+                is LoginStore.Intent.Init -> {
+                    // Инициализация, если необходимо
+                }
 
-                        scope.launch {
-                            try {
-                                // TODO: Реализовать реальную логику аутентификации с использованием API
-                                // Для примера просто имитируем задержку и успешный вход
-                                kotlinx.coroutines.delay(1000)
-
-                                val state = state()
-
-                                // Проверка в зависимости от выбранного метода входа
-                                if (state.useEmailLogin) {
-                                    // Вход по email
-                                    if (state.email.isBlank() || state.password.isBlank()) {
-                                        safeDispatch(Msg.ErrorOccurred("Email и пароль не могут быть пустыми"))
-                                        return@launch
-                                    }
-
-                                    // Простая проверка формата email
-                                    if (!state.email.contains("@")) {
-                                        safeDispatch(Msg.ErrorOccurred("Некорректный формат email"))
-                                        return@launch
-                                    }
-                                } else {
-                                    // Вход по username
-                                    if (state.username.isBlank() || state.password.isBlank()) {
-                                        safeDispatch(Msg.ErrorOccurred("Имя пользователя и пароль не могут быть пустыми"))
-                                        return@launch
-                                    }
-
-                                    // Проверка минимальной длины username
-                                    if (state.username.length < 3) {
-                                        safeDispatch(Msg.ErrorOccurred("Имя пользователя должно содержать не менее 3 символов"))
-                                        return@launch
-                                    }
-                                }
-
-                                // Имитация успешного входа
-                                safeDispatch(Msg.LoginSuccess)
-                            } catch (e: Exception) {
-                                safeDispatch(Msg.ErrorOccurred(e.message ?: "Неизвестная ошибка"))
-                                println("Error in login: ${e.message}")
-                            }
+                is LoginStore.Intent.Login -> {
+                    scope.launch {
+                        try {
+                            safeDispatch(Msg.SetLoading)
+                            // Здесь будет реальная логика входа
+                            kotlinx.coroutines.delay(1000) // Имитация задержки сети
+                            onLoginSuccess()
+                        } catch (e: Exception) {
+                            safeDispatch(Msg.SetError(e.message ?: "Unknown error"))
+                        } finally {
+                            safeDispatch(Msg.ClearLoading)
                         }
-                        Unit
                     }
                 }
-            } catch (e: Exception) {
-                println("Error in executeIntent: ${e.message}")
+
+                is LoginStore.Intent.NavigateToRegister -> {
+                    onNavigateToRegister()
+                }
+
+                is LoginStore.Intent.Back -> {
+                    onBack()
+                }
+
+                is LoginStore.Intent.UpdateIdentifier -> {
+                    safeDispatch(Msg.UpdateIdentifier(intent.identifier))
+                }
+
+                is LoginStore.Intent.UpdatePassword -> {
+                    safeDispatch(Msg.UpdatePassword(intent.password))
+                }
             }
+        }
     }
 
     private object ReducerImpl : Reducer<LoginStore.State, Msg> {
         override fun LoginStore.State.reduce(msg: Msg): LoginStore.State =
             when (msg) {
-                is Msg.UsernameChanged -> copy(username = msg.username)
-                is Msg.EmailChanged -> copy(email = msg.email)
-                is Msg.PasswordChanged -> copy(password = msg.password)
-                is Msg.ErrorOccurred -> copy(error = msg.error, isLoading = false)
-                is Msg.Loading -> copy(isLoading = true, error = null)
-                is Msg.LoginSuccess -> copy(isLoading = false, error = null)
-                is Msg.ToggleLoginMethod -> copy(useEmailLogin = !useEmailLogin)
+                is Msg.SetLoading -> copy(loading = true, error = null)
+                is Msg.ClearLoading -> copy(loading = false)
+                is Msg.SetError -> copy(error = msg.error)
+                is Msg.UpdateIdentifier -> copy(identifier = msg.identifier)
+                is Msg.UpdatePassword -> copy(password = msg.password)
             }
     }
 }

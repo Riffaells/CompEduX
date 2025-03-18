@@ -8,7 +8,6 @@ import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import component.app.auth.AuthComponent.Child.*
 import component.app.auth.store.AuthStore
 import component.app.auth.store.AuthStoreFactory
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.Serializable
 import org.kodein.di.DI
@@ -20,10 +19,6 @@ interface AuthComponent {
     val state: StateFlow<AuthStore.State>
 
     fun onEvent(event: AuthStore.Intent)
-    fun onLoginClicked()
-    fun onRegisterClicked()
-    fun onProfileClicked()
-    fun onBackToRoot()
 
     sealed class Child {
         class LoginChild(val component: LoginComponent) : Child()
@@ -52,12 +47,14 @@ class DefaultAuthComponent(
 
     private val authStoreFactory: AuthStoreFactory by instance()
 
-    private val store =
-        instanceKeeper.getStore {
-            authStoreFactory.create()
-        }
+    private val store = instanceKeeper.getStore {
+        authStoreFactory.create(
+            onLoginSuccess = ::onLoginSuccess,
+            onRegisterSuccess = ::onRegisterSuccess,
+            onLogout = ::onLogout
+        )
+    }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     override val state: StateFlow<AuthStore.State> = store.stateFlow
 
     override fun onEvent(event: AuthStore.Intent) {
@@ -71,63 +68,41 @@ class DefaultAuthComponent(
             Config.Profile -> ProfileChild(profileComponent(componentContext))
         }
 
-    private fun loginComponent(componentContext: ComponentContext): LoginComponent {
-        return DefaultLoginComponent(
+    private fun loginComponent(componentContext: ComponentContext): LoginComponent =
+        DefaultLoginComponent(
             componentContext = componentContext,
-            onRegister = ::onRegisterClicked,
-            onLoginSuccess = ::onLoginSuccess,
-            onBack = ::onBackToRoot,
-            di = di
+            di = di,
+            onLoginSuccess = { store.accept(AuthStore.Intent.Login) },
+            onNavigateToRegister = { navigation.bringToFront(Config.Register) },
+            onBack = onBack
         )
-    }
 
-    private fun registerComponent(componentContext: ComponentContext): RegisterComponent {
-        return DefaultRegisterComponent(
+    private fun registerComponent(componentContext: ComponentContext): RegisterComponent =
+        DefaultRegisterComponent(
             componentContext = componentContext,
-            onLoginClicked = ::onLoginClicked,
-            onRegisterSuccess = ::onRegisterSuccess,
-            onBack = ::onBackToRoot,
-            di = di
+            di = di,
+            onRegisterSuccess = { store.accept(AuthStore.Intent.Register) },
+            onNavigateToLogin = { navigation.bringToFront(Config.Login) },
+            onBack = onBack
         )
-    }
 
-    private fun profileComponent(componentContext: ComponentContext): ProfileComponent {
-        return DefaultProfileComponent(
+    private fun profileComponent(componentContext: ComponentContext): ProfileComponent =
+        DefaultProfileComponent(
             componentContext = componentContext,
-            onLogout = ::onLogout,
-            onBack = ::onBackToRoot,
-            di = di
+            di = di,
+            onLogout = { store.accept(AuthStore.Intent.Logout) },
+            onBack = onBack
         )
-    }
-
-    override fun onLoginClicked() {
-        navigation.bringToFront(Config.Login)
-    }
-
-    override fun onRegisterClicked() {
-        navigation.bringToFront(Config.Register)
-    }
-
-    override fun onProfileClicked() {
-        navigation.bringToFront(Config.Profile)
-    }
-
-    override fun onBackToRoot() {
-        onBack()
-    }
 
     private fun onLoginSuccess() {
-        // После успешного входа переходим на экран профиля
         navigation.bringToFront(Config.Profile)
     }
 
     private fun onRegisterSuccess() {
-        // После успешной регистрации переходим на экран профиля
         navigation.bringToFront(Config.Profile)
     }
 
     private fun onLogout() {
-        // После выхода возвращаемся на экран входа
         navigation.bringToFront(Config.Login)
     }
 

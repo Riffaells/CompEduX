@@ -2,7 +2,6 @@ package component.app.auth
 
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.mvikotlin.core.instancekeeper.getStore
-import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import component.app.auth.store.ProfileStore
 import component.app.auth.store.ProfileStoreFactory
@@ -14,48 +13,29 @@ import org.kodein.di.instance
 
 interface ProfileComponent {
     val state: StateFlow<ProfileStore.State>
-
-    fun onEditProfileClicked()
-    fun onChangePasswordClicked()
-    fun onLogoutClicked()
-    fun onBackClicked()
-    fun onSaveProfileClicked()
+    fun onEvent(event: ProfileStore.Intent)
 }
 
 class DefaultProfileComponent(
     componentContext: ComponentContext,
+    override val di: DI,
     private val onLogout: () -> Unit,
-    private val onBack: () -> Unit,
-    override val di: DI
+    private val onBack: () -> Unit
 ) : ProfileComponent, DIAware, ComponentContext by componentContext {
 
     private val profileStoreFactory: ProfileStoreFactory by instance()
 
     private val store = instanceKeeper.getStore {
-        profileStoreFactory.create()
+        profileStoreFactory.create(
+            onLogout = onLogout,
+            onBack = onBack
+        )
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     override val state: StateFlow<ProfileStore.State> = store.stateFlow
 
-    override fun onEditProfileClicked() {
-        store.accept(ProfileStore.Intent.EditProfile)
-    }
-
-    override fun onChangePasswordClicked() {
-        store.accept(ProfileStore.Intent.ChangePassword)
-    }
-
-    override fun onLogoutClicked() {
-        store.accept(ProfileStore.Intent.Logout)
-        onLogout()
-    }
-
-    override fun onBackClicked() {
-        onBack()
-    }
-
-    override fun onSaveProfileClicked() {
-        store.accept(ProfileStore.Intent.SaveProfile)
+    override fun onEvent(event: ProfileStore.Intent) {
+        store.accept(event)
     }
 }

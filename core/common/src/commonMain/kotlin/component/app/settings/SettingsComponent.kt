@@ -26,8 +26,10 @@ interface SettingsComponent {
 
     fun onAction(action: SettingsStore.Intent)
     fun onCategorySelected(category: SettingsComponent.SettingsCategory)
+    fun onDrawerButtonClicked()
     fun onBackFromCategory()
     fun resetAllSettings()
+    fun setDrawerHandler(handler: () -> Unit)
 
     /**
      * Категории настроек
@@ -117,9 +119,17 @@ class DefaultSettingsComponent(
         navigation.pop()
     }
 
+    override fun onDrawerButtonClicked() {
+        TODO("onDrawerButtonClicked Not yet implemented")
+    }
+
     override fun resetAllSettings() {
         multiplatformSettings.resetAllSettings()
         // Обновляем состояние после сброса настроек
         store.accept(SettingsStore.Intent.Init)
+    }
+
+    override fun setDrawerHandler(handler: () -> Unit) {
+        // Implementation needed
     }
 }

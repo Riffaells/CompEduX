@@ -32,6 +32,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.resources.stringResource
+import ui.icon.RIcons
 
 /**
  * Композабл для отображения экрана настроек
@@ -70,10 +71,6 @@ fun SettingsCategoriesScreen(
     // Получаем состояние из компонента
     val state by component.state.collectAsState()
 
-    // Состояние для управления drawer
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
-
     // Состояние для анимации элементов
     var showContent by remember { mutableStateOf(false) }
 
@@ -83,194 +80,18 @@ fun SettingsCategoriesScreen(
         showContent = true
     }
 
-    // Создаем drawer с дополнительными опциями
-    ModalNavigationDrawer(
-        modifier = modifier,
-        drawerState = drawerState,
-        drawerContent = {
-            ModalDrawerSheet {
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    "Дополнительные настройки",
-                    modifier = Modifier.padding(16.dp),
-                    style = MaterialTheme.typography.titleMedium
-                )
-                HorizontalDivider()
-
-                // Анимированные элементы drawer
-                val drawerItems = listOf(
-                    "Профиль пользователя" to { scope.launch { drawerState.close() } },
-                    "Уведомления" to { scope.launch { drawerState.close() } },
-                    "Конфиденциальность" to { scope.launch { drawerState.close() } }
-                )
-
-                drawerItems.forEachIndexed { index, (text, onClick) ->
-                    var showItem by remember { mutableStateOf(false) }
-
-                    // Запускаем анимацию с задержкой для каждого элемента
-                    LaunchedEffect(drawerState.isOpen) {
-                        if (drawerState.isOpen) {
-                            delay(100L * index)
-                            showItem = true
-                        } else {
-                            showItem = false
-                        }
-                    }
-
-                    AnimatedVisibility(
-                        visible = showItem,
-                        enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
-                        exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 })
-                    ) {
-                        NavigationDrawerItem(
-                            label = { Text(text) },
-                            selected = false,
-                            onClick = { onClick() }
-                        )
-                    }
-                }
-            }
-        }
-    ) {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = { Text("Настройки") },
-                    navigationIcon = {
-                        IconButton(onClick = { component.onAction(SettingsStore.Intent.Back) }) {
-                            Icon(Icons.Rounded.ArrowBack, contentDescription = "Назад")
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                            Icon(Icons.Default.Menu, contentDescription = "Меню")
-                        }
-                    }
-                )
-            }
-        ) { padding ->
-            Box(
-                modifier = Modifier
-                    .padding(padding)
-                    .fillMaxSize()
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(16.dp)
-                        .padding(bottom = 100.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    // Анимация заголовка
-                    AnimatedVisibility(
-                        visible = showContent,
-                        enter = fadeIn(animationSpec = tween(500)) +
-                                slideInHorizontally(
-                                    initialOffsetX = { -it / 2 },
-                                    animationSpec = tween(500)
-                                ),
-                        exit = fadeOut()
-                    ) {
-                        Text(
-                            text = "Настройки приложения",
-                            style = MaterialTheme.typography.headlineSmall
-                        )
-                    }
-
-                    // Список категорий настроек
-                    val categories = listOf(
-                        SettingCategory(
-                            title = stringResource(Res.string.settings_category_profile),
-                            description = stringResource(Res.string.settings_category_profile_desc),
-                            icon = Icons.Default.AccountCircle,
-                            category = SettingsComponent.SettingsCategory.PROFILE
-                        ),
-                        SettingCategory(
-                            title = stringResource(Res.string.settings_category_appearance),
-                            description = stringResource(Res.string.settings_category_appearance_desc),
-                            icon = Icons.Default.Brush,
-                            category = SettingsComponent.SettingsCategory.APPEARANCE
-                        ),
-                        SettingCategory(
-                            title = stringResource(Res.string.settings_category_language),
-                            description = stringResource(Res.string.settings_category_language_desc),
-                            icon = Icons.Default.Language,
-                            category = SettingsComponent.SettingsCategory.LANGUAGE
-                        ),
-                        SettingCategory(
-                            title = stringResource(Res.string.settings_category_network),
-                            description = stringResource(Res.string.settings_category_network_desc),
-                            icon = Icons.Default.Web,
-                            category = SettingsComponent.SettingsCategory.NETWORK
-                        ),
-                        SettingCategory(
-                            title = stringResource(Res.string.settings_category_security),
-                            description = stringResource(Res.string.settings_category_security_desc),
-                            icon = Icons.Default.Security,
-                            category = SettingsComponent.SettingsCategory.SECURITY
-                        ),
-                        SettingCategory(
-                            title = stringResource(Res.string.settings_category_experimental),
-                            description = stringResource(Res.string.settings_category_experimental_desc),
-                            icon = Icons.Default.Science,
-                            category = SettingsComponent.SettingsCategory.EXPERIMENTAL
-                        )
-                    )
-
-                    categories.forEachIndexed { index, category ->
-                        AnimatedVisibility(
-                            visible = showContent,
-                            enter = fadeIn(animationSpec = tween(500)) +
-                                    slideInHorizontally(
-                                        initialOffsetX = { it / 2 },
-                                        animationSpec = tween(500 + index * 100)
-                                    )
-                        ) {
-                            SettingCategoryItem(
-                                category = category,
-                                onClick = { component.onCategorySelected(category.category) }
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-/**
- * Экран с конкретной категорией настроек
- */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalResourceApi::class)
-@Composable
-fun SettingsCategoryScreen(
-    component: SettingsComponent,
-    category: SettingsComponent.SettingsCategory
-) {
-    val state by component.state.collectAsState()
-
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        when (category) {
-                            SettingsComponent.SettingsCategory.APPEARANCE -> stringResource(Res.string.settings_category_appearance)
-                            SettingsComponent.SettingsCategory.LANGUAGE -> stringResource(Res.string.settings_category_language)
-                            SettingsComponent.SettingsCategory.NETWORK -> stringResource(Res.string.settings_category_network)
-                            SettingsComponent.SettingsCategory.SECURITY -> stringResource(Res.string.settings_category_security)
-                            SettingsComponent.SettingsCategory.NOTIFICATIONS -> stringResource(Res.string.settings_category_notifications)
-                            SettingsComponent.SettingsCategory.STORAGE -> stringResource(Res.string.settings_category_storage)
-                            SettingsComponent.SettingsCategory.EXPERIMENTAL -> stringResource(Res.string.settings_category_experimental)
-                            SettingsComponent.SettingsCategory.SYSTEM -> stringResource(Res.string.settings_category_system)
-                            SettingsComponent.SettingsCategory.PROFILE -> stringResource(Res.string.settings_category_profile)
-                        }
-                    )
-                },
+                title = { Text("Настройки") },
                 navigationIcon = {
-                    IconButton(onClick = { component.onBackFromCategory() }) {
-                        Icon(Icons.Rounded.ArrowBack, contentDescription = stringResource(Res.string.settings_back))
+                    IconButton(onClick = { component.onAction(SettingsStore.Intent.Back) }) {
+                        Icon(RIcons.ArrowBack, contentDescription = "Назад")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { component.onDrawerButtonClicked() }) {
+                        Icon(Icons.Default.Menu, contentDescription = "Меню")
                     }
                 }
             )
@@ -278,105 +99,89 @@ fun SettingsCategoryScreen(
     ) { padding ->
         Box(
             modifier = Modifier
-                .fillMaxSize()
                 .padding(padding)
+                .fillMaxSize()
         ) {
-            when (category) {
-                SettingsComponent.SettingsCategory.APPEARANCE -> AppearanceSettingsContent(
-                    state = state,
-                    onAction = component::onAction,
-                    modifier = Modifier.fillMaxSize()
-                )
-
-                SettingsComponent.SettingsCategory.NETWORK -> NetworkSettingsContent(
-                    state = state,
-                    onAction = component::onAction,
-                    modifier = Modifier.fillMaxSize()
-                )
-
-                SettingsComponent.SettingsCategory.SECURITY -> SecuritySettingsContent(
-                    state = state,
-                    onAction = component::onAction,
-                    modifier = Modifier.fillMaxSize()
-                )
-
-                SettingsComponent.SettingsCategory.PROFILE -> ProfileSettingsContent(
-                    state = state,
-                    onAction = component::onAction,
-                    modifier = Modifier.fillMaxSize()
-                )
-
-                SettingsComponent.SettingsCategory.LANGUAGE -> TODO()
-                SettingsComponent.SettingsCategory.NOTIFICATIONS -> TODO()
-                SettingsComponent.SettingsCategory.STORAGE -> TODO()
-                SettingsComponent.SettingsCategory.EXPERIMENTAL -> TODO()
-                SettingsComponent.SettingsCategory.SYSTEM -> TODO()
-            }
-        }
-    }
-}
-
-/**
- * Модель категории настроек
- */
-data class SettingCategory(
-    val title: String,
-    val description: String,
-    val icon: ImageVector,
-    val category: SettingsComponent.SettingsCategory
-)
-
-/**
- * Элемент категории настроек
- */
-@Composable
-fun SettingCategoryItem(
-    category: SettingCategory,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = category.icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp)
-            )
-
             Column(
                 modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 16.dp)
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp)
+                    .padding(bottom = 100.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text(
-                    text = category.title,
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    text = category.description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+                // Анимация заголовка
+                AnimatedVisibility(
+                    visible = showContent,
+                    enter = fadeIn(animationSpec = tween(500)) +
+                            slideInHorizontally(
+                                initialOffsetX = { -it / 2 },
+                                animationSpec = tween(500)
+                            ),
+                    exit = fadeOut()
+                ) {
+                    Text(
+                        text = "Настройки приложения",
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                }
 
-            Icon(
-                imageVector = Icons.Rounded.ChevronRight,
-                contentDescription = "Перейти",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+                // Список категорий настроек
+                val categories = listOf(
+                    SettingCategory(
+                        title = stringResource(Res.string.settings_category_profile),
+                        description = stringResource(Res.string.settings_category_profile_desc),
+                        icon = Icons.Default.AccountCircle,
+                        category = SettingsComponent.SettingsCategory.PROFILE
+                    ),
+                    SettingCategory(
+                        title = stringResource(Res.string.settings_category_appearance),
+                        description = stringResource(Res.string.settings_category_appearance_desc),
+                        icon = Icons.Default.Brush,
+                        category = SettingsComponent.SettingsCategory.APPEARANCE
+                    ),
+                    SettingCategory(
+                        title = stringResource(Res.string.settings_category_language),
+                        description = stringResource(Res.string.settings_category_language_desc),
+                        icon = Icons.Default.Language,
+                        category = SettingsComponent.SettingsCategory.LANGUAGE
+                    ),
+                    SettingCategory(
+                        title = stringResource(Res.string.settings_category_network),
+                        description = stringResource(Res.string.settings_category_network_desc),
+                        icon = Icons.Default.Web,
+                        category = SettingsComponent.SettingsCategory.NETWORK
+                    ),
+                    SettingCategory(
+                        title = stringResource(Res.string.settings_category_security),
+                        description = stringResource(Res.string.settings_category_security_desc),
+                        icon = Icons.Default.Security,
+                        category = SettingsComponent.SettingsCategory.SECURITY
+                    ),
+                    SettingCategory(
+                        title = stringResource(Res.string.settings_category_experimental),
+                        description = stringResource(Res.string.settings_category_experimental_desc),
+                        icon = Icons.Default.Science,
+                        category = SettingsComponent.SettingsCategory.EXPERIMENTAL
+                    )
+                )
+
+                categories.forEachIndexed { index, category ->
+                    AnimatedVisibility(
+                        visible = showContent,
+                        enter = fadeIn(animationSpec = tween(500)) +
+                                slideInHorizontally(
+                                    initialOffsetX = { it / 2 },
+                                    animationSpec = tween(500 + index * 100)
+                                )
+                    ) {
+                        SettingCategoryItem(
+                            category = category,
+                            onClick = { component.onCategorySelected(category.category) }
+                        )
+                    }
+                }
+            }
         }
     }
 }

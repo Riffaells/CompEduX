@@ -41,7 +41,8 @@ import kotlin.math.sin
 @Composable
 fun MainContent(
     modifier: Modifier = Modifier,
-    component: MainComponent) {
+    component: MainComponent
+) {
     // Получаем состояние из компонента
     val state by component.state.collectAsState()
 
@@ -67,178 +68,132 @@ fun MainContent(
     )
 
     // Создаем постоянный drawer с дополнительными опциями
-    ModalNavigationDrawer(
-        modifier = modifier,
-        drawerState = drawerState,
-        drawerContent = {
-            ModalDrawerSheet {
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    "Дополнительные опции",
-                    modifier = Modifier.padding(16.dp),
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Divider()
 
-                // Анимированные элементы drawer
-                val drawerItems = listOf(
-                    "Профиль" to { scope.launch { drawerState.close() } },
-                    "Избранное" to { scope.launch { drawerState.close() } },
-                    "История" to { scope.launch { drawerState.close() } }
-                )
-
-                drawerItems.forEachIndexed { index, (text, onClick) ->
-                    var showItem by remember { mutableStateOf(false) }
-
-                    // Запускаем анимацию с задержкой для каждого элемента
-                    LaunchedEffect(drawerState.isOpen) {
-                        if (drawerState.isOpen) {
-                            delay(100L * index)
-                            showItem = true
-                        } else {
-                            showItem = false
-                        }
-                    }
-
-                    AnimatedVisibility(
-                        visible = showItem,
-                        enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
-                        exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 })
-                    ) {
-                        NavigationDrawerItem(
-                            label = { Text(text) },
-                            selected = false,
-                            onClick = { onClick() }
-                        )
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(state.title) },
+                navigationIcon = {
+                    IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                        Icon(Icons.Default.Menu, contentDescription = "Меню")
                     }
                 }
-            }
+            )
         }
-    ) {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = { Text(state.title) },
-                    navigationIcon = {
-                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                            Icon(Icons.Default.Menu, contentDescription = "Меню")
-                        }
-                    }
-                )
-            }
-        ) { padding ->
-            Box(
+    ) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            // Используем Column с verticalScroll для возможности прокрутки
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(padding)
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Используем Column с verticalScroll для возможности прокрутки
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
+                // Анимация появления текста
+                AnimatedVisibility(
+                    visible = showContent,
+                    enter = fadeIn(animationSpec = tween(500)) +
+                            expandVertically(animationSpec = tween(500)),
+                    exit = fadeOut()
                 ) {
-                    // Анимация появления текста
-                    AnimatedVisibility(
-                        visible = showContent,
-                        enter = fadeIn(animationSpec = tween(500)) +
-                                expandVertically(animationSpec = tween(500)),
-                        exit = fadeOut()
+                    Text(
+                        text = "Главный экран",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+
+                // Анимация появления кнопок
+                AnimatedVisibility(
+                    visible = showContent,
+                    enter = fadeIn(animationSpec = tween(700)) +
+                            slideInVertically(
+                                initialOffsetY = { it / 2 },
+                                animationSpec = tween(700)
+                            ),
+                    exit = fadeOut()
+                ) {
+                    Column(
+                        modifier = Modifier,
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(
-                            text = "Главный экран",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                    }
+                        Button(
+                            onClick = { component.onAction(MainStore.Intent.OpenSettings) },
+                            modifier = Modifier
+                                .padding(top = 16.dp)
+                                .scale(buttonScale)
+                        ) {
+                            Text("Открыть настройки")
+                        }
 
-                    // Анимация появления кнопок
-                    AnimatedVisibility(
-                        visible = showContent,
-                        enter = fadeIn(animationSpec = tween(700)) +
-                                slideInVertically(
-                                    initialOffsetY = { it / 2 },
-                                    animationSpec = tween(700)
-                                ),
-                        exit = fadeOut()
-                    ) {
-                        Column(
-                            modifier = Modifier,
-                            horizontalAlignment = Alignment.CenterHorizontally) {
-                            Button(
-                                onClick = { component.onAction(MainStore.Intent.OpenSettings) },
-                                modifier = Modifier
-                                    .padding(top = 16.dp)
-                                    .scale(buttonScale)
-                            ) {
-                                Text("Открыть настройки")
-                            }
+                        Button(
+                            onClick = { component.onAction(MainStore.Intent.UpdateTitle("Обновленный заголовок")) },
+                            modifier = Modifier
+                                .padding(top = 8.dp)
+                                .scale(buttonScale)
+                        ) {
+                            Text("Обновить заголовок")
+                        }
 
-                            Button(
-                                onClick = { component.onAction(MainStore.Intent.UpdateTitle("Обновленный заголовок")) },
-                                modifier = Modifier
-                                    .padding(top = 8.dp)
-                                    .scale(buttonScale)
-                            ) {
-                                Text("Обновить заголовок")
-                            }
+                        Button(
+                            onClick = { showSkiaDemo = !showSkiaDemo },
+                            modifier = Modifier
+                                .padding(top = 16.dp)
+                                .scale(buttonScale)
+                        ) {
+                            Text(if (showSkiaDemo) "Скрыть Skia демо" else "Показать Skia демо")
+                        }
 
-                            Button(
-                                onClick = { showSkiaDemo = !showSkiaDemo },
-                                modifier = Modifier
-                                    .padding(top = 16.dp)
-                                    .scale(buttonScale)
-                            ) {
-                                Text(if (showSkiaDemo) "Скрыть Skia демо" else "Показать Skia демо")
-                            }
+                        // Добавляем кнопку для открытия карты развития
+                        Button(
+                            onClick = { /*component.onAction(MainStore.Intent.OpenDevelopmentMap)*/ },
+                            modifier = Modifier
+                                .padding(top = 16.dp)
+                                .scale(buttonScale)
+                        ) {
+                            Text("Открыть карту развития")
+                        }
 
-                            // Добавляем кнопку для открытия карты развития
-                            Button(
-                                onClick = { /*component.onAction(MainStore.Intent.OpenDevelopmentMap)*/ },
-                                modifier = Modifier
-                                    .padding(top = 16.dp)
-                                    .scale(buttonScale)
-                            ) {
-                                Text("Открыть карту развития")
-                            }
-
-                            // Добавляем кнопку для открытия комнаты
-                            Button(
-                                onClick = { component.onRoomClicked() },
-                                modifier = Modifier
-                                    .padding(top = 16.dp)
-                                    .scale(buttonScale)
-                            ) {
-                                Text("Открыть комнату")
-                            }
+                        // Добавляем кнопку для открытия комнаты
+                        Button(
+                            onClick = { component.onRoomClicked() },
+                            modifier = Modifier
+                                .padding(top = 16.dp)
+                                .scale(buttonScale)
+                        ) {
+                            Text("Открыть комнату")
+                        }
 
 //                            BlurStyleDemo()
-                        }
                     }
+                }
 
-                    // Skia демонстрация
-                    AnimatedVisibility(
-                        visible = showSkiaDemo,
-                        enter = fadeIn(animationSpec = tween(500)),
-                        exit = fadeOut(animationSpec = tween(500))
+                // Skia демонстрация
+                AnimatedVisibility(
+                    visible = showSkiaDemo,
+                    enter = fadeIn(animationSpec = tween(500)),
+                    exit = fadeOut(animationSpec = tween(500))
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .padding(top = 24.dp)
+                            .fillMaxWidth()
+                            .aspectRatio(1f)
+                            .shadow(8.dp, RoundedCornerShape(16.dp))
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp))
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .padding(top = 24.dp)
-                                .fillMaxWidth()
-                                .aspectRatio(1f)
-                                .shadow(8.dp, RoundedCornerShape(16.dp))
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                                .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp))
-                        ) {
-                            SkiaDemo()
-                        }
+                        SkiaDemo()
                     }
                 }
             }
+
         }
     }
 }

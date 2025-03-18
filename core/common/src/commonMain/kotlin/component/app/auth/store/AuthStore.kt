@@ -47,12 +47,15 @@ internal class AuthStoreFactory(
     override val di: DI
 ) : DIAware {
 
-    fun create(): AuthStore =
+    fun create(
+        onLoginSuccess: () -> Unit,
+        onRegisterSuccess: () -> Unit,
+        onLogout: () -> Unit
+    ): AuthStore =
         object : AuthStore, Store<AuthStore.Intent, AuthStore.State, Nothing> by storeFactory.create(
             name = "AuthStore",
             initialState = AuthStore.State(),
-            bootstrapper = SimpleBootstrapper(Unit),
-            executorFactory = ::ExecutorImpl,
+            executorFactory = { ExecutorImpl(onLoginSuccess, onRegisterSuccess, onLogout) },
             reducer = ReducerImpl
         ) {}
 
@@ -69,21 +72,23 @@ internal class AuthStoreFactory(
         data class SetScreen(val screen: AuthStore.State.Screen) : Msg
     }
 
-    private inner class ExecutorImpl :
-        CoroutineExecutor<AuthStore.Intent, Unit, AuthStore.State, Msg, Nothing>(
-            rDispatchers.main
-        ) {
+    private class ExecutorImpl(
+        private val onLoginSuccess: () -> Unit,
+        private val onRegisterSuccess: () -> Unit,
+        private val onLogout: () -> Unit
+    ) : CoroutineExecutor<AuthStore.Intent, Unit, AuthStore.State, Msg, Nothing>(
+        rDispatchers.main
+    ) {
 
         override fun executeAction(action: Unit) {
             try {
-                // Initial setup if needed
-                dispatch(Msg.ClearLoading)
+                // Инициализация, если необходимо
             } catch (e: Exception) {
                 println("Error in executeAction: ${e.message}")
             }
         }
 
-        // Safe dispatch method to catch exceptions
+        // Безопасный вызов dispatch, который перехватывает исключения
         private fun safeDispatch(msg: Msg) {
             try {
                 dispatch(msg)
@@ -96,89 +101,97 @@ internal class AuthStoreFactory(
             try {
                 when (intent) {
                     is AuthStore.Intent.Init -> {
-                        // Initialize the store
-                        safeDispatch(Msg.ClearLoading)
+                        // Инициализация, если необходимо
                     }
+
                     is AuthStore.Intent.Login -> {
-                        safeDispatch(Msg.SetScreen(AuthStore.State.Screen.LOGIN))
+                        scope.launch {
+                            try {
+                                safeDispatch(Msg.SetLoading)
+                                // Здесь будет реальная логика входа
+                                kotlinx.coroutines.delay(1000) // Имитация задержки сети
+                                safeDispatch(Msg.LoginSuccess)
+                                onLoginSuccess()
+                            } catch (e: Exception) {
+                                safeDispatch(Msg.SetError(e.message ?: "Unknown error"))
+                            } finally {
+                                safeDispatch(Msg.ClearLoading)
+                            }
+                        }
                     }
+
                     is AuthStore.Intent.Register -> {
-                        safeDispatch(Msg.SetScreen(AuthStore.State.Screen.REGISTER))
-                    }
-                    is AuthStore.Intent.UpdateUsername -> {
-                        safeDispatch(Msg.UpdateUsername(intent.username))
-                    }
-                    is AuthStore.Intent.UpdatePassword -> {
-                        safeDispatch(Msg.UpdatePassword(intent.password))
-                    }
-                    is AuthStore.Intent.UpdateEmail -> {
-                        safeDispatch(Msg.UpdateEmail(intent.email))
-                    }
-                    is AuthStore.Intent.AttemptLogin -> {
                         scope.launch {
                             try {
                                 safeDispatch(Msg.SetLoading)
-
-                                // Simulate API call for login
-                                // In a real app, you would call your authentication service here
-                                kotlinx.coroutines.delay(1000) // Simulate network delay
-
-                                // For demo purposes, we'll just check if username and password are not empty
-                                if (intent.username.isNotBlank() && intent.password.isNotBlank()) {
-                                    safeDispatch(Msg.LoginSuccess)
-                                    safeDispatch(Msg.SetScreen(AuthStore.State.Screen.PROFILE))
-                                } else {
-                                    safeDispatch(Msg.SetError("Invalid username or password"))
-                                }
-
-                                safeDispatch(Msg.ClearLoading)
+                                // Здесь будет реальная логика регистрации
+                                kotlinx.coroutines.delay(1000) // Имитация задержки сети
+                                safeDispatch(Msg.RegisterSuccess)
+                                onRegisterSuccess()
                             } catch (e: Exception) {
-                                safeDispatch(Msg.SetError("Login failed: ${e.message}"))
+                                safeDispatch(Msg.SetError(e.message ?: "Unknown error"))
+                            } finally {
                                 safeDispatch(Msg.ClearLoading)
-                                println("Error during login: ${e.message}")
                             }
                         }
                     }
-                    is AuthStore.Intent.AttemptRegister -> {
-                        scope.launch {
-                            try {
-                                safeDispatch(Msg.SetLoading)
 
-                                // Simulate API call for registration
-                                // In a real app, you would call your registration service here
-                                kotlinx.coroutines.delay(1000) // Simulate network delay
-
-                                // For demo purposes, we'll just check if all fields are not empty
-                                if (intent.username.isNotBlank() && intent.email.isNotBlank() && intent.password.isNotBlank()) {
-                                    safeDispatch(Msg.RegisterSuccess)
-                                    safeDispatch(Msg.SetScreen(AuthStore.State.Screen.PROFILE))
-                                } else {
-                                    safeDispatch(Msg.SetError("All fields are required"))
-                                }
-
-                                safeDispatch(Msg.ClearLoading)
-                            } catch (e: Exception) {
-                                safeDispatch(Msg.SetError("Registration failed: ${e.message}"))
-                                safeDispatch(Msg.ClearLoading)
-                                println("Error during registration: ${e.message}")
-                            }
-                        }
-                    }
                     is AuthStore.Intent.Logout -> {
                         scope.launch {
                             try {
                                 safeDispatch(Msg.SetLoading)
-
-                                // Simulate logout process
-                                kotlinx.coroutines.delay(500) // Simulate network delay
-
+                                // Здесь будет реальная логика выхода
+                                kotlinx.coroutines.delay(500) // Имитация задержки сети
                                 safeDispatch(Msg.LogoutSuccess)
-                                safeDispatch(Msg.SetScreen(AuthStore.State.Screen.LOGIN))
-                                safeDispatch(Msg.ClearLoading)
+                                onLogout()
                             } catch (e: Exception) {
-                                safeDispatch(Msg.SetError("Logout failed: ${e.message}"))
+                                safeDispatch(Msg.SetError(e.message ?: "Unknown error"))
+                            } finally {
                                 safeDispatch(Msg.ClearLoading)
-                                println("Error during logout: ${e.message}")
+                            }
+                        }
+                    }
+
+                    is AuthStore.Intent.UpdateUsername -> {
+                        safeDispatch(Msg.UpdateUsername(intent.username))
+                    }
+
+                    is AuthStore.Intent.UpdatePassword -> {
+                        safeDispatch(Msg.UpdatePassword(intent.password))
+                    }
+
+                    is AuthStore.Intent.UpdateEmail -> {
+                        safeDispatch(Msg.UpdateEmail(intent.email))
+                    }
+
+                    is AuthStore.Intent.AttemptLogin -> {
+                        scope.launch {
+                            try {
+                                safeDispatch(Msg.SetLoading)
+                                // Здесь будет реальная логика входа
+                                kotlinx.coroutines.delay(1000) // Имитация задержки сети
+                                safeDispatch(Msg.LoginSuccess)
+                                onLoginSuccess()
+                            } catch (e: Exception) {
+                                safeDispatch(Msg.SetError(e.message ?: "Unknown error"))
+                            } finally {
+                                safeDispatch(Msg.ClearLoading)
+                            }
+                        }
+                    }
+
+                    is AuthStore.Intent.AttemptRegister -> {
+                        scope.launch {
+                            try {
+                                safeDispatch(Msg.SetLoading)
+                                // Здесь будет реальная логика регистрации
+                                kotlinx.coroutines.delay(1000) // Имитация задержки сети
+                                safeDispatch(Msg.RegisterSuccess)
+                                onRegisterSuccess()
+                            } catch (e: Exception) {
+                                safeDispatch(Msg.SetError(e.message ?: "Unknown error"))
+                            } finally {
+                                safeDispatch(Msg.ClearLoading)
                             }
                         }
                     }
