@@ -5,111 +5,110 @@ import com.arkivanov.mvikotlin.core.store.SimpleBootstrapper
 import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
+import com.arkivanov.mvikotlin.extensions.coroutines.states
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import org.kodein.di.DI
-import org.kodein.di.DIAware
 import utils.rDispatchers
 
 interface ProfileStore : Store<ProfileStore.Intent, ProfileStore.State, Nothing> {
-
     sealed interface Intent {
         data object Init : Intent
+        data class UpdateUsername(val username: String) : Intent
+        data class SaveProfile(val username: String) : Intent
         data object Logout : Intent
-        data object Back : Intent
     }
 
     @Serializable
     data class State(
-        val username: String = "",
-        val email: String = "",
+        val user: AuthStore.User? = null,
+        val tempUsername: String = "",
         val loading: Boolean = false,
         val error: String? = null
     )
 }
 
-internal class ProfileStoreFactory(
+class ProfileStoreFactory(
     private val storeFactory: StoreFactory,
-    override val di: DI
-) : DIAware {
+) {
 
-    fun create(
-        onLogout: () -> Unit,
-        onBack: () -> Unit
-    ): ProfileStore =
+    fun create(): ProfileStore =
         object : ProfileStore, Store<ProfileStore.Intent, ProfileStore.State, Nothing> by storeFactory.create(
             name = "ProfileStore",
             initialState = ProfileStore.State(),
             bootstrapper = SimpleBootstrapper(Unit),
-            executorFactory = { ExecutorImpl(onLogout, onBack) },
+            executorFactory = ::ExecutorImpl,
             reducer = ReducerImpl
         ) {}
 
     private sealed interface Msg {
-        data object SetLoading : Msg
-        data object ClearLoading : Msg
-        data class SetError(val error: String) : Msg
+        data object Loading : Msg
+        data object Loaded : Msg
+        data class Error(val message: String) : Msg
+        data class UpdateUser(val user: AuthStore.User?) : Msg
+        data class UpdateTempUsername(val username: String) : Msg
+        data object SaveProfileSuccess : Msg
+        data object LogoutSuccess : Msg
     }
 
-    private inner class ExecutorImpl(
-        private val onLogout: () -> Unit,
-        private val onBack: () -> Unit
-    ) : CoroutineExecutor<ProfileStore.Intent, Unit, ProfileStore.State, Msg, Nothing>(
-        rDispatchers.main
-    ) {
+    private inner class ExecutorImpl :
+        CoroutineExecutor<ProfileStore.Intent, Unit, ProfileStore.State, Msg, Nothing>(
+            rDispatchers.main
+        ) {
 
         override fun executeAction(action: Unit) {
-            try {
-                // Инициализация, если необходимо
-            } catch (e: Exception) {
-                println("Error in executeAction: ${e.message}")
+            // Подписываемся на изменения в AuthStore
+            scope.launch {
+
             }
         }
 
-        // Безопасный вызов dispatch, который перехватывает исключения
-        private fun safeDispatch(msg: Msg) {
-            try {
-                dispatch(msg)
-            } catch (e: Exception) {
-                println("Error in dispatch: ${e.message}")
-            }
-        }
-
-        override fun executeIntent(intent: ProfileStore.Intent): Unit {
+        override fun executeIntent(intent: ProfileStore.Intent) {
             when (intent) {
                 is ProfileStore.Intent.Init -> {
-                    // Инициализация, если необходимо
+                    // Initialize state
                 }
-
-                is ProfileStore.Intent.Logout -> {
+                is ProfileStore.Intent.UpdateUsername -> {
+                    dispatch(Msg.UpdateTempUsername(intent.username))
+                }
+                is ProfileStore.Intent.SaveProfile -> {
                     scope.launch {
                         try {
-                            safeDispatch(Msg.SetLoading)
-                            // Здесь будет реальная логика выхода
-                            kotlinx.coroutines.delay(500) // Имитация задержки сети
-                            onLogout()
+                            dispatch(Msg.Loading)
+                            // Делегируем обновление профиля общему AuthStore
+                            // При успешном обновлении - обновляем состояние
+                            dispatch(Msg.SaveProfileSuccess)
                         } catch (e: Exception) {
-                            safeDispatch(Msg.SetError(e.message ?: "Unknown error"))
-                        } finally {
-                            safeDispatch(Msg.ClearLoading)
+                            dispatch(Msg.Error(e.message ?: "Profile update failed"))
                         }
                     }
                 }
-
-                is ProfileStore.Intent.Back -> {
-                    onBack()
+                is ProfileStore.Intent.Logout -> {
+                    scope.launch {
+                        try {
+                            dispatch(Msg.Loading)
+                            // Делегируем выход общему AuthStore
+                            // При успешном выходе - обновляем состояние
+                            dispatch(Msg.LogoutSuccess)
+                        } catch (e: Exception) {
+                            dispatch(Msg.Error(e.message ?: "Logout failed"))
+                        }
+                    }
                 }
             }
-
         }
     }
 
     private object ReducerImpl : Reducer<ProfileStore.State, Msg> {
         override fun ProfileStore.State.reduce(msg: Msg): ProfileStore.State =
             when (msg) {
-                is Msg.SetLoading -> copy(loading = true, error = null)
-                is Msg.ClearLoading -> copy(loading = false)
-                is Msg.SetError -> copy(error = msg.error)
+                is Msg.Loading -> copy(loading = true, error = null)
+                is Msg.Loaded -> copy(loading = false)
+                is Msg.Error -> copy(loading = false, error = msg.message)
+                is Msg.UpdateUser -> copy(user = msg.user)
+                is Msg.UpdateTempUsername -> copy(tempUsername = msg.username)
+                is Msg.SaveProfileSuccess -> copy(loading = false, error = null)
+                is Msg.LogoutSuccess -> copy(loading = false, user = null, tempUsername = "", error = null)
             }
     }
 }

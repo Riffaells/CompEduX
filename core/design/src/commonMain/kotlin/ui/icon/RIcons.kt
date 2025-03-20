@@ -4,6 +4,7 @@ package ui.icon
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.Login
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.rounded.*
@@ -31,4 +32,15 @@ object RIcons {
     val ExperimentNew = Icons.Rounded.NewReleases
     val ExperimentBeta = Icons.Rounded.BugReport
     val ExperimentWIP = Icons.Rounded.Construction
+    val Lock = Icons.Rounded.Lock
+
+
+    val VisibilityOff = Icons.Rounded.VisibilityOff
+    val Visibility = Icons.Rounded.Visibility
+    val Login = Icons.AutoMirrored.Rounded.Login
+    val PersonAdd = Icons.Rounded.PersonAdd
+    val Email = Icons.Rounded.Email
+    val Person = Icons.Rounded.Person
+
+
 }

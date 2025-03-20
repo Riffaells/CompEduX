@@ -7,116 +7,78 @@ import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import org.kodein.di.DI
-import org.kodein.di.DIAware
 import utils.rDispatchers
 
 interface LoginStore : Store<LoginStore.Intent, LoginStore.State, Nothing> {
-
     sealed interface Intent {
         data object Init : Intent
-        data class UpdateIdentifier(val identifier: String) : Intent
+        data class UpdateEmail(val email: String) : Intent
         data class UpdatePassword(val password: String) : Intent
-        data object Login : Intent
-        data object NavigateToRegister : Intent
-        data object Back : Intent
+        data class Login(val email: String, val password: String) : Intent
     }
 
     @Serializable
     data class State(
-        val identifier: String = "",
+        val email: String = "",
         val password: String = "",
         val loading: Boolean = false,
         val error: String? = null
     )
 }
 
-internal class LoginStoreFactory(
+class LoginStoreFactory(
     private val storeFactory: StoreFactory,
-    override val di: DI
-) : DIAware {
+) {
 
-    fun create(
-        onLoginSuccess: () -> Unit,
-        onNavigateToRegister: () -> Unit,
-        onBack: () -> Unit
-    ): LoginStore =
+    fun create(): LoginStore =
         object : LoginStore, Store<LoginStore.Intent, LoginStore.State, Nothing> by storeFactory.create(
             name = "LoginStore",
             initialState = LoginStore.State(),
             bootstrapper = SimpleBootstrapper(Unit),
-            executorFactory = { ExecutorImpl(onLoginSuccess, onNavigateToRegister, onBack) },
+            executorFactory = ::ExecutorImpl,
             reducer = ReducerImpl
         ) {}
 
     private sealed interface Msg {
-        data object SetLoading : Msg
-        data object ClearLoading : Msg
-        data class SetError(val error: String) : Msg
-        data class UpdateIdentifier(val identifier: String) : Msg
+        data object Loading : Msg
+        data object Loaded : Msg
+        data class Error(val message: String) : Msg
+        data class UpdateEmail(val email: String) : Msg
         data class UpdatePassword(val password: String) : Msg
+        data object LoginSuccess : Msg
     }
 
-    private inner class ExecutorImpl(
-        private val onLoginSuccess: () -> Unit,
-        private val onNavigateToRegister: () -> Unit,
-        private val onBack: () -> Unit
-    ) : CoroutineExecutor<LoginStore.Intent, Unit, LoginStore.State, Msg, Nothing>(
-        rDispatchers.main
-    ) {
+    private inner class ExecutorImpl :
+        CoroutineExecutor<LoginStore.Intent, Unit, LoginStore.State, Msg, Nothing>(
+            rDispatchers.main
+        ) {
 
         override fun executeAction(action: Unit) {
-            try {
-                // Инициализация, если необходимо
-            } catch (e: Exception) {
-                println("Error in executeAction: ${e.message}")
-            }
+            // Initialize state if needed
         }
 
-        // Безопасный вызов dispatch, который перехватывает исключения
-        private fun safeDispatch(msg: Msg) {
-            try {
-                dispatch(msg)
-            } catch (e: Exception) {
-                println("Error in dispatch: ${e.message}")
-            }
-        }
-
-        override fun executeIntent(intent: LoginStore.Intent): Unit {
+        override fun executeIntent(intent: LoginStore.Intent) {
             when (intent) {
                 is LoginStore.Intent.Init -> {
-                    // Инициализация, если необходимо
+                    // Initialize state
                 }
-
+                is LoginStore.Intent.UpdateEmail -> {
+                    dispatch(Msg.UpdateEmail(intent.email))
+                }
+                is LoginStore.Intent.UpdatePassword -> {
+                    dispatch(Msg.UpdatePassword(intent.password))
+                }
                 is LoginStore.Intent.Login -> {
                     scope.launch {
                         try {
-                            safeDispatch(Msg.SetLoading)
-                            // Здесь будет реальная логика входа
-                            kotlinx.coroutines.delay(1000) // Имитация задержки сети
-                            onLoginSuccess()
+                            dispatch(Msg.Loading)
+                            // Делегируем аутентификацию общему AuthStore
+                            // При успешном входе - обновляем состояние
+                            dispatch(Msg.LoginSuccess)
                         } catch (e: Exception) {
-                            safeDispatch(Msg.SetError(e.message ?: "Unknown error"))
-                        } finally {
-                            safeDispatch(Msg.ClearLoading)
+                            dispatch(Msg.Error(e.message ?: "Login failed"))
                         }
                     }
-                }
-
-                is LoginStore.Intent.NavigateToRegister -> {
-                    onNavigateToRegister()
-                }
-
-                is LoginStore.Intent.Back -> {
-                    onBack()
-                }
-
-                is LoginStore.Intent.UpdateIdentifier -> {
-                    safeDispatch(Msg.UpdateIdentifier(intent.identifier))
-                }
-
-                is LoginStore.Intent.UpdatePassword -> {
-                    safeDispatch(Msg.UpdatePassword(intent.password))
                 }
             }
         }
@@ -125,11 +87,12 @@ internal class LoginStoreFactory(
     private object ReducerImpl : Reducer<LoginStore.State, Msg> {
         override fun LoginStore.State.reduce(msg: Msg): LoginStore.State =
             when (msg) {
-                is Msg.SetLoading -> copy(loading = true, error = null)
-                is Msg.ClearLoading -> copy(loading = false)
-                is Msg.SetError -> copy(error = msg.error)
-                is Msg.UpdateIdentifier -> copy(identifier = msg.identifier)
+                is Msg.Loading -> copy(loading = true, error = null)
+                is Msg.Loaded -> copy(loading = false)
+                is Msg.Error -> copy(loading = false, error = msg.message)
+                is Msg.UpdateEmail -> copy(email = msg.email)
                 is Msg.UpdatePassword -> copy(password = msg.password)
+                is Msg.LoginSuccess -> copy(loading = false, error = null)
             }
     }
 }

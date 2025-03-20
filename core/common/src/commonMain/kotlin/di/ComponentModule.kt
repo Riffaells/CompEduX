@@ -1,24 +1,25 @@
 package di
 
 import com.arkivanov.decompose.ExperimentalDecomposeApi
+import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
+import com.arkivanov.mvikotlin.core.store.StoreFactory
 import component.app.auth.DefaultAuthComponent
-import component.app.auth.store.AuthStoreFactory
-import component.app.auth.store.LoginStoreFactory
-import component.app.auth.store.ProfileStoreFactory
-import component.app.auth.store.RegisterStoreFactory
 import component.app.main.DefaultMainComponent
+import component.app.main.MainComponent
+import component.app.main.MainComponentParams
 import component.app.main.store.MainStoreFactory
 import component.app.room.DefaultRoomComponent
+import component.app.room.RoomComponent
 import component.app.room.achievement.DefaultAchievementComponent
 import component.app.room.achievement.store.AchievementStoreFactory
 import component.app.room.diagram.DefaultDiagramComponent
 import component.app.room.diagram.store.DiagramStoreFactory
 import component.app.room.store.RoomStoreFactory
 import component.app.settings.DefaultSettingsComponent
-import component.app.settings.store.SettingsStoreFactory
+import component.app.settings.SettingsComponent
 import component.app.skiko.DefaultSkikoComponent
-import component.app.skiko.store.SkikoStoreFactory
+import component.app.skiko.SkikoComponent
 import component.root.DefaultRootComponent
 import component.root.store.RootStoreFactory
 import org.kodein.di.*
@@ -34,9 +35,6 @@ val componentModule = DI.Module("componentModule") {
     // Store Factories
     bindProvider { RootStoreFactory(storeFactory = instance(), di = di) }
     bindProvider { MainStoreFactory(storeFactory = instance(), di = di) }
-    bindProvider { SettingsStoreFactory(storeFactory = instance(), di = di) }
-    bindProvider { SkikoStoreFactory(storeFactory = instance(), di = di) }
-    bindProvider { AuthStoreFactory(storeFactory = instance(), di = di) }
     bindProvider { RoomStoreFactory(storeFactory = instance(), di = di) }
     bindProvider { DiagramStoreFactory(storeFactory = instance(), di = di) }
     bindProvider { AchievementStoreFactory(storeFactory = instance(), di = di) }
@@ -78,14 +76,6 @@ val componentModule = DI.Module("componentModule") {
         )
     }
 
-    bindFactory { params: AuthComponentParams ->
-        DefaultAuthComponent(
-            componentContext = params.componentContext,
-            onBack = params.onBack,
-            di = di
-        )
-    }
-
     bindFactory { params: RoomComponentParams ->
         DefaultRoomComponent(
             componentContext = params.componentContext,
@@ -109,16 +99,12 @@ val componentModule = DI.Module("componentModule") {
         )
     }
 
-    // Auth Store Factories
-    bindProvider {
-        LoginStoreFactory(storeFactory = instance(), di = di)
-    }
-
-    bindProvider {
-        RegisterStoreFactory(storeFactory = instance(), di = di)
-    }
-
-    bindProvider {
-        ProfileStoreFactory(storeFactory = instance(), di = di)
+    // Auth компоненты
+    bindFactory { params: AuthComponentParams ->
+        DefaultAuthComponent(
+            componentContext = params.componentContext,
+            onBack = params.onBack,
+            storeFactory = instance()
+        )
     }
 }

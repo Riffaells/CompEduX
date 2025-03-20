@@ -291,7 +291,7 @@ private fun RenderContent(
             is MainChild -> MainContent(modifier, instance.component)
             is SettingsChild -> SettingsContent(modifier, instance.component)
             is SkikoChild -> SkikoContent(modifier, instance.component)
-            is AuthChild -> AuthContent(modifier, instance.component)
+            is AuthChild -> AuthContent(instance.component)
             is RoomChild -> RoomContent(modifier, instance.component)
         }
 

@@ -11,6 +11,18 @@ import org.kodein.di.DI
 import org.kodein.di.DIAware
 import org.kodein.di.instance
 
+
+/**
+ * Параметры для создания компонента главного экрана
+ */
+data class MainComponentParams(
+    val componentContext: ComponentContext,
+    val onSettingsClicked: () -> Unit,
+    val onDevelopmentMapClicked: () -> Unit,
+    val onRoomClicked: () -> Unit = {}
+)
+
+
 interface MainComponent {
     val state: StateFlow<MainStore.State>
 

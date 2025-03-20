@@ -3,39 +3,57 @@ package component.app.auth
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
+import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
 import component.app.auth.store.RegisterStore
 import component.app.auth.store.RegisterStoreFactory
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import org.kodein.di.DI
-import org.kodein.di.DIAware
-import org.kodein.di.instance
 
+/**
+ * Компонент для экрана регистрации
+ */
 interface RegisterComponent {
     val state: StateFlow<RegisterStore.State>
-    fun onEvent(event: RegisterStore.Intent)
+
+    /**
+     * Обработка нажатия кнопки регистрации
+     * @param email Email пользователя
+     * @param password Пароль пользователя
+     * @param username Имя пользователя
+     */
+    fun onRegisterClicked(email: String, password: String, username: String)
+
+    /**
+     * Обработка нажатия кнопки "Назад"
+     */
+    fun onBackClicked()
 }
 
+/**
+ * Реализация компонента регистрации
+ */
 class DefaultRegisterComponent(
     componentContext: ComponentContext,
-    override val di: DI,
-    private val onRegisterSuccess: () -> Unit,
-    private val onNavigateToLogin: () -> Unit,
-    private val onBack: () -> Unit
-) : RegisterComponent, DIAware, ComponentContext by componentContext {
+    private val onRegister: (String, String, String) -> Unit,
+    private val onBack: () -> Unit,
+    storeFactory: DefaultStoreFactory = DefaultStoreFactory(),
+) : RegisterComponent, ComponentContext by componentContext {
 
-    private val registerStoreFactory: RegisterStoreFactory by instance()
+    private val store =
+        instanceKeeper.getStore {
+            RegisterStoreFactory(
+                storeFactory = storeFactory,
+            ).create()
+        }
 
-    private val store = instanceKeeper.getStore {
-        registerStoreFactory.create(
-            onRegisterSuccess = onRegisterSuccess,
-            onNavigateToLogin = onNavigateToLogin,
-            onBack = onBack
-        )
-    }
 
     override val state: StateFlow<RegisterStore.State> = store.stateFlow
 
-    override fun onEvent(event: RegisterStore.Intent) {
-        store.accept(event)
+    override fun onRegisterClicked(email: String, password: String, username: String) {
+        store?.accept(RegisterStore.Intent.Register(email, password, username))
+    }
+
+    override fun onBackClicked() {
+        onBack()
     }
 }

@@ -17,15 +17,26 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import component.app.auth.RegisterComponent
-import component.app.auth.store.RegisterStore
 import ui.icon.RIcons
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterContent(component: RegisterComponent) {
     val state by component.state.collectAsState()
+
+    var username by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
+
+    // Обновляем локальное состояние из состояния компонента
+    LaunchedEffect(state) {
+        username = state.username
+        email = state.email
+        password = state.password
+    }
 
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -54,7 +65,7 @@ fun RegisterContent(component: RegisterComponent) {
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.PersonAdd,
+                            imageVector = RIcons.PersonAdd,
                             contentDescription = null,
                             modifier = Modifier.size(64.dp),
                             tint = MaterialTheme.colorScheme.primary
@@ -76,45 +87,45 @@ fun RegisterContent(component: RegisterComponent) {
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     OutlinedTextField(
-                        value = state.username,
+                        value = username,
                         onValueChange = { value ->
                             if (value.length <= 20) {
-                                component.onEvent(RegisterStore.Intent.UpdateUsername(value))
+                                username = value
                             }
                         },
                         label = { Text("Имя пользователя") },
-                        leadingIcon = { Icon(Icons.Default.Person, null) },
+                        leadingIcon = { Icon(RIcons.Person, null) },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
                         singleLine = true,
                         supportingText = {
-                            Text("${state.username.length}/20")
+                            Text("${username.length}/20")
                         }
                     )
 
                     OutlinedTextField(
-                        value = state.email,
+                        value = email,
                         onValueChange = { value ->
-                            component.onEvent(RegisterStore.Intent.UpdateEmail(value))
+                            email = value
                         },
                         label = { Text("Email") },
-                        leadingIcon = { Icon(Icons.Default.Email, null) },
+                        leadingIcon = { Icon(RIcons.Email, null) },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
                         singleLine = true
                     )
 
                     OutlinedTextField(
-                        value = state.password,
+                        value = password,
                         onValueChange = { value ->
-                            component.onEvent(RegisterStore.Intent.UpdatePassword(value))
+                            password = value
                         },
                         label = { Text("Пароль") },
-                        leadingIcon = { Icon(Icons.Default.Lock, null) },
+                        leadingIcon = { Icon(RIcons.Lock, null) },
                         trailingIcon = {
                             IconButton(onClick = { passwordVisible = !passwordVisible }) {
                                 Icon(
-                                    if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                    if (passwordVisible) RIcons.VisibilityOff else RIcons.Visibility,
                                     null
                                 )
                             }
@@ -126,16 +137,16 @@ fun RegisterContent(component: RegisterComponent) {
                     )
 
                     OutlinedTextField(
-                        value = state.confirmPassword,
+                        value = confirmPassword,
                         onValueChange = { value ->
-                            component.onEvent(RegisterStore.Intent.UpdateConfirmPassword(value))
+                            confirmPassword = value
                         },
                         label = { Text("Подтвердите пароль") },
-                        leadingIcon = { Icon(Icons.Default.Lock, null) },
+                        leadingIcon = { Icon(RIcons.Lock, null) },
                         trailingIcon = {
                             IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
                                 Icon(
-                                    if (confirmPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                    if (confirmPasswordVisible) RIcons.VisibilityOff else RIcons.Visibility,
                                     null
                                 )
                             }
@@ -144,30 +155,28 @@ fun RegisterContent(component: RegisterComponent) {
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
                         singleLine = true,
-                        isError = state.password != state.confirmPassword && state.confirmPassword.isNotEmpty()
+                        isError = password != confirmPassword && confirmPassword.isNotEmpty()
                     )
                 }
 
-                // Error Message with animation
-                AnimatedVisibility(
-                    visible = state.error != null,
-                    enter = fadeIn() + expandVertically(),
-                    exit = fadeOut() + shrinkVertically()
-                ) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.errorContainer,
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
+                // Отображение ошибки
+                AnimatedVisibility(visible = state.error != null) {
+                    state.error?.let { errorMsg ->
                         Text(
-                            text = state.error ?: "",
-                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            text = errorMsg,
+                            color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodyMedium,
                             textAlign = TextAlign.Center,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp)
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
+                }
+
+                // Индикатор загрузки
+                AnimatedVisibility(visible = state.loading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.padding(8.dp)
+                    )
                 }
 
                 // Actions with animations
@@ -175,62 +184,35 @@ fun RegisterContent(component: RegisterComponent) {
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Button(
-                        onClick = { component.onEvent(RegisterStore.Intent.Register) },
+                        onClick = { component.onRegisterClicked(email, password, username) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp)
                             .animateContentSize(),
                         shape = RoundedCornerShape(16.dp),
                         enabled = !state.loading &&
-                                state.username.isNotEmpty() &&
-                                state.email.isNotEmpty() &&
-                                state.password.isNotEmpty() &&
-                                state.password == state.confirmPassword
-                    ) {
-                        AnimatedContent(
-                            targetState = state.loading,
-                            transitionSpec = {
-                                fadeIn() with fadeOut()
-                            }
-                        ) { isLoading ->
-                            if (isLoading) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(24.dp),
-                                    color = MaterialTheme.colorScheme.onPrimary
-                                )
-                            } else {
-                                Row(
-                                    horizontalArrangement = Arrangement.Center,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(Icons.Default.PersonAdd, null)
-                                    Spacer(Modifier.width(8.dp))
-                                    Text("Создать аккаунт")
-                                }
-                            }
-                        }
-                    }
-
-                    TextButton(
-                        onClick = { component.onEvent(RegisterStore.Intent.NavigateToLogin) },
-                        modifier = Modifier.fillMaxWidth()
+                                username.isNotEmpty() &&
+                                email.isNotEmpty() &&
+                                password.isNotEmpty() &&
+                                password == confirmPassword
                     ) {
                         Row(
                             horizontalArrangement = Arrangement.Center,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.Login, null)
+                            Icon(RIcons.PersonAdd, null)
                             Spacer(Modifier.width(8.dp))
-                            Text("Уже есть аккаунт? Войти")
+                            Text("Создать аккаунт")
                         }
                     }
 
                     TextButton(
-                        onClick = { component.onEvent(RegisterStore.Intent.Back) },
+                        onClick = { component.onBackClicked() },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.textButtonColors(
                             contentColor = MaterialTheme.colorScheme.outline
-                        )
+                        ),
+                        enabled = !state.loading
                     ) {
                         Row(
                             horizontalArrangement = Arrangement.Center,

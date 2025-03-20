@@ -16,15 +16,27 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import compedux.core.ui.generated.resources.Res
+import compedux.core.ui.generated.resources.*
 import component.app.auth.LoginComponent
-import component.app.auth.store.LoginStore
+import org.jetbrains.compose.resources.ExperimentalResourceApi
+import org.jetbrains.compose.resources.stringResource
 import ui.icon.RIcons
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalResourceApi::class)
 @Composable
 fun LoginContent(component: LoginComponent) {
     val state by component.state.collectAsState()
+
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+
+    // Обновляем локальное состояние из состояния компонента
+    LaunchedEffect(state) {
+        email = state.email
+        password = state.password
+    }
 
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -52,18 +64,12 @@ fun LoginContent(component: LoginComponent) {
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.AccountCircle,
-                            contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
                         Text(
-                            text = "С возвращением!",
+                            text = stringResource(Res.string.login_welcome_back),
                             style = MaterialTheme.typography.headlineMedium
                         )
                         Text(
-                            text = "Мы скучали по вам",
+                            text = stringResource(Res.string.login_we_missed_you),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -75,40 +81,32 @@ fun LoginContent(component: LoginComponent) {
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     OutlinedTextField(
-                        value = state.identifier,
+                        value = email,
                         onValueChange = { value ->
-                            if (value.length <= 50) { // Максимальная длина для email
-                                component.onEvent(LoginStore.Intent.UpdateIdentifier(value))
+                            if (value.length <= 50) {
+                                email = value
                             }
                         },
-                        label = { Text(if (state.identifier.contains("@")) "Email" else "Имя пользователя") },
-                        leadingIcon = {
-                            Icon(
-                                if (state.identifier.contains("@")) Icons.Default.Email else Icons.Default.Person,
-                                null
-                            )
-                        },
+                        label = { Text(stringResource(Res.string.login_email)) },
+                        leadingIcon = { Icon(RIcons.Email, null) },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
-                        singleLine = true,
-                        supportingText = {
-                            Text("${state.identifier.length}/${if (state.identifier.contains("@")) 50 else 20}")
-                        }
+                        singleLine = true
                     )
 
                     OutlinedTextField(
-                        value = state.password,
+                        value = password,
                         onValueChange = { value ->
-                            if (value.length <= 32) { // Ограничение длины
-                                component.onEvent(LoginStore.Intent.UpdatePassword(value))
+                            if (value.length <= 32) {
+                                password = value
                             }
                         },
-                        label = { Text("Пароль") },
-                        leadingIcon = { Icon(Icons.Default.Lock, null) },
+                        label = { Text(stringResource(Res.string.login_password)) },
+                        leadingIcon = { Icon(RIcons.Lock, null) },
                         trailingIcon = {
                             IconButton(onClick = { passwordVisible = !passwordVisible }) {
                                 Icon(
-                                    if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                    if (passwordVisible) RIcons.VisibilityOff else RIcons.Visibility,
                                     null
                                 )
                             }
@@ -116,33 +114,28 @@ fun LoginContent(component: LoginComponent) {
                         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
-                        singleLine = true,
-                        supportingText = {
-                            Text("${state.password.length}/32")
-                        }
+                        singleLine = true
                     )
                 }
 
-                // Error Message with animation
-                AnimatedVisibility(
-                    visible = state.error != null,
-                    enter = fadeIn() + expandVertically(),
-                    exit = fadeOut() + shrinkVertically()
-                ) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.errorContainer,
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
+                // Отображение ошибки
+                AnimatedVisibility(visible = state.error != null) {
+                    state.error?.let { errorMsg ->
                         Text(
-                            text = state.error ?: "",
-                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            text = errorMsg,
+                            color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodyMedium,
                             textAlign = TextAlign.Center,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp)
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
+                }
+
+                // Индикатор загрузки
+                AnimatedVisibility(visible = state.loading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.padding(8.dp)
+                    )
                 }
 
                 // Actions with animations
@@ -150,58 +143,46 @@ fun LoginContent(component: LoginComponent) {
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Button(
-                        onClick = { component.onEvent(LoginStore.Intent.Login) },
+                        onClick = { component.onLoginClicked(email, password) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp)
                             .animateContentSize(),
                         shape = RoundedCornerShape(16.dp),
-                        enabled = !state.loading && state.identifier.isNotEmpty() && state.password.isNotEmpty()
-                    ) {
-                        AnimatedContent(
-                            targetState = state.loading,
-                            transitionSpec = {
-                                fadeIn() with fadeOut()
-                            }
-                        ) { isLoading ->
-                            if (isLoading) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(24.dp),
-                                    color = MaterialTheme.colorScheme.onPrimary
-                                )
-                            } else {
-                                Row(
-                                    horizontalArrangement = Arrangement.Center,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(Icons.Default.Login, null)
-                                    Spacer(Modifier.width(8.dp))
-                                    Text("Войти")
-                                }
-                            }
-                        }
-                    }
-
-                    TextButton(
-                        onClick = { component.onEvent(LoginStore.Intent.NavigateToRegister) },
-                        modifier = Modifier.fillMaxWidth()
+                        enabled = !state.loading && email.isNotEmpty() && password.isNotEmpty()
                     ) {
                         Row(
                             horizontalArrangement = Arrangement.Center,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.PersonAdd, null)
+                            Icon(RIcons.Login, null)
                             Spacer(Modifier.width(8.dp))
-                            Text("Создать аккаунт")
+                            Text(stringResource(Res.string.login_button))
                         }
                     }
 
                     TextButton(
-                        onClick = { component.onEvent(LoginStore.Intent.Back) },
+                        onClick = { component.onRegisterClicked() },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !state.loading
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(RIcons.PersonAdd, null)
+                            Spacer(Modifier.width(8.dp))
+                            Text(stringResource(Res.string.login_create_account))
+                        }
+                    }
+
+                    TextButton(
+                        onClick = { component.onBackClicked() },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.textButtonColors(
                             contentColor = MaterialTheme.colorScheme.outline
-                        )
+                        ),
+                        enabled = !state.loading
                     ) {
                         Row(
                             horizontalArrangement = Arrangement.Center,
@@ -209,7 +190,7 @@ fun LoginContent(component: LoginComponent) {
                         ) {
                             Icon(RIcons.ArrowBack, null)
                             Spacer(Modifier.width(8.dp))
-                            Text("Назад")
+                            Text(stringResource(Res.string.login_back))
                         }
                     }
                 }

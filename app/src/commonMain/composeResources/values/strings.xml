@@ -1,6 +1,7 @@
 <resources>
-    <!-- Общие строки -->
+    <!-- Общие строки 111 -->
     <string name="app_name">CompEduX</string>
 
+    <!-- Строки авторизации -->
 
 </resources>
