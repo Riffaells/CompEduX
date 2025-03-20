@@ -5,8 +5,6 @@ import com.arkivanov.mvikotlin.core.store.SimpleBootstrapper
 import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
-import com.arkivanov.mvikotlin.extensions.coroutines.states
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import utils.rDispatchers
@@ -21,17 +19,15 @@ interface ProfileStore : Store<ProfileStore.Intent, ProfileStore.State, Nothing>
 
     @Serializable
     data class State(
-        val user: AuthStore.User? = null,
-        val tempUsername: String = "",
+        val username: String = "",
         val loading: Boolean = false,
         val error: String? = null
     )
 }
 
 class ProfileStoreFactory(
-    private val storeFactory: StoreFactory,
+    private val storeFactory: StoreFactory
 ) {
-
     fun create(): ProfileStore =
         object : ProfileStore, Store<ProfileStore.Intent, ProfileStore.State, Nothing> by storeFactory.create(
             name = "ProfileStore",
@@ -45,8 +41,7 @@ class ProfileStoreFactory(
         data object Loading : Msg
         data object Loaded : Msg
         data class Error(val message: String) : Msg
-        data class UpdateUser(val user: AuthStore.User?) : Msg
-        data class UpdateTempUsername(val username: String) : Msg
+        data class UpdateUsername(val username: String) : Msg
         data object SaveProfileSuccess : Msg
         data object LogoutSuccess : Msg
     }
@@ -57,10 +52,7 @@ class ProfileStoreFactory(
         ) {
 
         override fun executeAction(action: Unit) {
-            // Подписываемся на изменения в AuthStore
-            scope.launch {
-
-            }
+            // Инициализация состояния если необходимо
         }
 
         override fun executeIntent(intent: ProfileStore.Intent) {
@@ -69,14 +61,14 @@ class ProfileStoreFactory(
                     // Initialize state
                 }
                 is ProfileStore.Intent.UpdateUsername -> {
-                    dispatch(Msg.UpdateTempUsername(intent.username))
+                    dispatch(Msg.UpdateUsername(intent.username))
                 }
                 is ProfileStore.Intent.SaveProfile -> {
                     scope.launch {
                         try {
                             dispatch(Msg.Loading)
-                            // Делегируем обновление профиля общему AuthStore
-                            // При успешном обновлении - обновляем состояние
+                            // Имитируем задержку для демонстрации загрузки
+                            kotlinx.coroutines.delay(500)
                             dispatch(Msg.SaveProfileSuccess)
                         } catch (e: Exception) {
                             dispatch(Msg.Error(e.message ?: "Profile update failed"))
@@ -87,8 +79,8 @@ class ProfileStoreFactory(
                     scope.launch {
                         try {
                             dispatch(Msg.Loading)
-                            // Делегируем выход общему AuthStore
-                            // При успешном выходе - обновляем состояние
+                            // Имитируем задержку для демонстрации загрузки
+                            kotlinx.coroutines.delay(500)
                             dispatch(Msg.LogoutSuccess)
                         } catch (e: Exception) {
                             dispatch(Msg.Error(e.message ?: "Logout failed"))
@@ -105,10 +97,9 @@ class ProfileStoreFactory(
                 is Msg.Loading -> copy(loading = true, error = null)
                 is Msg.Loaded -> copy(loading = false)
                 is Msg.Error -> copy(loading = false, error = msg.message)
-                is Msg.UpdateUser -> copy(user = msg.user)
-                is Msg.UpdateTempUsername -> copy(tempUsername = msg.username)
+                is Msg.UpdateUsername -> copy(username = msg.username)
                 is Msg.SaveProfileSuccess -> copy(loading = false, error = null)
-                is Msg.LogoutSuccess -> copy(loading = false, user = null, tempUsername = "", error = null)
+                is Msg.LogoutSuccess -> copy(loading = false, username = "", error = null)
             }
     }
 }

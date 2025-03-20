@@ -14,6 +14,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.*
 import io.github.aakira.napier.Napier
+import io.github.aakira.napier.Napier.log
+import io.github.aakira.napier.log
 import kotlinx.datetime.Clock
 
 /**
@@ -47,7 +49,7 @@ fun BaseNavigationContainer(
     content: @Composable BoxScope.() -> Unit
 ) {
     // Логируем создание контейнера
-    Napier.d("BaseNavigationContainer: Создание контейнера с тенью и скруглением")
+    log (tag = "BaseNavigationContainer") { "Создание контейнера с тенью и скруглением"  }
     val boxStartTime = Clock.System.now().toEpochMilliseconds()
 
     // Создаем стиль размытия на основе типа и цвета фона
@@ -58,24 +60,28 @@ fun BaseNavigationContainer(
             blurRadius = 20.dp,
             noiseFactor = 0.05f
         )
+
         BlurType.FROSTED -> HazeStyle(
             backgroundColor = backgroundColor,
             tint = HazeTint(backgroundColor),
             blurRadius = 15.dp,
             noiseFactor = 0.02f
         )
+
         BlurType.ACRYLIC -> HazeStyle(
             backgroundColor = backgroundColor,
             tint = HazeTint(backgroundColor),
             blurRadius = 30.dp,
             noiseFactor = 0.1f
         )
+
         BlurType.MICA -> HazeStyle(
             backgroundColor = backgroundColor,
             tint = HazeTint(backgroundColor),
             blurRadius = 10.dp,
             noiseFactor = 0.01f
         )
+
         BlurType.NONE -> HazeStyle(
             backgroundColor = backgroundColor.copy(alpha = 0.95f),
             tint = null,
@@ -97,19 +103,19 @@ fun BaseNavigationContainer(
                 spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
             )
             .clip(RoundedCornerShape(cornerRadius.dp))
-            .background(
-                backgroundColor.copy(alpha = 0.95f),
-                shape = RoundedCornerShape(cornerRadius.dp)
-            )
+//            .background(
+//                backgroundColor.copy(alpha = 0.95f),
+//                shape = RoundedCornerShape(cornerRadius.dp)
+//            )
     } else {
         // Если размытие включено, применяем эффект размытия
         Napier.d("BaseNavigationContainer: Применяется эффект размытия типа $blurType")
         modifier
-            .shadow(
-                elevation = elevation.dp,
-                shape = RoundedCornerShape(cornerRadius.dp),
-                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-            )
+//            .shadow(
+//                elevation = elevation.dp,
+//                shape = RoundedCornerShape(cornerRadius.dp),
+//                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+//            )
             .clip(RoundedCornerShape(cornerRadius.dp))
             .hazeEffect(
                 state = hazeState,
@@ -125,5 +131,9 @@ fun BaseNavigationContainer(
     )
 
     // Логируем завершение создания контейнера
-    Napier.d("BaseNavigationContainer: Контейнер создан за ${Clock.System.now().toEpochMilliseconds() - boxStartTime}ms")
+    Napier.d(
+        "BaseNavigationContainer: Контейнер создан за ${
+            Clock.System.now().toEpochMilliseconds() - boxStartTime
+        }ms"
+    )
 }

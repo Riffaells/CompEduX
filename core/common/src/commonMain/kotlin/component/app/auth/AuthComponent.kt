@@ -127,10 +127,11 @@ class DefaultAuthComponent(
     private fun profileComponent(componentContext: ComponentContext): ProfileComponent =
         DefaultProfileComponent(
             componentContext = componentContext,
-            onLogoutClicked = {
+            storeFactory = DefaultStoreFactory(),
+            onLogout = {
                 store.accept(AuthStore.Intent.Logout)
             },
-            onUpdateProfileClicked = { username ->
+            onUpdateProfile = { username ->
                 store.accept(AuthStore.Intent.UpdateProfile(username))
             },
             onBackClicked = onBack

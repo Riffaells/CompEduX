@@ -7,7 +7,6 @@ import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
 import component.app.auth.store.ProfileStore
 import component.app.auth.store.ProfileStoreFactory
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
  * Компонент для экрана профиля
@@ -38,8 +37,8 @@ interface ProfileComponent {
 class DefaultProfileComponent(
     componentContext: ComponentContext,
     storeFactory: DefaultStoreFactory = DefaultStoreFactory(),
-    private val onLogoutClicked: () -> Unit,
-    private val onUpdateProfileClicked: (String) -> Unit,
+    private val onLogout: () -> Unit,
+    private val onUpdateProfile: (String) -> Unit,
     private val onBackClicked: () -> Unit,
 ) : ProfileComponent, ComponentContext by componentContext {
 
@@ -50,18 +49,19 @@ class DefaultProfileComponent(
             ).create()
         }
 
-
     override val state: StateFlow<ProfileStore.State> = store.stateFlow
 
     override fun onLogoutClicked() {
-        store?.accept(ProfileStore.Intent.Logout)
+        store.accept(ProfileStore.Intent.Logout)
+        onLogout()
     }
 
     override fun onUpdateProfileClicked(username: String) {
-        store?.accept(ProfileStore.Intent.SaveProfile(username)) ?: onUpdateProfileClicked(username)
+        store.accept(ProfileStore.Intent.SaveProfile(username))
+        onUpdateProfile(username)
     }
 
     override fun onBackClicked() {
-        onBackClicked()
+        onBackClicked.invoke()
     }
 }

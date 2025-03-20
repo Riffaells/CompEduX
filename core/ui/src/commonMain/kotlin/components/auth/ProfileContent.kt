@@ -33,10 +33,8 @@ fun ProfileContent(component: ProfileComponent) {
     var confirmPasswordVisible by remember { mutableStateOf(false) }
 
     // Инициализация имени пользователя из состояния
-    LaunchedEffect(state.user) {
-        state.user?.let {
-            username = it.username
-        }
+    LaunchedEffect(state.username) {
+        username = state.username
     }
 
     Box(
@@ -97,9 +95,9 @@ fun ProfileContent(component: ProfileComponent) {
                         singleLine = true
                     )
 
-                    // Отображаем email из состояния (только для чтения)
+                    // Отображаем email (только для чтения)
                     OutlinedTextField(
-                        value = state.user?.email ?: "",
+                        value = "test@test.com", // Временное значение для демонстрации
                         onValueChange = { },
                         label = { Text("Email") },
                         leadingIcon = { Icon(RIcons.Email, null) },
@@ -247,24 +245,6 @@ fun ProfileContent(component: ProfileComponent) {
                             Icon(RIcons.Exit, null)
                             Spacer(Modifier.width(8.dp))
                             Text("Выйти")
-                        }
-                    }
-
-                    TextButton(
-                        onClick = { component.onBackClicked() },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.outline
-                        ),
-                        enabled = !state.loading
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(RIcons.ArrowBack, null)
-                            Spacer(Modifier.width(8.dp))
-                            Text("Назад")
                         }
                     }
                 }

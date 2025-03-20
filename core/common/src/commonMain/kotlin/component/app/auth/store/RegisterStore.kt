@@ -29,9 +29,8 @@ interface RegisterStore : Store<RegisterStore.Intent, RegisterStore.State, Nothi
 }
 
 class RegisterStoreFactory(
-    private val storeFactory: StoreFactory,
+    private val storeFactory: StoreFactory
 ) {
-
     fun create(): RegisterStore =
         object : RegisterStore, Store<RegisterStore.Intent, RegisterStore.State, Nothing> by storeFactory.create(
             name = "RegisterStore",
@@ -57,7 +56,7 @@ class RegisterStoreFactory(
         ) {
 
         override fun executeAction(action: Unit) {
-            // Initialize state if needed
+            // Инициализация состояния если необходимо
         }
 
         override fun executeIntent(intent: RegisterStore.Intent) {
@@ -78,11 +77,30 @@ class RegisterStoreFactory(
                     scope.launch {
                         try {
                             dispatch(Msg.Loading)
-                            // Делегируем регистрацию общему AuthStore
-                            // При успешной регистрации - обновляем состояние
+                            // Имитируем задержку для демонстрации загрузки
+                            kotlinx.coroutines.delay(1000)
+
+                            // Фейковая валидация
+                            if (intent.email.isEmpty() || intent.password.isEmpty() || intent.username.isEmpty()) {
+                                throw Exception("Все поля должны быть заполнены")
+                            }
+
+                            if (intent.password.length < 6) {
+                                throw Exception("Пароль должен содержать минимум 6 символов")
+                            }
+
+                            if (!intent.email.contains("@")) {
+                                throw Exception("Некорректный email")
+                            }
+
+                            // Фейковая проверка существующего пользователя
+                            if (intent.email == "test@test.com") {
+                                throw Exception("Пользователь с таким email уже существует")
+                            }
+
                             dispatch(Msg.RegisterSuccess)
                         } catch (e: Exception) {
-                            dispatch(Msg.Error(e.message ?: "Registration failed"))
+                            dispatch(Msg.Error(e.message ?: "Ошибка регистрации"))
                         }
                     }
                 }

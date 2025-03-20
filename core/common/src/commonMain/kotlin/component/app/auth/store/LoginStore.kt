@@ -5,6 +5,7 @@ import com.arkivanov.mvikotlin.core.store.SimpleBootstrapper
 import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import utils.rDispatchers
@@ -27,9 +28,8 @@ interface LoginStore : Store<LoginStore.Intent, LoginStore.State, Nothing> {
 }
 
 class LoginStoreFactory(
-    private val storeFactory: StoreFactory,
+    private val storeFactory: StoreFactory
 ) {
-
     fun create(): LoginStore =
         object : LoginStore, Store<LoginStore.Intent, LoginStore.State, Nothing> by storeFactory.create(
             name = "LoginStore",
@@ -54,7 +54,7 @@ class LoginStoreFactory(
         ) {
 
         override fun executeAction(action: Unit) {
-            // Initialize state if needed
+            // Инициализация состояния если необходимо
         }
 
         override fun executeIntent(intent: LoginStore.Intent) {
@@ -72,11 +72,22 @@ class LoginStoreFactory(
                     scope.launch {
                         try {
                             dispatch(Msg.Loading)
-                            // Делегируем аутентификацию общему AuthStore
-                            // При успешном входе - обновляем состояние
-                            dispatch(Msg.LoginSuccess)
+                            // Имитируем задержку для демонстрации загрузки
+                            delay(1000)
+
+                            // Фейковая валидация
+                            if (intent.email.isEmpty() || intent.password.isEmpty()) {
+                                throw Exception("Email и пароль не могут быть пустыми")
+                            }
+
+                            // Фейковая проверка учетных данных
+                            if (intent.email == "test@test.com" && intent.password == "password") {
+                                dispatch(Msg.LoginSuccess)
+                            } else {
+                                throw Exception("Неверный email или пароль")
+                            }
                         } catch (e: Exception) {
-                            dispatch(Msg.Error(e.message ?: "Login failed"))
+                            dispatch(Msg.Error(e.message ?: "Ошибка входа"))
                         }
                     }
                 }
