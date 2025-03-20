@@ -1,21 +1,17 @@
 package component.app.room
 
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.router.slot.ChildSlot
-import com.arkivanov.decompose.router.slot.SlotNavigation
-import com.arkivanov.decompose.router.slot.activate
-import com.arkivanov.decompose.router.slot.childSlot
-import com.arkivanov.decompose.router.slot.dismiss
+import com.arkivanov.decompose.router.slot.*
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
+import component.app.room.achievement.AchievementComponentParams
 import component.app.room.achievement.DefaultAchievementComponent
 import component.app.room.diagram.DefaultDiagramComponent
+import component.app.room.diagram.DiagramComponentParams
 import component.app.room.store.RoomStore
 import component.app.room.store.RoomStoreFactory
-import di.AchievementComponentParams
-import di.DiagramComponentParams
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.Serializable
@@ -23,6 +19,14 @@ import org.kodein.di.DI
 import org.kodein.di.DIAware
 import org.kodein.di.factory
 import org.kodein.di.instance
+
+/**
+ * Параметры для создания RoomComponent
+ */
+data class RoomComponentParams(
+    val componentContext: ComponentContext,
+    val onBack: () -> Unit
+)
 
 interface RoomComponent {
     val state: StateFlow<RoomStore.State>
@@ -86,7 +90,6 @@ class DefaultRoomComponent(
     )
 
 
-
     init {
         // Инициализируем диаграмму
         diagramNavigation.activate(DiagramConfig.Diagram)
@@ -111,10 +114,12 @@ class DefaultRoomComponent(
                 // Обновляем UI на основе нового состояния
                 updateAchievementVisibility(store.state.showAchievement)
             }
+
             is RoomStore.Intent.ToggleAuth -> {
                 // Обновляем UI на основе нового состояния
                 updateAuthVisibility(store.state.showAuth)
             }
+
             else -> {
                 // Другие события не требуют обновления UI
             }
@@ -140,15 +145,24 @@ class DefaultRoomComponent(
     }
 
 
-
-    private fun createDiagramChild(config: DiagramConfig, componentContext: ComponentContext): RoomComponent.DiagramChild =
+    private fun createDiagramChild(
+        config: DiagramConfig,
+        componentContext: ComponentContext
+    ): RoomComponent.DiagramChild =
         when (config) {
             DiagramConfig.Diagram -> RoomComponent.DiagramChild.DiagramContent(diagramComponent(componentContext))
         }
 
-    private fun createAchievementChild(config: AchievementConfig, componentContext: ComponentContext): RoomComponent.AchievementChild =
+    private fun createAchievementChild(
+        config: AchievementConfig,
+        componentContext: ComponentContext
+    ): RoomComponent.AchievementChild =
         when (config) {
-            AchievementConfig.Achievement -> RoomComponent.AchievementChild.AchievementContent(achievementComponent(componentContext))
+            AchievementConfig.Achievement -> RoomComponent.AchievementChild.AchievementContent(
+                achievementComponent(
+                    componentContext
+                )
+            )
         }
 
 
@@ -169,7 +183,6 @@ class DefaultRoomComponent(
             )
         )
     }
-
 
 
     @Serializable

@@ -34,9 +34,9 @@ interface MainComponent {
 
 class DefaultMainComponent(
     componentContext: ComponentContext,
-    private val onSettingsClicked: () -> Unit,
-    private val onDevelopmentMapClicked: () -> Unit,
-    private val onRoomClicked: () -> Unit,
+    private val onSettings: () -> Unit,
+    private val onDevelopmentMap: () -> Unit,
+    private val onRoom: () -> Unit,
     override val di: DI
 ) : MainComponent, DIAware, ComponentContext by componentContext {
 
@@ -57,14 +57,14 @@ class DefaultMainComponent(
     }
 
     override fun onSettingsClicked() {
-        onSettingsClicked.invoke()
+        onSettings.invoke()
     }
 
     override fun onDevelopmentMapClicked() {
-        onDevelopmentMapClicked.invoke()
+        onDevelopmentMap.invoke()
     }
 
     override fun onRoomClicked() {
-        onRoomClicked.invoke()
+        onRoom.invoke()
     }
 }

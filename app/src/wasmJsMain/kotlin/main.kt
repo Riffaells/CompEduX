@@ -1,13 +1,13 @@
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.window.ComposeViewport
-import kotlinx.browser.document
 import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.riffaells.compedux.di.appDI
-import components.root.RootContent
 import component.root.DefaultRootComponent
-import di.RootComponentParams
+import component.root.RootComponentParams
+import components.root.RootContent
+import kotlinx.browser.document
 import org.kodein.di.compose.withDI
 import org.kodein.di.direct
 import org.kodein.di.factory

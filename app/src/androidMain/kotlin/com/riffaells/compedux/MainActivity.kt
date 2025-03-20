@@ -7,18 +7,16 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.tooling.preview.Preview
-import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.defaultComponentContext
 import com.riffaells.compedux.di.appDI
-import components.root.RootContent
 import component.root.DefaultRootComponent
+import component.root.RootComponentParams
+import components.root.RootContent
 import di.RootComponentParams
 import org.kodein.di.compose.withDI
 import org.kodein.di.direct
 import org.kodein.di.factory
-import utils.AndroidWindowSizeHelper
-import utils.LocalWindowSizeHelper
 
 class AppActivity : ComponentActivity() {
     private lateinit var rootComponent: DefaultRootComponent

@@ -11,6 +11,13 @@ import org.kodein.di.DI
 import org.kodein.di.DIAware
 import org.kodein.di.instance
 
+/**
+ * Параметры для создания AchievementComponent
+ */
+data class AchievementComponentParams(
+    val componentContext: ComponentContext
+)
+
 interface AchievementComponent {
     val state: StateFlow<AchievementStore.State>
 

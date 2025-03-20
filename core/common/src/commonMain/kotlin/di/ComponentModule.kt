@@ -1,26 +1,27 @@
 package di
 
 import com.arkivanov.decompose.ExperimentalDecomposeApi
-import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
-import com.arkivanov.mvikotlin.core.store.StoreFactory
+import component.app.auth.AuthComponentParams
 import component.app.auth.DefaultAuthComponent
 import component.app.main.DefaultMainComponent
-import component.app.main.MainComponent
 import component.app.main.MainComponentParams
 import component.app.main.store.MainStoreFactory
 import component.app.room.DefaultRoomComponent
-import component.app.room.RoomComponent
+import component.app.room.RoomComponentParams
+import component.app.room.achievement.AchievementComponentParams
 import component.app.room.achievement.DefaultAchievementComponent
 import component.app.room.achievement.store.AchievementStoreFactory
 import component.app.room.diagram.DefaultDiagramComponent
+import component.app.room.diagram.DiagramComponentParams
 import component.app.room.diagram.store.DiagramStoreFactory
 import component.app.room.store.RoomStoreFactory
 import component.app.settings.DefaultSettingsComponent
-import component.app.settings.SettingsComponent
+import component.app.settings.SettingsComponentParams
 import component.app.skiko.DefaultSkikoComponent
-import component.app.skiko.SkikoComponent
+import component.app.skiko.SkikoComponentParams
 import component.root.DefaultRootComponent
+import component.root.RootComponentParams
 import component.root.store.RootStoreFactory
 import org.kodein.di.*
 
@@ -43,9 +44,9 @@ val componentModule = DI.Module("componentModule") {
     bindFactory { params: MainComponentParams ->
         DefaultMainComponent(
             componentContext = params.componentContext,
-            onSettingsClicked = params.onSettingsClicked,
-            onDevelopmentMapClicked = params.onDevelopmentMapClicked,
-            onRoomClicked = params.onRoomClicked,
+            onSettings = params.onSettingsClicked,
+            onDevelopmentMap = params.onDevelopmentMapClicked,
+            onRoom = params.onRoomClicked,
             di = di
         )
     }

@@ -11,6 +11,15 @@ import org.kodein.di.DI
 import org.kodein.di.DIAware
 import org.kodein.di.instance
 
+/**
+ * Параметры для создания компонента Skiko
+ */
+data class SkikoComponentParams(
+    val componentContext: ComponentContext,
+    val onBack: () -> Unit
+)
+
+
 interface SkikoComponent {
     val state: StateFlow<SkikoStore.State>
 

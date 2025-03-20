@@ -16,6 +16,14 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import utils.rDispatchers
 
+/**
+ * Параметры для создания компонента аутентификации
+ */
+data class AuthComponentParams(
+    val componentContext: ComponentContext,
+    val onBack: () -> Unit
+)
+
 interface AuthComponent {
     val state: StateFlow<AuthStore.State>
     val childStack: Value<ChildStack<*, Child>>

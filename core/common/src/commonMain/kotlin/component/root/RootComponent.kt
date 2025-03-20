@@ -1,6 +1,5 @@
 package component.root
 
-import settings.MultiplatformSettings
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.router.stack.*
@@ -9,11 +8,15 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
+import component.app.auth.AuthComponentParams
 import component.app.auth.DefaultAuthComponent
 import component.app.main.DefaultMainComponent
+import component.app.main.MainComponentParams
 import component.app.room.DefaultRoomComponent
+import component.app.room.RoomComponentParams
 import component.app.settings.DefaultSettingsComponent
 import component.app.skiko.DefaultSkikoComponent
+import component.app.skiko.SkikoComponentParams
 import component.root.RootComponent.Child.*
 import component.root.store.RootStore
 import component.root.store.RootStoreFactory
@@ -23,8 +26,20 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.Serializable
 import org.kodein.di.DI
 import org.kodein.di.DIAware
-import org.kodein.di.instance
 import org.kodein.di.factory
+import org.kodein.di.instance
+import settings.MultiplatformSettings
+
+
+/**
+ * Параметры для создания корневого компонента
+ */
+data class RootComponentParams(
+    val componentContext: ComponentContext,
+    val webHistoryController: WebHistoryController? = null,
+    val deepLink: DefaultRootComponent.DeepLink? = null
+)
+
 
 interface RootComponent {
     val childStack: Value<ChildStack<*, Child>>

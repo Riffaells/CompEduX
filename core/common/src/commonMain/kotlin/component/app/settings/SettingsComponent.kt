@@ -20,6 +20,15 @@ import org.kodein.di.DIAware
 import org.kodein.di.instance
 import settings.MultiplatformSettings
 
+/**
+ * Параметры для создания компонента настроек
+ */
+data class SettingsComponentParams(
+    val componentContext: ComponentContext,
+    val onBack: () -> Unit
+)
+
+
 interface SettingsComponent {
     val state: StateFlow<SettingsStore.State>
     val childStack: Value<ChildStack<SettingsComponent.Config, SettingsComponent.Child>>

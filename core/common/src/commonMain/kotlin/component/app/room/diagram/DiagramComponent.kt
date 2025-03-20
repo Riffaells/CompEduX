@@ -11,6 +11,13 @@ import org.kodein.di.DI
 import org.kodein.di.DIAware
 import org.kodein.di.instance
 
+/**
+ * Параметры для создания DiagramComponent
+ */
+data class DiagramComponentParams(
+    val componentContext: ComponentContext
+)
+
 interface DiagramComponent {
     val state: StateFlow<DiagramStore.State>
 
