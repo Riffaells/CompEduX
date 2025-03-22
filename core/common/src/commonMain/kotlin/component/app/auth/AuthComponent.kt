@@ -21,7 +21,7 @@ import kotlinx.serialization.Serializable
 import org.kodein.di.DI
 import org.kodein.di.DIAware
 import model.User
-import repository.AuthRepository
+import repository.auth.AuthRepository
 import utils.rDispatchers
 
 /**

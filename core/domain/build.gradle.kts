@@ -3,6 +3,5 @@ plugins {
     alias(libs.plugins.compedux.multiplatform.library)
 }
 
-dependencies {
-    commonMainImplementation(projects.core.data)
-}
+// Домен не должен зависеть от других модулей согласно принципам чистой архитектуры
+// Эта зависимость противоречит архитектуре и должна быть удалена

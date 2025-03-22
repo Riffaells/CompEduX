@@ -2,20 +2,18 @@ package di
 
 import org.kodein.di.DI
 import org.kodein.di.bindSingleton
-import repository.AuthRepository
-import repository.impl.DefaultAuthRepository
+import org.kodein.di.instance
+import repository.auth.AuthRepository
+import repository.auth.DefaultAuthRepository
 import repository.mapper.ErrorMapper
 import repository.mapper.ErrorMapper as ErrorMapperInterface
 
 /**
- * Модуль для предоставления репозиториев
+ * Устаревший модуль для предоставления репозиториев.
+ * @deprecated Используйте dataModule вместо этого модуля
  */
+@Deprecated("Используйте dataModule вместо этого модуля")
 val dataRepositoryModule = DI.Module("dataRepositoryModule") {
-    // Маппер ошибок
-    bindSingleton<ErrorMapperInterface> { ErrorMapper }
-
-    // Репозиторий авторизации
-    bindSingleton<AuthRepository> {
-        DefaultAuthRepository(di)
-    }
+    // Этот модуль оставлен для обратной совместимости
+    // и будет удален в будущих версиях.
 }

@@ -24,7 +24,8 @@ class AuthApiImpl(
      */
     override suspend fun register(request: RegisterRequest): AuthResult<AuthResponse> = withContext(Dispatchers.IO) {
         try {
-            val response = httpClient.post("${apiClient.getBaseUrl()}/auth/register") {
+            val baseUrl = apiClient.getBaseUrl()
+            val response = httpClient.post("$baseUrl/auth/register") {
                 setBody(request)
             }
 
@@ -48,7 +49,8 @@ class AuthApiImpl(
      */
     override suspend fun login(request: LoginRequest): AuthResult<AuthResponse> = withContext(Dispatchers.IO) {
         try {
-            val response = httpClient.post("${apiClient.getBaseUrl()}/auth/login") {
+            val baseUrl = apiClient.getBaseUrl()
+            val response = httpClient.post("$baseUrl/auth/login") {
                 setBody(request)
             }
 
@@ -72,7 +74,8 @@ class AuthApiImpl(
      */
     override suspend fun refreshToken(request: RefreshTokenRequest): AuthResult<AuthResponse> = withContext(Dispatchers.IO) {
         try {
-            val response = httpClient.post("${apiClient.getBaseUrl()}/auth/refresh") {
+            val baseUrl = apiClient.getBaseUrl()
+            val response = httpClient.post("$baseUrl/auth/refresh") {
                 setBody(request)
             }
 
@@ -96,7 +99,8 @@ class AuthApiImpl(
      */
     override suspend fun getCurrentUser(token: String): AuthResult<User> = withContext(Dispatchers.IO) {
         try {
-            val response = httpClient.get("${apiClient.getBaseUrl()}/users/me") {
+            val baseUrl = apiClient.getBaseUrl()
+            val response = httpClient.get("$baseUrl/users/me") {
                 with(apiClient) { withAuth(token) }
             }
 
@@ -120,7 +124,8 @@ class AuthApiImpl(
      */
     override suspend fun logout(token: String): AuthResult<Unit> = withContext(Dispatchers.IO) {
         try {
-            val response = httpClient.post("${apiClient.getBaseUrl()}/auth/logout") {
+            val baseUrl = apiClient.getBaseUrl()
+            val response = httpClient.post("$baseUrl/auth/logout") {
                 with(apiClient) { withAuth(token) }
             }
 
@@ -143,7 +148,8 @@ class AuthApiImpl(
      */
     override suspend fun checkServerStatus(): AuthResult<ServerStatusResponse> = withContext(Dispatchers.IO) {
         try {
-            val response = httpClient.get("${apiClient.getBaseUrl()}/status")
+            val baseUrl = apiClient.getBaseUrl()
+            val response = httpClient.get("$baseUrl/status")
 
             return@withContext when (response.status) {
                 HttpStatusCode.OK -> {

@@ -1,7 +1,7 @@
 package usecase.auth
 
 import model.AuthResult
-import repository.AuthRepository
+import repository.auth.AuthRepository
 
 /**
  * UseCase для обновления профиля пользователя

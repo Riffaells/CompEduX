@@ -1,6 +1,6 @@
 package usecase.auth
 
-import model.auth.AuthResult
+import model.AuthResult
 import model.auth.ServerStatusResponse
 import repository.auth.AuthRepository
 
@@ -14,7 +14,7 @@ class CheckServerStatusUseCase(
      * Проверяет статус сервера
      * @return Результат операции с данными о статусе сервера
      */
-    suspend operator fun invoke(): AuthResult<ServerStatusResponse> {
+    suspend operator fun invoke(): AuthResult {
         return authRepository.checkServerStatus()
     }
 }

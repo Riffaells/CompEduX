@@ -1,5 +1,6 @@
 package api
 
+import config.NetworkConfig
 import io.ktor.client.*
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
@@ -7,12 +8,15 @@ import io.ktor.client.plugins.logging.*
 import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 
 /**
  * Базовый клиент API для выполнения сетевых запросов
  */
 class ApiClient(
+    private val networkConfig: NetworkConfig
 ) {
     /**
      * Создает и настраивает HTTP клиент с необходимыми плагинами
@@ -52,8 +56,8 @@ class ApiClient(
     /**
      * Получает базовый URL сервера из настроек
      */
-    fun getBaseUrl(): String {
-        return "settings.serverUrlFlow.value"
+    suspend fun getBaseUrl(): String {
+        return networkConfig.getBaseUrl()
     }
 
     /**

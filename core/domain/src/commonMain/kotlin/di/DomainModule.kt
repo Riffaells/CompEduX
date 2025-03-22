@@ -28,7 +28,28 @@ val domainModule = DI.Module("domainModule") {
         GetCurrentUserUseCase(instance<AuthRepository>())
     }
 
+    bind<IsAuthenticatedUseCase>() with singleton {
+        IsAuthenticatedUseCase(instance<AuthRepository>())
+    }
+
+    bind<UpdateProfileUseCase>() with singleton {
+        UpdateProfileUseCase(instance<AuthRepository>())
+    }
+
     bind<CheckServerStatusUseCase>() with singleton {
         CheckServerStatusUseCase(instance<AuthRepository>())
+    }
+
+    // Контейнер для всех use cases аутентификации
+    bind<AuthUseCases>() with singleton {
+        AuthUseCases(
+            login = instance(),
+            register = instance(),
+            logout = instance(),
+            getCurrentUser = instance(),
+            isAuthenticated = instance(),
+            updateProfile = instance(),
+            checkServerStatus = instance()
+        )
     }
 }

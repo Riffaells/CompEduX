@@ -9,5 +9,7 @@ data class AuthUseCases(
     val register: RegisterUseCase,
     val logout: LogoutUseCase,
     val getCurrentUser: GetCurrentUserUseCase,
+    val isAuthenticated: IsAuthenticatedUseCase,
+    val updateProfile: UpdateProfileUseCase,
     val checkServerStatus: CheckServerStatusUseCase
 )

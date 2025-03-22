@@ -1,36 +1,33 @@
 package di
 
-import api.AuthApi
-import api.impl.AuthApiImpl
-import client.HttpClientFactory
+import api.ApiClient
+import api.auth.AuthApi
+import api.auth.AuthApiImpl
+import config.NetworkConfig
 import io.ktor.client.HttpClient
 import kotlinx.serialization.json.Json
 import org.kodein.di.DI
 import org.kodein.di.bind
 import org.kodein.di.instance
 import org.kodein.di.singleton
-import repository.mapper.ErrorMapper
 
 /**
  * Модуль зависимостей для сетевых компонентов
  */
 val networkModule = DI.Module("networkModule") {
-    // Базовый URL API (устаревший подход, теперь берём из настроек)
-    bind<String>(tag = "baseUrl") with singleton { "https://api.default.com" }
+    // API клиент
+    bind<ApiClient>() with singleton {
+        ApiClient(instance())
+    }
 
     // HTTP клиент
     bind<HttpClient>() with singleton {
-        HttpClientFactory(instance(), instance()).create()
+        instance<ApiClient>().createHttpClient()
     }
 
     // API аутентификации
     bind<AuthApi>() with singleton {
-        AuthApiImpl(
-            client = instance(),
-            baseUrl = instance(tag = "baseUrl"),
-            errorMapper = instance(),
-            networkConfig = instance()
-        )
+        AuthApiImpl(instance())
     }
 
     // JSON сериализатор

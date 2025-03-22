@@ -8,7 +8,7 @@ import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import model.AuthResult
-import repository.AuthRepository
+import repository.auth.AuthRepository
 import utils.rDispatchers
 
 interface RegisterStore : Store<RegisterStore.Intent, RegisterStore.State, Nothing> {
@@ -114,17 +114,18 @@ class RegisterStoreFactory(
                             )
 
                             when (result) {
-                                is AuthResult.Success -> {
-                                    dispatch(Msg.RegisterSuccess)
-                                }
                                 is AuthResult.Error -> {
                                     dispatch(Msg.Error(result.error.message, result.error.details))
                                 }
                                 is AuthResult.Loading -> {
                                     // Состояние загрузки уже отправлено
                                 }
-                                is AuthResult.Unauthenticated -> {
-                                    dispatch(Msg.Error("Неудачная регистрация", "Проверьте введенные данные"))
+                                is AuthResult.Success -> {
+                                    if (result.user == null) {
+                                        dispatch(Msg.Error("Неудачная регистрация", "Проверьте введенные данные"))
+                                    } else {
+                                        dispatch(Msg.RegisterSuccess)
+                                    }
                                 }
                             }
                         } catch (e: Exception) {
