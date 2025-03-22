@@ -1,32 +1,44 @@
 package di
 
-import settings.MultiplatformSettings
-import api.ApiClient
-import api.auth.AuthApi
-import api.auth.AuthApiImpl
-import api.auth.TokenManager
-import com.russhwolf.settings.Settings
+import api.AuthApi
+import api.impl.AuthApiImpl
+import client.HttpClientFactory
+import io.ktor.client.HttpClient
+import kotlinx.serialization.json.Json
 import org.kodein.di.DI
 import org.kodein.di.bind
 import org.kodein.di.instance
 import org.kodein.di.singleton
+import repository.mapper.ErrorMapper
 
 /**
  * Модуль зависимостей для сетевых компонентов
  */
 val networkModule = DI.Module("networkModule") {
-    // API клиент
-    bind<ApiClient>() with singleton {
-        ApiClient(instance())
+    // Базовый URL API (устаревший подход, теперь берём из настроек)
+    bind<String>(tag = "baseUrl") with singleton { "https://api.default.com" }
+
+    // HTTP клиент
+    bind<HttpClient>() with singleton {
+        HttpClientFactory(instance(), instance()).create()
     }
 
     // API аутентификации
     bind<AuthApi>() with singleton {
-        AuthApiImpl(instance())
+        AuthApiImpl(
+            client = instance(),
+            baseUrl = instance(tag = "baseUrl"),
+            errorMapper = instance(),
+            networkConfig = instance()
+        )
     }
 
-    // Менеджер токенов
-    bind<TokenManager>() with singleton {
-        TokenManager(instance<Settings>(), instance())
+    // JSON сериализатор
+    bind<Json>() with singleton {
+        Json {
+            prettyPrint = true
+            isLenient = true
+            ignoreUnknownKeys = true
+        }
     }
 }

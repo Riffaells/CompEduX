@@ -27,6 +27,7 @@ include(
     "app",
     ":core:common",
     ":core:data",
+    ":core:domain",
     ":core:database",
     ":core:network",
     ":core:notifications",

@@ -13,15 +13,15 @@ import usecase.auth.*
 val domainModule = DI.Module("domainModule") {
     // Use cases для аутентификации
     bind<LoginUseCase>() with singleton {
-        LoginUseCase(instance<AuthRepository>())
+        LoginUseCase(instance())
     }
 
     bind<RegisterUseCase>() with singleton {
-        RegisterUseCase(instance<AuthRepository>())
+        RegisterUseCase(instance())
     }
 
     bind<LogoutUseCase>() with singleton {
-        LogoutUseCase(instance<AuthRepository>())
+        LogoutUseCase(instance())
     }
 
     bind<GetCurrentUserUseCase>() with singleton {

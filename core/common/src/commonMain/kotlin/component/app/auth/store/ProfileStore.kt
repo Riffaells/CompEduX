@@ -13,7 +13,7 @@ interface ProfileStore : Store<ProfileStore.Intent, ProfileStore.State, Nothing>
     sealed interface Intent {
         data object Init : Intent
         data class UpdateUsername(val username: String) : Intent
-        data class SaveProfile(val username: String) : Intent
+        data object SaveProfile : Intent
         data object Logout : Intent
     }
 
@@ -25,9 +25,7 @@ interface ProfileStore : Store<ProfileStore.Intent, ProfileStore.State, Nothing>
     )
 }
 
-class ProfileStoreFactory(
-    private val storeFactory: StoreFactory
-) {
+class ProfileStoreFactory(private val storeFactory: StoreFactory) {
     fun create(): ProfileStore =
         object : ProfileStore, Store<ProfileStore.Intent, ProfileStore.State, Nothing> by storeFactory.create(
             name = "ProfileStore",
@@ -67,11 +65,11 @@ class ProfileStoreFactory(
                     scope.launch {
                         try {
                             dispatch(Msg.Loading)
-                            // Имитируем задержку для демонстрации загрузки
-                            kotlinx.coroutines.delay(500)
+                            // Имитируем задержку сети
+                            kotlinx.coroutines.delay(1000)
                             dispatch(Msg.SaveProfileSuccess)
                         } catch (e: Exception) {
-                            dispatch(Msg.Error(e.message ?: "Profile update failed"))
+                            dispatch(Msg.Error(e.message ?: "Ошибка при сохранении профиля"))
                         }
                     }
                 }
@@ -79,11 +77,11 @@ class ProfileStoreFactory(
                     scope.launch {
                         try {
                             dispatch(Msg.Loading)
-                            // Имитируем задержку для демонстрации загрузки
+                            // Имитируем задержку сети
                             kotlinx.coroutines.delay(500)
                             dispatch(Msg.LogoutSuccess)
                         } catch (e: Exception) {
-                            dispatch(Msg.Error(e.message ?: "Logout failed"))
+                            dispatch(Msg.Error(e.message ?: "Ошибка при выходе"))
                         }
                     }
                 }
@@ -99,7 +97,7 @@ class ProfileStoreFactory(
                 is Msg.Error -> copy(loading = false, error = msg.message)
                 is Msg.UpdateUsername -> copy(username = msg.username)
                 is Msg.SaveProfileSuccess -> copy(loading = false, error = null)
-                is Msg.LogoutSuccess -> copy(loading = false, username = "", error = null)
+                is Msg.LogoutSuccess -> copy(loading = false, error = null)
             }
     }
 }

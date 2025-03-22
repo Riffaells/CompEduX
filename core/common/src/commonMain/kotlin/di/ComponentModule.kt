@@ -2,8 +2,13 @@ package di
 
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
+import component.app.auth.AuthComponent
 import component.app.auth.AuthComponentParams
 import component.app.auth.DefaultAuthComponent
+import component.app.auth.login.DefaultLoginComponent
+import component.app.auth.login.LoginComponent
+import component.app.auth.register.DefaultRegisterComponent
+import component.app.auth.register.RegisterComponent
 import component.app.main.DefaultMainComponent
 import component.app.main.MainComponentParams
 import component.app.main.store.MainStoreFactory
@@ -23,10 +28,11 @@ import component.app.skiko.SkikoComponentParams
 import component.root.DefaultRootComponent
 import component.root.RootComponentParams
 import component.root.store.RootStoreFactory
+import repository.auth.AuthRepository
 import org.kodein.di.*
 
 /**
- * Модуль компонентов, который предоставляет все необходимые зависимости для UI компонентов
+ * Модуль компонентов приложения
  */
 @OptIn(ExperimentalDecomposeApi::class)
 val componentModule = DI.Module("componentModule") {
@@ -100,12 +106,34 @@ val componentModule = DI.Module("componentModule") {
         )
     }
 
-    // Auth компоненты
-    bindFactory { params: AuthComponentParams ->
+    // Авторизация
+    bindSingleton<AuthComponent> { params ->
         DefaultAuthComponent(
-            componentContext = params.componentContext,
-            onBack = params.onBack,
-            storeFactory = instance()
+            di = di,
+            componentContext = params.instance(),
+            onBack = params.instance(tag = "onBack"),
+            storeFactory = instance(),
+            authRepository = instance()
+        )
+    }
+
+    bindProvider<LoginComponent> { params ->
+        DefaultLoginComponent(
+            di = di,
+            componentContext = params.instance(),
+            onBack = params.instance(tag = "onBack"),
+            onRegister = params.instance(tag = "onRegister"),
+            authComponent = params.instance()
+        )
+    }
+
+    bindProvider<RegisterComponent> { params ->
+        DefaultRegisterComponent(
+            di = di,
+            componentContext = params.instance(),
+            onBack = params.instance(tag = "onBack"),
+            onLogin = params.instance(tag = "onLogin"),
+            authComponent = params.instance()
         )
     }
 }

@@ -11,6 +11,7 @@ kotlin {
 
 
             implementation(projects.feature.settings)
+            implementation(projects.core.domain)
 
         }
     }

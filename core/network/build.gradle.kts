@@ -3,3 +3,11 @@ plugins {
     alias(libs.plugins.compedux.multiplatform.library)
     alias(libs.plugins.compedux.networking)
 }
+
+kotlin {
+    sourceSets {
+        commonMain.dependencies {
+            implementation(projects.core.domain)
+        }
+    }
+}

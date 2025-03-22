@@ -5,15 +5,23 @@ import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.mvikotlin.core.instancekeeper.getStore
+import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
-import com.arkivanov.mvikotlin.extensions.coroutines.states
-import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
+import component.app.auth.login.DefaultLoginComponent
+import component.app.auth.login.LoginComponent
+import component.app.auth.register.DefaultRegisterComponent
+import component.app.auth.register.RegisterComponent
 import component.app.auth.store.AuthStore
 import component.app.auth.store.AuthStoreFactory
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import org.kodein.di.DI
+import org.kodein.di.DIAware
+import model.User
+import repository.AuthRepository
 import utils.rDispatchers
 
 /**
@@ -27,6 +35,7 @@ data class AuthComponentParams(
 interface AuthComponent {
     val state: StateFlow<AuthStore.State>
     val childStack: Value<ChildStack<*, Child>>
+    val store: AuthStore
 
     data class State(
         val isLoading: Boolean = false
@@ -40,56 +49,62 @@ interface AuthComponent {
 
     fun onEvent(event: AuthStore.Intent)
     fun onBackClicked()
+
+    suspend fun login(email: String, password: String)
+    suspend fun register(email: String, password: String, username: String)
+    suspend fun logout()
+    suspend fun isAuthenticated(): Boolean
+    suspend fun getCurrentUser(): User?
+    suspend fun updateProfile(username: String)
 }
 
 @OptIn(ExperimentalDecomposeApi::class)
 class DefaultAuthComponent(
+    override val di: DI,
     componentContext: ComponentContext,
     private val onBack: () -> Unit,
-    storeFactory: DefaultStoreFactory = DefaultStoreFactory(),
-) : AuthComponent, ComponentContext by componentContext {
+    private val storeFactory: StoreFactory,
+    private val authRepository: AuthRepository
+) : AuthComponent, DIAware, ComponentContext by componentContext {
 
     private val navigation = StackNavigation<Config>()
 
-    private val stack = childStack(
+    private val _store = instanceKeeper.getStore {
+        AuthStoreFactory(
+            storeFactory = storeFactory,
+            authRepository = authRepository
+        ).create()
+    }
+
+    private val scope = CoroutineScope(rDispatchers.main)
+
+    private val _childStack = childStack(
         source = navigation,
         serializer = Config.serializer(),
-        initialStack = { listOf(Config.Login) },
+        initialStack = {
+            // Проверяем авторизован ли пользователь
+            var initialConfiguration = Config.Login
+            scope.launch {
+                _store.stateFlow.map { it.isAuthenticated }.collect { isAuth ->
+                    if (isAuth) {
+                        navigation.bringToFront(Config.Profile)
+                    }
+                }
+            }
+            listOf(initialConfiguration)
+        },
         handleBackButton = true,
         childFactory = ::child
     )
 
-    override val childStack: Value<ChildStack<*, AuthComponent.Child>> = stack
+    override val childStack: Value<ChildStack<*, AuthComponent.Child>> = _childStack
 
-    private val store =
-        instanceKeeper.getStore {
-            AuthStoreFactory(
-                storeFactory = storeFactory,
-            ).create()
-        }
+    override val state: StateFlow<AuthStore.State> = _store.stateFlow
 
-
-    override val state: StateFlow<AuthStore.State> = store.stateFlow
-
-    init {
-        // Подписываемся на изменения в authStore для обнаружения успешной аутентификации
-        CoroutineScope(rDispatchers.main).launch {
-            store.states.collectLatest { authState ->
-                // Если пользователь аутентифицирован и не на экране профиля - переходим на экран профиля
-                if (authState.isAuthenticated && stack.value.active.instance !is AuthComponent.Child.ProfileChild) {
-                    navigation.replaceAll(Config.Profile)
-                }
-
-                // Если пользователь вышел и находился на экране профиля - переходим на экран логина
-                if (!authState.isAuthenticated && stack.value.active.instance is AuthComponent.Child.ProfileChild) {
-                    navigation.replaceAll(Config.Login)
-                }
-            }
-        }
-    }
+    override val store: AuthStore = _store
 
     override fun onEvent(event: AuthStore.Intent) {
-        store.accept(event)
+        _store.accept(event)
     }
 
     override fun onBackClicked() {
@@ -105,34 +120,38 @@ class DefaultAuthComponent(
 
     private fun loginComponent(componentContext: ComponentContext): LoginComponent =
         DefaultLoginComponent(
+            di = di,
             componentContext = componentContext,
-            onLogin = { email, password ->
-                store.accept(AuthStore.Intent.Login(email, password))
-            },
+            onBack = onBack,
             onRegister = {
                 navigation.push(Config.Register)
             },
-            onBack = onBack
+            authComponent = this
         )
 
     private fun registerComponent(componentContext: ComponentContext): RegisterComponent =
         DefaultRegisterComponent(
+            di = di,
             componentContext = componentContext,
-            onRegister = { email, password, username ->
-                store.accept(AuthStore.Intent.Register(email, password, username))
+            onBack = {
+                navigation.pop()
             },
-            onBack = navigation::pop
+            onLogin = {
+                navigation.pop()
+            },
+            authComponent = this
         )
 
     private fun profileComponent(componentContext: ComponentContext): ProfileComponent =
         DefaultProfileComponent(
             componentContext = componentContext,
-            storeFactory = DefaultStoreFactory(),
+            storeFactory = storeFactory,
             onLogout = {
-                store.accept(AuthStore.Intent.Logout)
+                _store.accept(AuthStore.Intent.Logout)
+                navigation.bringToFront(Config.Login)
             },
             onUpdateProfile = { username ->
-                store.accept(AuthStore.Intent.UpdateProfile(username))
+                _store.accept(AuthStore.Intent.UpdateProfile(username))
             },
             onBackClicked = onBack
         )
@@ -147,5 +166,29 @@ class DefaultAuthComponent(
 
         @Serializable
         data object Profile : Config
+    }
+
+    override suspend fun login(email: String, password: String) {
+        _store.accept(AuthStore.Intent.Login(email, password))
+    }
+
+    override suspend fun register(email: String, password: String, username: String) {
+        _store.accept(AuthStore.Intent.Register(email, password, username))
+    }
+
+    override suspend fun logout() {
+        _store.accept(AuthStore.Intent.Logout)
+    }
+
+    override suspend fun isAuthenticated(): Boolean {
+        return authRepository.isAuthenticated()
+    }
+
+    override suspend fun getCurrentUser(): User? {
+        return authRepository.getCurrentUser()
+    }
+
+    override suspend fun updateProfile(username: String) {
+        _store.accept(AuthStore.Intent.UpdateProfile(username))
     }
 }

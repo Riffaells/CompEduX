@@ -1,6 +1,8 @@
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.*
 import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.decompose.ExperimentalDecomposeApi
@@ -57,7 +59,11 @@ fun main() {
                 )
             }
 
-            val windowState = rememberWindowState()
+            val windowState = rememberWindowState(
+                width = 1280.dp,
+                height = 800.dp,
+                position = WindowPosition(Alignment.Center)
+            )
             LifecycleController(lifecycle, windowState)
 
             // Константы для скругления углов
