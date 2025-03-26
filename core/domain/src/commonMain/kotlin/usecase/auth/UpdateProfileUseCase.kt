@@ -1,6 +1,7 @@
 package usecase.auth
 
 import model.AuthResult
+import model.User
 import repository.auth.AuthRepository
 
 /**
@@ -13,7 +14,7 @@ class UpdateProfileUseCase(private val authRepository: AuthRepository) {
      * @param username Новое имя пользователя
      * @return Результат операции обновления
      */
-    suspend operator fun invoke(username: String): AuthResult {
+    suspend operator fun invoke(username: String): AuthResult<User> {
         return authRepository.updateProfile(username)
     }
 }

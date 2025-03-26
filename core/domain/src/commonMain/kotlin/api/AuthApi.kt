@@ -2,6 +2,8 @@ package api
 
 import model.AuthResult
 import model.User
+import model.auth.AuthResponse
+import model.auth.ServerStatusResponse
 
 /**
  * Интерфейс API для работы с аутентификацией (домен)
@@ -15,7 +17,7 @@ interface AuthApi {
      * @param username Имя пользователя
      * @return Результат операции с данными аутентификации
      */
-    suspend fun register(username: String, email: String, password: String): AuthResult
+    suspend fun register(username: String, email: String, password: String): AuthResult<AuthResponse>
 
     /**
      * Авторизация пользователя
@@ -23,30 +25,37 @@ interface AuthApi {
      * @param password Пароль пользователя
      * @return Результат операции с данными аутентификации
      */
-    suspend fun login(email: String, password: String): AuthResult
+    suspend fun login(email: String, password: String): AuthResult<AuthResponse>
 
     /**
      * Получение информации о текущем пользователе
      * @return Результат операции с данными пользователя
      */
-    suspend fun getCurrentUser(): AuthResult
+    suspend fun getCurrentUser(): AuthResult<User>
 
     /**
      * Выход из системы
      * @return Результат операции
      */
-    suspend fun logout(): AuthResult
+    suspend fun logout(): AuthResult<Unit>
 
     /**
      * Проверка статуса сервера
      * @return Результат операции с данными о статусе сервера
      */
-    suspend fun checkServerStatus(): AuthResult
+    suspend fun checkServerStatus(): AuthResult<ServerStatusResponse>
 
     /**
      * Обновление профиля пользователя
      * @param username Новое имя пользователя
      * @return Результат операции с обновленными данными пользователя
      */
-    suspend fun updateProfile(username: String): AuthResult
+    suspend fun updateProfile(username: String): AuthResult<User>
+
+    /**
+     * Обновление токена доступа
+     * @param refreshToken Токен обновления
+     * @return Результат операции с данными аутентификации
+     */
+    suspend fun refreshToken(request: model.auth.RefreshTokenRequest): AuthResult<AuthResponse>
 }

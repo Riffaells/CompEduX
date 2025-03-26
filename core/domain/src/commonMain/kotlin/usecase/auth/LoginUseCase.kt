@@ -1,6 +1,7 @@
 package usecase.auth
 
 import model.AuthResult
+import model.auth.AuthResponse
 import repository.auth.AuthRepository
 
 /**
@@ -14,7 +15,7 @@ class LoginUseCase(private val authRepository: AuthRepository) {
      * @param password Пароль пользователя
      * @return Результат операции авторизации
      */
-    suspend operator fun invoke(email: String, password: String): AuthResult {
+    suspend operator fun invoke(email: String, password: String): AuthResult<AuthResponse> {
         return authRepository.login(email, password)
     }
 }

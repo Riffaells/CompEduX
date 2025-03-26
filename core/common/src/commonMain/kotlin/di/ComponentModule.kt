@@ -1,10 +1,9 @@
 package di
 
 import com.arkivanov.decompose.ExperimentalDecomposeApi
+import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
-import component.app.auth.AuthComponent
-import component.app.auth.AuthComponentParams
-import component.app.auth.DefaultAuthComponent
+import component.app.auth.*
 import component.app.auth.login.DefaultLoginComponent
 import component.app.auth.login.LoginComponent
 import component.app.auth.register.DefaultRegisterComponent
@@ -37,7 +36,9 @@ import org.kodein.di.*
 @OptIn(ExperimentalDecomposeApi::class)
 val componentModule = DI.Module("componentModule") {
     // Store Factory
-    bindSingleton { DefaultStoreFactory() }
+    bindSingleton<StoreFactory> {
+        DefaultStoreFactory()
+    }
 
     // Store Factories
     bindProvider { RootStoreFactory(storeFactory = instance(), di = di) }
@@ -45,6 +46,13 @@ val componentModule = DI.Module("componentModule") {
     bindProvider { RoomStoreFactory(storeFactory = instance(), di = di) }
     bindProvider { DiagramStoreFactory(storeFactory = instance(), di = di) }
     bindProvider { AchievementStoreFactory(storeFactory = instance(), di = di) }
+
+    // Navigation callbacks for auth flow
+    bindConstant(tag = "onLoginSuccess") { { println("Login success") } } // This will be overridden by actual implementation
+    bindConstant(tag = "onRegisterSuccess") { { println("Register success") } } // This will be overridden by actual implementation
+    bindConstant(tag = "onLogout") { { println("Logout") } } // This will be overridden by actual implementation
+    bindConstant(tag = "onRegister") { { println("Navigate to Register") } } // This will be overridden by actual implementation
+    bindConstant(tag = "onLogin") { { println("Navigate to Login") } } // This will be overridden by actual implementation
 
     // Фабрики компонентов с использованием data class для параметров
     bindFactory { params: MainComponentParams ->
@@ -107,33 +115,42 @@ val componentModule = DI.Module("componentModule") {
     }
 
     // Авторизация
-    bindSingleton<AuthComponent> { params ->
+    bindFactory<AuthComponentParams, DefaultAuthComponent> { params ->
         DefaultAuthComponent(
             di = di,
-            componentContext = params.instance(),
-            onBack = params.instance(tag = "onBack"),
+            componentContext = params.componentContext,
+            onBack = params.onBack,
             storeFactory = instance(),
             authRepository = instance()
         )
     }
 
-    bindProvider<LoginComponent> { params ->
+    bindFactory<LoginComponentParams, DefaultLoginComponent> { params ->
         DefaultLoginComponent(
             di = di,
-            componentContext = params.instance(),
-            onBack = params.instance(tag = "onBack"),
-            onRegister = params.instance(tag = "onRegister"),
-            authComponent = params.instance()
+            componentContext = params.componentContext,
+            onBack = params.onBack,
+            onRegister = params.onRegister,
+            onLoginSuccess = params.onLoginSuccess
         )
     }
 
-    bindProvider<RegisterComponent> { params ->
+    bindFactory<RegisterComponentParams, DefaultRegisterComponent> { params ->
         DefaultRegisterComponent(
             di = di,
-            componentContext = params.instance(),
-            onBack = params.instance(tag = "onBack"),
-            onLogin = params.instance(tag = "onLogin"),
-            authComponent = params.instance()
+            componentContext = params.componentContext,
+            onBack = params.onBack,
+            onLogin = params.onLogin,
+            onRegisterSuccess = params.onRegisterSuccess
+        )
+    }
+
+    bindFactory<ProfileComponentParams, DefaultProfileComponent> { params ->
+        DefaultProfileComponent(
+            di = di,
+            componentContext = params.componentContext,
+            onLogout = params.onLogout,
+            onBackClicked = params.onBackClicked
         )
     }
 }

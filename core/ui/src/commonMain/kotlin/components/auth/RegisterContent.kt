@@ -3,20 +3,16 @@ package components.auth
 import androidx.compose.animation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import component.app.auth.RegisterComponent
+import component.app.auth.register.RegisterComponent
 import ui.icon.RIcons
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -30,13 +26,6 @@ fun RegisterContent(component: RegisterComponent) {
     var confirmPassword by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
-
-    // Обновляем локальное состояние из состояния компонента
-    LaunchedEffect(state) {
-        username = state.username
-        email = state.email
-        password = state.password
-    }
 
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -173,7 +162,7 @@ fun RegisterContent(component: RegisterComponent) {
                 }
 
                 // Индикатор загрузки
-                AnimatedVisibility(visible = state.loading) {
+                AnimatedVisibility(visible = state.isLoading) {
                     CircularProgressIndicator(
                         modifier = Modifier.padding(8.dp)
                     )
@@ -184,13 +173,13 @@ fun RegisterContent(component: RegisterComponent) {
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Button(
-                        onClick = { component.onRegisterClicked(email, password, username) },
+                        onClick = { component.onRegisterClick(email, password, confirmPassword, username) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp)
                             .animateContentSize(),
                         shape = RoundedCornerShape(16.dp),
-                        enabled = !state.loading &&
+                        enabled = !state.isLoading &&
                                 username.isNotEmpty() &&
                                 email.isNotEmpty() &&
                                 password.isNotEmpty() &&
@@ -207,12 +196,27 @@ fun RegisterContent(component: RegisterComponent) {
                     }
 
                     TextButton(
-                        onClick = { component.onBackClicked() },
+                        onClick = { component.onLoginClick() },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !state.isLoading
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(RIcons.Login, null)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Уже есть аккаунт? Войти")
+                        }
+                    }
+
+                    TextButton(
+                        onClick = { component.onBackClick() },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.textButtonColors(
                             contentColor = MaterialTheme.colorScheme.outline
                         ),
-                        enabled = !state.loading
+                        enabled = !state.isLoading
                     ) {
                         Row(
                             horizontalArrangement = Arrangement.Center,

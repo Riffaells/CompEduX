@@ -67,8 +67,26 @@ interface SecuritySettings {
      */
     fun hasAuthToken(): Boolean
 
+    /**
+     * Сохраняет токен обновления
+     *
+     * @param token Токен обновления для сохранения
+     */
+    fun saveRefreshToken(token: String)
+
+    /**
+     * Получает токен обновления
+     *
+     * @return Токен обновления или null, если не найден
+     */
+    fun getRefreshToken(): String?
+
+    /**
+     * Очищает токен обновления
+     */
+    fun clearRefreshToken()
+
     // TODO: Добавить настройку для управления сложностью пароля
-    // TODO: Реализовать настройку для управления историей паролей
     // TODO: Добавить настройку для блокировки приложения после N неудачных попыток входа
 }
 
@@ -81,6 +99,7 @@ internal class SecuritySettingsImpl(settings: Settings) : BaseSettings(settings)
     private val AUTO_LOGOUT_TIME_KEY = "AUTO_LOGOUT_TIME"
     private val SAVE_CREDENTIALS_KEY = "SAVE_CREDENTIALS"
     private val AUTH_TOKEN_KEY = "AUTH_TOKEN"
+    private val REFRESH_TOKEN_KEY = "REFRESH_TOKEN"
 
     // Настройка биометрической аутентификации
     private val useBiometric = createBooleanSetting(
@@ -127,8 +146,21 @@ internal class SecuritySettingsImpl(settings: Settings) : BaseSettings(settings)
         return getAuthToken() != null
     }
 
+    // Методы для работы с токеном обновления
+    override fun saveRefreshToken(token: String) {
+        settings.putString(REFRESH_TOKEN_KEY, token)
+    }
+
+    override fun getRefreshToken(): String? {
+        val token = settings.getStringOrNull(REFRESH_TOKEN_KEY)
+        return if (token.isNullOrBlank()) null else token
+    }
+
+    override fun clearRefreshToken() {
+        settings.remove(REFRESH_TOKEN_KEY)
+    }
+
     // TODO: Реализовать шифрование чувствительных настроек
     // TODO: Добавить механизм для безопасного хранения ключей шифрования
     // TODO: Реализовать интеграцию с системными хранилищами учетных данных
 }
-

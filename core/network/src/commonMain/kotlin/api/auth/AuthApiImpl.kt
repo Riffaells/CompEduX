@@ -1,167 +1,131 @@
 package api.auth
 
-import api.ApiClient
-import io.ktor.client.call.*
+import config.NetworkConfig
+import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
-import kotlinx.coroutines.withContext
+import io.ktor.client.call.*
+import model.AppError
+import model.AuthResult
+import model.User
 import model.auth.*
 
 /**
  * Реализация API аутентификации
  */
 class AuthApiImpl(
-    private val apiClient: ApiClient
+    private val client: HttpClient,
+    private val networkConfig: NetworkConfig
 ) : AuthApi {
 
-    private val httpClient = apiClient.createHttpClient()
+    private suspend fun getBaseUrl(): String = networkConfig.getBaseUrl()
 
-    /**
-     * Регистрация нового пользователя
-     */
-    override suspend fun register(request: RegisterRequest): AuthResult<AuthResponse> = withContext(Dispatchers.IO) {
-        try {
-            val baseUrl = apiClient.getBaseUrl()
-            val response = httpClient.post("$baseUrl/auth/register") {
+    override suspend fun register(request: RegisterRequest): AuthResult<AuthResponse> {
+        return try {
+            val baseUrl = getBaseUrl()
+            val response = client.post("$baseUrl/auth/register") {
+                contentType(ContentType.Application.Json)
                 setBody(request)
             }
 
-            return@withContext when (response.status) {
-                HttpStatusCode.OK, HttpStatusCode.Created -> {
-                    val authResponse = response.body<AuthResponse>()
-                    AuthResult.Success(authResponse)
-                }
-                else -> {
-                    val errorResponse = response.body<AuthError>()
-                    AuthResult.Error(errorResponse)
-                }
+            if (response.status.isSuccess()) {
+                val authResponse = response.body<AuthResponse>()
+                AuthResult.Success(authResponse, authResponse.user, authResponse.token)
+            } else {
+                AuthResult.Error(AppError(message = "Registration failed"))
             }
         } catch (e: Exception) {
-            AuthResult.Error(AuthError("network_error", e.message ?: "Ошибка сети при регистрации"))
+            AuthResult.Error(AppError(message = e.message ?: "Unknown error"))
         }
     }
 
-    /**
-     * Авторизация пользователя
-     */
-    override suspend fun login(request: LoginRequest): AuthResult<AuthResponse> = withContext(Dispatchers.IO) {
-        try {
-            val baseUrl = apiClient.getBaseUrl()
-            val response = httpClient.post("$baseUrl/auth/login") {
+    override suspend fun login(request: LoginRequest): AuthResult<AuthResponse> {
+        return try {
+            val baseUrl = getBaseUrl()
+            val response = client.post("$baseUrl/auth/login") {
+                contentType(ContentType.Application.Json)
                 setBody(request)
             }
 
-            return@withContext when (response.status) {
-                HttpStatusCode.OK -> {
-                    val authResponse = response.body<AuthResponse>()
-                    AuthResult.Success(authResponse)
-                }
-                else -> {
-                    val errorResponse = response.body<AuthError>()
-                    AuthResult.Error(errorResponse)
-                }
+            if (response.status.isSuccess()) {
+                val authResponse = response.body<AuthResponse>()
+                AuthResult.Success(authResponse, authResponse.user, authResponse.token)
+            } else {
+                AuthResult.Error(AppError(message = "Login failed"))
             }
         } catch (e: Exception) {
-            AuthResult.Error(AuthError("network_error", e.message ?: "Ошибка сети при авторизации"))
+            AuthResult.Error(AppError(message = e.message ?: "Unknown error"))
         }
     }
 
-    /**
-     * Обновление токена доступа
-     */
-    override suspend fun refreshToken(request: RefreshTokenRequest): AuthResult<AuthResponse> = withContext(Dispatchers.IO) {
-        try {
-            val baseUrl = apiClient.getBaseUrl()
-            val response = httpClient.post("$baseUrl/auth/refresh") {
+    override suspend fun refreshToken(request: RefreshTokenRequest): AuthResult<AuthResponse> {
+        return try {
+            val baseUrl = getBaseUrl()
+            val response = client.post("$baseUrl/auth/refresh") {
+                contentType(ContentType.Application.Json)
                 setBody(request)
             }
 
-            return@withContext when (response.status) {
-                HttpStatusCode.OK -> {
-                    val authResponse = response.body<AuthResponse>()
-                    AuthResult.Success(authResponse)
-                }
-                else -> {
-                    val errorResponse = response.body<AuthError>()
-                    AuthResult.Error(errorResponse)
-                }
+            if (response.status.isSuccess()) {
+                val authResponse = response.body<AuthResponse>()
+                AuthResult.Success(authResponse, authResponse.user, authResponse.token)
+            } else {
+                AuthResult.Error(AppError(message = "Token refresh failed"))
             }
         } catch (e: Exception) {
-            AuthResult.Error(AuthError("network_error", e.message ?: "Ошибка сети при обновлении токена"))
+            AuthResult.Error(AppError(message = e.message ?: "Unknown error"))
         }
     }
 
-    /**
-     * Получение информации о текущем пользователе
-     */
-    override suspend fun getCurrentUser(token: String): AuthResult<User> = withContext(Dispatchers.IO) {
-        try {
-            val baseUrl = apiClient.getBaseUrl()
-            val response = httpClient.get("$baseUrl/users/me") {
-                with(apiClient) { withAuth(token) }
+    override suspend fun getCurrentUser(token: String): AuthResult<User> {
+        return try {
+            val baseUrl = getBaseUrl()
+            val response = client.get("$baseUrl/auth/me") {
+                header("Authorization", "Bearer $token")
             }
 
-            return@withContext when (response.status) {
-                HttpStatusCode.OK -> {
-                    val user = response.body<User>()
-                    AuthResult.Success(user)
-                }
-                else -> {
-                    val errorResponse = response.body<AuthError>()
-                    AuthResult.Error(errorResponse)
-                }
+            if (response.status.isSuccess()) {
+                val user = response.body<User>()
+                AuthResult.Success(user)
+            } else {
+                AuthResult.Error(AppError(message = "Failed to get user info"))
             }
         } catch (e: Exception) {
-            AuthResult.Error(AuthError("network_error", e.message ?: "Ошибка сети при получении данных пользователя"))
+            AuthResult.Error(AppError(message = e.message ?: "Unknown error"))
         }
     }
 
-    /**
-     * Выход из системы (инвалидация токена)
-     */
-    override suspend fun logout(token: String): AuthResult<Unit> = withContext(Dispatchers.IO) {
-        try {
-            val baseUrl = apiClient.getBaseUrl()
-            val response = httpClient.post("$baseUrl/auth/logout") {
-                with(apiClient) { withAuth(token) }
+    override suspend fun logout(token: String): AuthResult<Unit> {
+        return try {
+            val baseUrl = getBaseUrl()
+            val response = client.post("$baseUrl/auth/logout") {
+                header("Authorization", "Bearer $token")
             }
 
-            return@withContext when (response.status) {
-                HttpStatusCode.OK, HttpStatusCode.NoContent -> {
-                    AuthResult.Success(Unit)
-                }
-                else -> {
-                    val errorResponse = response.body<AuthError>()
-                    AuthResult.Error(errorResponse)
-                }
+            if (response.status.isSuccess()) {
+                AuthResult.Success(Unit)
+            } else {
+                AuthResult.Error(AppError(message = "Logout failed"))
             }
         } catch (e: Exception) {
-            AuthResult.Error(AuthError("network_error", e.message ?: "Ошибка сети при выходе из системы"))
+            AuthResult.Error(AppError(message = e.message ?: "Unknown error"))
         }
     }
 
-    /**
-     * Проверка статуса сервера
-     */
-    override suspend fun checkServerStatus(): AuthResult<ServerStatusResponse> = withContext(Dispatchers.IO) {
-        try {
-            val baseUrl = apiClient.getBaseUrl()
-            val response = httpClient.get("$baseUrl/status")
+    override suspend fun checkServerStatus(): AuthResult<ServerStatusResponse> {
+        return try {
+            val baseUrl = getBaseUrl()
+            val response = client.get("$baseUrl/status")
 
-            return@withContext when (response.status) {
-                HttpStatusCode.OK -> {
-                    val statusResponse = response.body<ServerStatusResponse>()
-                    AuthResult.Success(statusResponse)
-                }
-                else -> {
-                    AuthResult.Error(AuthError("server_error", "Сервер недоступен или вернул ошибку"))
-                }
+            if (response.status.isSuccess()) {
+                val status = response.body<ServerStatusResponse>()
+                AuthResult.Success(status)
+            } else {
+                AuthResult.Error(AppError(message = "Failed to check server status"))
             }
         } catch (e: Exception) {
-            AuthResult.Error(AuthError("network_error", e.message ?: "Ошибка сети при проверке статуса сервера"))
+            AuthResult.Error(AppError(message = e.message ?: "Unknown error"))
         }
     }
 }

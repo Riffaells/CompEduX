@@ -1,52 +1,64 @@
-package api.auth
+package api
 
-import api.dto.AuthResponseDto
-import model.AuthResult
+import model.auth.AuthResponse
+import model.auth.AuthResponseData
+import model.auth.LoginRequest
+import model.auth.RefreshTokenRequest
+import model.auth.RegisterRequest
+import model.auth.ServerStatusResponse
 import model.User
-import model.auth.*
 
 /**
- * Интерфейс для работы с API аутентификации
+ * Интерфейс для работы с API аутентификации из домена
+ * Определяет контракт для взаимодействия с сетевым API
  */
-interface AuthApi {
+interface NetworkAuthApi {
     /**
      * Регистрация нового пользователя
      * @param request Данные для регистрации
      * @return Результат операции с данными аутентификации
      */
-    suspend fun register(request: RegisterRequest): AuthResult<AuthResponseDto>
+    suspend fun register(request: RegisterRequest): api.model.AuthResult<AuthResponseData>
 
     /**
      * Авторизация пользователя
      * @param request Данные для авторизации
      * @return Результат операции с данными аутентификации
      */
-    suspend fun login(request: LoginRequest): AuthResult<AuthResponseDto>
+    suspend fun login(request: LoginRequest): api.model.AuthResult<AuthResponseData>
 
     /**
      * Обновление токена доступа
      * @param request Запрос на обновление токена
      * @return Результат операции с новыми данными аутентификации
      */
-    suspend fun refreshToken(request: RefreshTokenRequest): AuthResult<AuthResponseDto>
+    suspend fun refreshToken(request: RefreshTokenRequest): api.model.AuthResult<AuthResponseData>
 
     /**
      * Получение информации о текущем пользователе
      * @param token Токен доступа
      * @return Результат операции с данными пользователя
      */
-    suspend fun getCurrentUser(token: String): AuthResult<User>
+    suspend fun getCurrentUser(token: String): api.model.AuthResult<User>
 
     /**
      * Выход из системы (инвалидация токена)
      * @param token Токен доступа
      * @return Результат операции
      */
-    suspend fun logout(token: String): AuthResult<Unit>
+    suspend fun logout(token: String): api.model.AuthResult<Unit>
 
     /**
      * Проверка статуса сервера
      * @return Результат операции с данными о статусе сервера
      */
-    suspend fun checkServerStatus(): AuthResult<ServerStatusResponse>
+    suspend fun checkServerStatus(): api.model.AuthResult<ServerStatusResponse>
+
+    /**
+     * Обновление профиля пользователя
+     * @param token Токен доступа
+     * @param username Новое имя пользователя
+     * @return Результат операции с данными пользователя
+     */
+    suspend fun updateProfile(token: String, username: String): api.model.AuthResult<User>
 }

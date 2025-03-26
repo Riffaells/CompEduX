@@ -1,19 +1,23 @@
 package di
 
+import api.AuthApi
 import org.kodein.di.DI
-import org.kodein.di.bindSingleton
+import org.kodein.di.bind
 import org.kodein.di.instance
+import org.kodein.di.singleton
 import repository.auth.AuthRepository
-import repository.auth.DefaultAuthRepository
+import repository.auth.AuthRepositoryImpl
+import settings.MultiplatformSettings
 import repository.mapper.ErrorMapper
-import repository.mapper.ErrorMapper as ErrorMapperInterface
 
 /**
- * Устаревший модуль для предоставления репозиториев.
- * @deprecated Используйте dataModule вместо этого модуля
+ * Модуль, регистрирующий все репозитории для DI
  */
-@Deprecated("Используйте dataModule вместо этого модуля")
-val dataRepositoryModule = DI.Module("dataRepositoryModule") {
-    // Этот модуль оставлен для обратной совместимости
-    // и будет удален в будущих версиях.
+val repositoryModule = DI.Module("repository_module") {
+    // Репозиторий аутентификации
+    bind<AuthRepository>() with singleton {
+        AuthRepositoryImpl(instance(), instance())
+    }
+
+    // Здесь регистрируем другие репозитории
 }

@@ -1,239 +1,307 @@
 package api.adapter
 
-import api.AuthApi as DomainAuthApi
-import api.auth.AuthApi as NetworkAuthApi
+import api.NetworkAuthApi
 import model.AppError
-import model.AuthResult as DomainAuthResult
-import model.User as DomainUser
-import model.auth.LoginRequest
-import model.auth.RefreshTokenRequest
-import model.auth.RegisterRequest
-import model.auth.ServerStatusResponse
-import repository.mapper.AuthMapper
+import model.AuthResult
+import model.ErrorCode
+import model.auth.*
 import settings.MultiplatformSettings
+import api.AuthApi as DomainAuthApi
+import api.model.AuthResult as NetworkAuthResult
+import model.User as NetworkUser
+import model.User as DomainUser
 
 /**
- * Адаптер для преобразования между API интерфейсами домена и сети.
- * Реализует интерфейс AuthApi из домена, используя AuthApi из модуля network.
+ * Adapter for transformation between domain and network API interfaces.
+ * Implements the AuthApi interface from the domain layer using NetworkAuthApi.
  */
 class AuthApiAdapter(
     private val networkAuthApi: NetworkAuthApi,
     private val settings: MultiplatformSettings
 ) : DomainAuthApi {
 
-    override suspend fun register(username: String, email: String, password: String): DomainAuthResult {
-        try {
-            // Создаем запрос для сетевого API
-            val request = RegisterRequest(username, email, password)
-
-            // Вызываем сетевое API
-            val result = networkAuthApi.register(request)
-
-            // Преобразуем результат в доменную модель
-            return when (result) {
-                is api.auth.AuthResult.Success -> {
-                    // Сохраняем токен
-                    settings.security.saveAuthToken(result.data.token)
-                    result.data.refreshToken?.let { settings.security.saveRefreshToken(it) }
-
-                    // Создаем доменную модель пользователя
-                    val user = DomainUser(
-                        id = result.data.userId,
-                        username = result.data.username,
-                        email = email
-                    )
-
-                    DomainAuthResult.Success(user, result.data.token)
-                }
-                is api.auth.AuthResult.Error -> {
-                    DomainAuthResult.Error(
-                        AppError(
-                            code = model.ErrorCode.AUTH_ERROR,
-                            message = result.error.message,
-                            details = result.error.code
-                        )
-                    )
-                }
-                is api.auth.AuthResult.Loading -> DomainAuthResult.Loading
-            }
-        } catch (e: Exception) {
-            return DomainAuthResult.Error(
-                AppError(
-                    code = model.ErrorCode.NETWORK_ERROR,
-                    message = "Ошибка при регистрации",
-                    details = e.message
-                )
-            )
-        }
+    /**
+     * Creates an error object with specified code and message
+     */
+    private fun createError(code: ErrorCode, message: String, details: String? = null): AppError {
+        return AppError(
+            code = code,
+            message = message,
+            details = details
+        )
     }
 
-    override suspend fun login(email: String, password: String): DomainAuthResult {
-        try {
-            // Создаем запрос для сетевого API
-            val request = LoginRequest(email, password)
-
-            // Вызываем сетевое API
-            val result = networkAuthApi.login(request)
-
-            // Преобразуем результат в доменную модель
-            return when (result) {
-                is api.auth.AuthResult.Success -> {
-                    // Сохраняем токен
-                    settings.security.saveAuthToken(result.data.token)
-                    result.data.refreshToken?.let { settings.security.saveRefreshToken(it) }
-
-                    // Создаем доменную модель пользователя
-                    val user = DomainUser(
-                        id = result.data.userId,
-                        username = result.data.username,
-                        email = email
-                    )
-
-                    DomainAuthResult.Success(user, result.data.token)
-                }
-                is api.auth.AuthResult.Error -> {
-                    DomainAuthResult.Error(
-                        AppError(
-                            code = model.ErrorCode.AUTH_ERROR,
-                            message = result.error.message,
-                            details = result.error.code
-                        )
-                    )
-                }
-                is api.auth.AuthResult.Loading -> DomainAuthResult.Loading
-            }
-        } catch (e: Exception) {
-            return DomainAuthResult.Error(
-                AppError(
-                    code = model.ErrorCode.NETWORK_ERROR,
-                    message = "Ошибка при авторизации",
-                    details = e.message
-                )
-            )
-        }
-    }
-
-    override suspend fun getCurrentUser(): DomainAuthResult {
-        try {
-            // Получаем токен
-            val token = settings.security.getAuthToken() ?: return DomainAuthResult.Success(null)
-
-            // Вызываем сетевое API
-            val result = networkAuthApi.getCurrentUser(token)
-
-            // Преобразуем результат в доменную модель
-            return when (result) {
-                is api.auth.AuthResult.Success -> {
-                    // Создаем доменную модель пользователя
-                    val user = DomainUser(
-                        id = result.data.id,
-                        username = result.data.username,
-                        email = result.data.email
-                    )
-
-                    DomainAuthResult.Success(user, token)
-                }
-                is api.auth.AuthResult.Error -> {
-                    DomainAuthResult.Error(
-                        AppError(
-                            code = model.ErrorCode.AUTH_ERROR,
-                            message = result.error.message,
-                            details = result.error.code
-                        )
-                    )
-                }
-                is api.auth.AuthResult.Loading -> DomainAuthResult.Loading
-            }
-        } catch (e: Exception) {
-            return DomainAuthResult.Error(
-                AppError(
-                    code = model.ErrorCode.NETWORK_ERROR,
-                    message = "Ошибка при получении данных пользователя",
-                    details = e.message
-                )
-            )
-        }
-    }
-
-    override suspend fun logout(): DomainAuthResult {
-        try {
-            // Получаем токен
-            val token = settings.security.getAuthToken() ?: return DomainAuthResult.Success(null)
-
-            // Вызываем сетевое API
-            val result = networkAuthApi.logout(token)
-
-            // Очищаем токены в любом случае
-            settings.security.clearAuthToken()
-            settings.security.clearRefreshToken()
-
-            // Преобразуем результат в доменную модель
-            return when (result) {
-                is api.auth.AuthResult.Success -> {
-                    DomainAuthResult.Success(null)
-                }
-                is api.auth.AuthResult.Error -> {
-                    // При ошибке выхода все равно считаем пользователя вышедшим
-                    DomainAuthResult.Success(null)
-                }
-                is api.auth.AuthResult.Loading -> DomainAuthResult.Loading
-            }
-        } catch (e: Exception) {
-            // Очищаем токены при ошибке
-            settings.security.clearAuthToken()
-            settings.security.clearRefreshToken()
-
-            return DomainAuthResult.Success(null)
-        }
-    }
-
-    override suspend fun checkServerStatus(): DomainAuthResult {
-        try {
-            // Вызываем сетевое API
-            val result = networkAuthApi.checkServerStatus()
-
-            // Преобразуем результат в доменную модель
-            return when (result) {
-                is api.auth.AuthResult.Success -> {
-                    DomainAuthResult.Success(null)
-                }
-                is api.auth.AuthResult.Error -> {
-                    DomainAuthResult.Error(
-                        AppError(
-                            code = model.ErrorCode.SERVER_ERROR,
-                            message = "Ошибка при проверке статуса сервера",
-                            details = result.error.message
-                        )
-                    )
-                }
-                is api.auth.AuthResult.Loading -> DomainAuthResult.Loading
-            }
-        } catch (e: Exception) {
-            return DomainAuthResult.Error(
-                AppError(
-                    code = model.ErrorCode.NETWORK_ERROR,
-                    message = "Ошибка при проверке статуса сервера",
-                    details = e.message
-                )
-            )
-        }
-    }
-
-    override suspend fun updateProfile(username: String): DomainAuthResult {
-        // TODO: Реализовать обновление профиля через API
-        // Пока реализуем заглушку
-        val currentUser = getCurrentUser()
-        if (currentUser is DomainAuthResult.Success && currentUser.user != null) {
-            val updatedUser = currentUser.user.copy(username = username)
-            return DomainAuthResult.Success(updatedUser, currentUser.token)
-        }
-
-        return DomainAuthResult.Error(
-            AppError(
-                code = model.ErrorCode.AUTH_ERROR,
-                message = "Пользователь не авторизован",
-                details = "Невозможно обновить профиль неавторизованного пользователя"
+    /**
+     * Handles exceptions and creates an error object
+     */
+    private fun <T> handleException(e: Exception, errorMessage: String): AuthResult<T> {
+        return AuthResult.Error(
+            createError(
+                code = ErrorCode.NETWORK_ERROR,
+                message = errorMessage,
+                details = e.message
             )
         )
+    }
+
+    /**
+     * Creates a domain user object from a network model
+     */
+    private fun createDomainUser(networkUser: NetworkUser, email: String? = null): DomainUser {
+        return DomainUser(
+            id = networkUser.id,
+            username = networkUser.username,
+            email = email ?: networkUser.email
+        )
+    }
+
+    /**
+     * Saves authentication tokens
+     */
+    private fun saveTokens(token: String, refreshToken: String?) {
+        settings.security.saveAuthToken(token)
+        refreshToken?.let {
+            try {
+                settings.security.saveRefreshToken(it)
+            } catch (e: NotImplementedError) {
+                println("Warning: saveRefreshToken not available in SecuritySettings")
+            }
+        }
+    }
+
+    /**
+     * Clears authentication tokens
+     */
+    private fun clearTokens() {
+        settings.security.clearAuthToken()
+        try {
+            settings.security.clearRefreshToken()
+        } catch (e: NotImplementedError) {
+            println("Warning: clearRefreshToken not available in SecuritySettings")
+        }
+    }
+
+    /**
+     * Processes network request results and transforms them into the domain model
+     */
+    @Suppress("UNCHECKED_CAST")
+    private fun <T, R> handleNetworkResult(
+        result: NetworkAuthResult<T>,
+        successHandler: (T) -> AuthResult.Success<R>,
+        errorCode: ErrorCode
+    ): AuthResult<R> {
+        return when (result) {
+            is NetworkAuthResult.Success -> successHandler(result.data)
+            is NetworkAuthResult.Error -> {
+                // Explicit type casting to resolve covariance issues
+                AuthResult.Error(
+                    createError(
+                        code = errorCode,
+                        message = result.error.message,
+                        details = result.error.code.toString()
+                    )
+                )
+            }
+            is NetworkAuthResult.Loading -> {
+                // Using explicit type casting with suppressed warning
+                AuthResult.Loading as AuthResult<R>
+            }
+        }
+    }
+
+    override suspend fun register(username: String, email: String, password: String): AuthResult<AuthResponseData> {
+        try {
+            // Create request for network API
+            val request = RegisterRequest(username, email, password)
+
+            // Call network API
+            val result = networkAuthApi.register(request)
+
+            // Transform result to domain model
+            return handleNetworkResult(
+                result = result,
+                errorCode = ErrorCode.INVALID_CREDENTIALS,
+                successHandler = { data ->
+                    // Save token
+                    saveTokens(data.token, data.refreshToken)
+
+                    // Create domain user model from AuthResponse fields
+                    val domainUser = DomainUser(
+                        id = data.userId,
+                        username = data.username,
+                        email = email
+                    )
+
+                    AuthResult.Success(data, domainUser, data.token)
+                }
+            )
+        } catch (e: Exception) {
+            return handleException(e, "Error during registration")
+        }
+    }
+
+    override suspend fun login(email: String, password: String): AuthResult<AuthResponseData> {
+        try {
+            // Create request for network API
+            val request = LoginRequest(email, password)
+
+            // Call network API
+            val result = networkAuthApi.login(request)
+
+            // Transform result to domain model
+            return handleNetworkResult(
+                result = result,
+                errorCode = ErrorCode.INVALID_CREDENTIALS,
+                successHandler = { data ->
+                    // Save token
+                    saveTokens(data.token, data.refreshToken)
+
+                    // Create domain user model from AuthResponse fields
+                    val domainUser = DomainUser(
+                        id = data.userId,
+                        username = data.username,
+                        email = email
+                    )
+
+                    AuthResult.Success(data, domainUser, data.token)
+                }
+            )
+        } catch (e: Exception) {
+            return handleException(e, "Error during login")
+        }
+    }
+
+    override suspend fun getCurrentUser(): AuthResult<DomainUser> {
+        try {
+            // Get token
+            val token = settings.security.getAuthToken()
+            if (token == null) {
+                return AuthResult.Error(
+                    createError(
+                        code = ErrorCode.UNAUTHORIZED,
+                        message = "Authorization token is missing",
+                        details = "Login required"
+                    )
+                )
+            }
+
+            // Call network API
+            val result = networkAuthApi.getCurrentUser(token)
+
+            // Transform result to domain model
+            return handleNetworkResult(
+                result = result,
+                errorCode = ErrorCode.UNAUTHORIZED,
+                successHandler = { data ->
+                    // Create domain user model
+                    val domainUser = createDomainUser(data)
+                    AuthResult.Success(domainUser, domainUser, token)
+                }
+            )
+        } catch (e: Exception) {
+            return handleException(e, "Error while getting user data")
+        }
+    }
+
+    override suspend fun logout(): AuthResult<Unit> {
+        try {
+            // Get token
+            val token = settings.security.getAuthToken()
+            if (token == null) {
+                return AuthResult.Success(Unit, null, null)
+            }
+
+            // Call network API
+            val result = networkAuthApi.logout(token)
+
+            // Clear tokens in any case
+            clearTokens()
+
+            // On logout, always return success regardless of the request result
+            return AuthResult.Success(Unit, null, null)
+        } catch (e: Exception) {
+            // Clear tokens on error
+            clearTokens()
+
+            return AuthResult.Success(Unit, null, null)
+        }
+    }
+
+    override suspend fun checkServerStatus(): AuthResult<ServerStatusResponse> {
+        try {
+            // Call network API
+            val result = networkAuthApi.checkServerStatus()
+
+            // Transform result to domain model
+            return handleNetworkResult(
+                result = result,
+                errorCode = ErrorCode.SERVER_ERROR,
+                successHandler = { data ->
+                    AuthResult.Success(data, null, null)
+                }
+            )
+        } catch (e: Exception) {
+            return handleException(e, "Error while checking server status")
+        }
+    }
+
+    override suspend fun updateProfile(username: String): AuthResult<DomainUser> {
+        try {
+            // Get token
+            val token = settings.security.getAuthToken()
+            if (token == null) {
+                return AuthResult.Error(
+                    createError(
+                        code = ErrorCode.UNAUTHORIZED,
+                        message = "User is not authorized",
+                        details = "Login required to update profile"
+                    )
+                )
+            }
+
+            // Call network API
+            val result = networkAuthApi.updateProfile(token, username)
+
+            // Transform result to domain model
+            return handleNetworkResult(
+                result = result,
+                errorCode = ErrorCode.UNAUTHORIZED,
+                successHandler = { data ->
+                    // Create domain user model
+                    val domainUser = createDomainUser(data)
+                    AuthResult.Success(domainUser, domainUser, token)
+                }
+            )
+        } catch (e: Exception) {
+            return handleException(e, "Error while updating profile")
+        }
+    }
+
+    override suspend fun refreshToken(request: RefreshTokenRequest): AuthResult<AuthResponseData> {
+        try {
+            // Call network API
+            val result = networkAuthApi.refreshToken(request)
+
+            // Transform result to domain model
+            return handleNetworkResult(
+                result = result,
+                errorCode = ErrorCode.UNAUTHORIZED,
+                successHandler = { data ->
+                    // Save new tokens
+                    saveTokens(data.token, data.refreshToken)
+
+                    // Create domain user model from AuthResponse fields
+                    val domainUser = DomainUser(
+                        id = data.userId,
+                        username = data.username,
+                        email = data.username // Using username as email since it's not provided in AuthResponse
+                    )
+
+                    AuthResult.Success(data, domainUser, data.token)
+                }
+            )
+        } catch (e: Exception) {
+            return handleException(e, "Error while refreshing token")
+        }
     }
 }

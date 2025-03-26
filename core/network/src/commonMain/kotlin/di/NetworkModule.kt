@@ -1,41 +1,57 @@
 package di
 
-import api.ApiClient
 import api.auth.AuthApi
 import api.auth.AuthApiImpl
+import client.HttpClientFactory
 import config.NetworkConfig
-import io.ktor.client.HttpClient
+import io.ktor.client.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.json.Json
-import org.kodein.di.DI
-import org.kodein.di.bind
-import org.kodein.di.instance
-import org.kodein.di.singleton
+import model.AppError
+import model.ErrorCode
+import org.kodein.di.*
 
 /**
  * Модуль зависимостей для сетевых компонентов
  */
 val networkModule = DI.Module("networkModule") {
-    // API клиент
-    bind<ApiClient>() with singleton {
-        ApiClient(instance())
+    // JSON сериализатор
+    bindSingleton<Json> {
+        Json {
+            isLenient = true
+            ignoreUnknownKeys = true
+            prettyPrint = true
+            coerceInputValues = true
+        }
+    }
+
+    // Примечание: NetworkConfig получается из SettingsModule
+    // и не должен быть определен здесь, чтобы избежать конфликта
+
+    // Примечание: ErrorMapper получается из DataModule
+    // и не должен быть определен здесь, чтобы избежать конфликта
+
+    // Фабрика HTTP клиента
+    bindSingleton<HttpClientFactory> {
+        HttpClientFactory(
+            json = instance(),
+            errorMapper = instance(),
+            networkConfig = instance()
+        )
     }
 
     // HTTP клиент
-    bind<HttpClient>() with singleton {
-        instance<ApiClient>().createHttpClient()
+    bindSingleton<HttpClient> {
+        instance<HttpClientFactory>().create()
     }
 
     // API аутентификации
-    bind<AuthApi>() with singleton {
-        AuthApiImpl(instance())
-    }
-
-    // JSON сериализатор
-    bind<Json>() with singleton {
-        Json {
-            prettyPrint = true
-            isLenient = true
-            ignoreUnknownKeys = true
-        }
+    bindSingleton<AuthApi> {
+        AuthApiImpl(
+            client = instance(),
+            networkConfig = instance()
+        )
     }
 }

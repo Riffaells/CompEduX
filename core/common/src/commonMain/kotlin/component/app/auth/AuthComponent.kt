@@ -15,12 +15,12 @@ import component.app.auth.store.AuthStore
 import component.app.auth.store.AuthStoreFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import org.kodein.di.DI
-import org.kodein.di.DIAware
 import model.User
+import org.kodein.di.*
 import repository.auth.AuthRepository
 import utils.rDispatchers
 
@@ -32,14 +32,38 @@ data class AuthComponentParams(
     val onBack: () -> Unit
 )
 
+/**
+ * Параметры для создания компонента входа в систему
+ */
+data class LoginComponentParams(
+    val componentContext: ComponentContext,
+    val onBack: () -> Unit,
+    val onRegister: () -> Unit,
+    val onLoginSuccess: () -> Unit
+)
+
+/**
+ * Параметры для создания компонента регистрации
+ */
+data class RegisterComponentParams(
+    val componentContext: ComponentContext,
+    val onBack: () -> Unit,
+    val onLogin: () -> Unit,
+    val onRegisterSuccess: () -> Unit
+)
+
+/**
+ * Параметры для создания компонента профиля
+ */
+data class ProfileComponentParams(
+    val componentContext: ComponentContext,
+    val onLogout: () -> Unit,
+    val onBackClicked: () -> Unit
+)
+
 interface AuthComponent {
     val state: StateFlow<AuthStore.State>
     val childStack: Value<ChildStack<*, Child>>
-    val store: AuthStore
-
-    data class State(
-        val isLoading: Boolean = false
-    )
 
     sealed class Child {
         class LoginChild(val component: LoginComponent) : Child()
@@ -47,15 +71,7 @@ interface AuthComponent {
         class ProfileChild(val component: ProfileComponent) : Child()
     }
 
-    fun onEvent(event: AuthStore.Intent)
     fun onBackClicked()
-
-    suspend fun login(email: String, password: String)
-    suspend fun register(email: String, password: String, username: String)
-    suspend fun logout()
-    suspend fun isAuthenticated(): Boolean
-    suspend fun getCurrentUser(): User?
-    suspend fun updateProfile(username: String)
 }
 
 @OptIn(ExperimentalDecomposeApi::class)
@@ -84,6 +100,15 @@ class DefaultAuthComponent(
         initialStack = {
             // Проверяем авторизован ли пользователь
             var initialConfiguration = Config.Login
+
+            // If user is already authenticated, go to profile
+            scope.launch {
+                if (authRepository.isAuthenticated()) {
+                    navigation.bringToFront(Config.Profile)
+                }
+            }
+
+            // Monitor auth state changes
             scope.launch {
                 _store.stateFlow.map { it.isAuthenticated }.collect { isAuth ->
                     if (isAuth) {
@@ -101,12 +126,6 @@ class DefaultAuthComponent(
 
     override val state: StateFlow<AuthStore.State> = _store.stateFlow
 
-    override val store: AuthStore = _store
-
-    override fun onEvent(event: AuthStore.Intent) {
-        _store.accept(event)
-    }
-
     override fun onBackClicked() {
         onBack()
     }
@@ -118,43 +137,54 @@ class DefaultAuthComponent(
             Config.Profile -> AuthComponent.Child.ProfileChild(profileComponent(componentContext))
         }
 
-    private fun loginComponent(componentContext: ComponentContext): LoginComponent =
-        DefaultLoginComponent(
-            di = di,
-            componentContext = componentContext,
-            onBack = onBack,
-            onRegister = {
-                navigation.push(Config.Register)
-            },
-            authComponent = this
+    private fun loginComponent(componentContext: ComponentContext): LoginComponent {
+        val loginComponentFactory by factory<LoginComponentParams, DefaultLoginComponent>()
+        return loginComponentFactory(
+            LoginComponentParams(
+                componentContext = componentContext,
+                onBack = onBack,
+                onRegister = {
+                    navigation.push(Config.Register)
+                },
+                onLoginSuccess = {
+                    navigation.bringToFront(Config.Profile)
+                }
+            )
         )
+    }
 
-    private fun registerComponent(componentContext: ComponentContext): RegisterComponent =
-        DefaultRegisterComponent(
-            di = di,
-            componentContext = componentContext,
-            onBack = {
-                navigation.pop()
-            },
-            onLogin = {
-                navigation.pop()
-            },
-            authComponent = this
+    private fun registerComponent(componentContext: ComponentContext): RegisterComponent {
+        val registerComponentFactory by factory<RegisterComponentParams, DefaultRegisterComponent>()
+        return registerComponentFactory(
+            RegisterComponentParams(
+                componentContext = componentContext,
+                onBack = {
+                    navigation.pop()
+                },
+                onLogin = {
+                    navigation.pop()
+                },
+                onRegisterSuccess = {
+                    navigation.bringToFront(Config.Profile)
+                }
+            )
         )
+    }
 
-    private fun profileComponent(componentContext: ComponentContext): ProfileComponent =
-        DefaultProfileComponent(
-            componentContext = componentContext,
-            storeFactory = storeFactory,
-            onLogout = {
-                _store.accept(AuthStore.Intent.Logout)
-                navigation.bringToFront(Config.Login)
-            },
-            onUpdateProfile = { username ->
-                _store.accept(AuthStore.Intent.UpdateProfile(username))
-            },
-            onBackClicked = onBack
+    private fun profileComponent(componentContext: ComponentContext): ProfileComponent {
+        val profileComponentFactory by factory<ProfileComponentParams, DefaultProfileComponent>()
+        return profileComponentFactory(
+            ProfileComponentParams(
+                componentContext = componentContext,
+                onLogout = {
+                    // Handle logout in the auth store
+                    _store.accept(AuthStore.Intent.Logout)
+                    navigation.bringToFront(Config.Login)
+                },
+                onBackClicked = onBack
+            )
         )
+    }
 
     @Serializable
     private sealed interface Config {
@@ -166,29 +196,5 @@ class DefaultAuthComponent(
 
         @Serializable
         data object Profile : Config
-    }
-
-    override suspend fun login(email: String, password: String) {
-        _store.accept(AuthStore.Intent.Login(email, password))
-    }
-
-    override suspend fun register(email: String, password: String, username: String) {
-        _store.accept(AuthStore.Intent.Register(email, password, username))
-    }
-
-    override suspend fun logout() {
-        _store.accept(AuthStore.Intent.Logout)
-    }
-
-    override suspend fun isAuthenticated(): Boolean {
-        return authRepository.isAuthenticated()
-    }
-
-    override suspend fun getCurrentUser(): User? {
-        return authRepository.getCurrentUser()
-    }
-
-    override suspend fun updateProfile(username: String) {
-        _store.accept(AuthStore.Intent.UpdateProfile(username))
     }
 }

@@ -1,17 +1,16 @@
 package component.app.auth.store
 
-import com.arkivanov.mvikotlin.core.store.Reducer
-import com.arkivanov.mvikotlin.core.store.Store
-import com.arkivanov.mvikotlin.core.store.StoreFactory
-import com.arkivanov.mvikotlin.core.store.create
+import com.arkivanov.mvikotlin.core.store.*
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import kotlinx.coroutines.launch
 import model.AppError
 import model.AuthResult
+import model.ErrorCode
 import model.User
 import repository.auth.AuthRepository
-import repository.mapper.ErrorMapper
+import usecase.auth.AuthUseCases
+import utils.rDispatchers
 
 interface AuthStore : Store<AuthStore.Intent, AuthStore.State, Nothing> {
 
@@ -48,146 +47,178 @@ class AuthStoreFactory(
         object : AuthStore, Store<AuthStore.Intent, AuthStore.State, Nothing> by storeFactory.create(
             name = "AuthStore",
             initialState = AuthStore.State(),
-            bootstrapper = BootstrapperImpl(),
+            bootstrapper = SimpleBootstrapper(Unit),
             executorFactory = ::ExecutorImpl,
             reducer = ReducerImpl
         ) {}
 
-    private inner class BootstrapperImpl : CoroutineBootstrapper<AuthStore.Message>() {
-        override fun invoke() {
-            scope.launch {
-                val user = authRepository.getCurrentUser()
-                if (user != null) {
-                    dispatch(AuthStore.Message.SetUser(user))
-                }
-            }
-        }
+    private sealed interface Msg {
+        data object StartLoading : Msg
+        data object StopLoading : Msg
+        data class SetUser(val user: User) : Msg
+        data class SetError(val error: String, val details: String? = null) : Msg
+        data object ClearUser : Msg
+        data object ClearError : Msg
     }
 
-    private inner class ExecutorImpl : CoroutineExecutor<AuthStore.Intent, Nothing, AuthStore.State, AuthStore.Message, Nothing>() {
-        override fun executeIntent(intent: AuthStore.Intent, getState: () -> AuthStore.State) {
-            when (intent) {
-                is AuthStore.Intent.Login -> {
-                    scope.launch {
-                        dispatch(AuthStore.Message.StartLoading)
-                        dispatch(AuthStore.Message.ClearError)
 
-                        try {
-                            val result = authRepository.login(intent.email, intent.password)
-                            handleAuthResult(result)
-                        } catch (e: Exception) {
-                            // Обрабатываем неожиданные ошибки
-                            val error = AppError(
-                                code = model.ErrorCode.NETWORK_ERROR,
-                                message = e.message ?: "Ошибка сети",
-                                details = e.cause?.message
-                            )
-                            dispatch(AuthStore.Message.SetError(error.message, error.details))
-                            dispatch(AuthStore.Message.StopLoading)
-                        }
-                    }
-                }
-                is AuthStore.Intent.Register -> {
-                    scope.launch {
-                        dispatch(AuthStore.Message.StartLoading)
-                        dispatch(AuthStore.Message.ClearError)
+    private inner class ExecutorImpl :
+        CoroutineExecutor<AuthStore.Intent, Unit, AuthStore.State, Msg, Nothing>(
+        rDispatchers.main
+    ) {
+        override fun executeAction(action: Unit) {
+            // Пустая реализация
+        }
 
-                        try {
-                            val result = authRepository.register(
-                                email = intent.email,
-                                password = intent.password,
-                                username = intent.username
-                            )
-                            handleAuthResult(result)
-                        } catch (e: Exception) {
-                            // Обрабатываем неожиданные ошибки
-                            val error = AppError(
-                                code = model.ErrorCode.NETWORK_ERROR,
-                                message = e.message ?: "Ошибка сети",
-                                details = e.cause?.message
-                            )
-                            dispatch(AuthStore.Message.SetError(error.message, error.details))
-                            dispatch(AuthStore.Message.StopLoading)
-                        }
-                    }
-                }
-                is AuthStore.Intent.Logout -> {
-                    scope.launch {
-                        dispatch(AuthStore.Message.StartLoading)
-                        dispatch(AuthStore.Message.ClearError)
+        // Безопасный вызов dispatch, который перехватывает исключения
+        private fun safeDispatch(msg: Msg) {
+            try {
+                dispatch(msg)
+            } catch (e: Exception) {
+                println("Error in dispatch: ${e.message}")
+            }
+        }
 
-                        try {
-                            val result = authRepository.logout()
-                            if (result is AuthResult.Success && result.user == null) {
-                                dispatch(AuthStore.Message.ClearUser)
+        override fun executeIntent(intent: AuthStore.Intent): Unit =
+            try {
+                when (intent) {
+                    is AuthStore.Intent.Login -> {
+                        scope.launch {
+                            safeDispatch(Msg.StartLoading)
+                            safeDispatch(Msg.ClearError)
+
+                            try {
+                                val result = authRepository.login(intent.email, intent.password)
+                                handleAuthResult(result)
+                            } catch (e: Exception) {
+                                // Обрабатываем неожиданные ошибки
+                                val error = AppError(
+                                    code = ErrorCode.NETWORK_ERROR,
+                                    message = e.message ?: "Ошибка сети",
+                                    details = e.cause?.message
+                                )
+                                safeDispatch(Msg.SetError(error.message, error.details))
+                                safeDispatch(Msg.StopLoading)
                             }
-                            dispatch(AuthStore.Message.StopLoading)
-                        } catch (e: Exception) {
-                            // Даже при ошибке, выходим из системы локально
-                            dispatch(AuthStore.Message.ClearUser)
-                            dispatch(AuthStore.Message.StopLoading)
                         }
                     }
-                }
-                is AuthStore.Intent.UpdateProfile -> {
-                    scope.launch {
-                        dispatch(AuthStore.Message.StartLoading)
-                        dispatch(AuthStore.Message.ClearError)
+                    is AuthStore.Intent.Register -> {
+                        scope.launch {
+                            safeDispatch(Msg.StartLoading)
+                            safeDispatch(Msg.ClearError)
 
-                        try {
-                            val result = authRepository.updateProfile(intent.username)
-                            handleAuthResult(result)
-                        } catch (e: Exception) {
-                            // Обрабатываем неожиданные ошибки
-                            val error = AppError(
-                                code = model.ErrorCode.NETWORK_ERROR,
-                                message = e.message ?: "Ошибка сети",
-                                details = e.cause?.message
-                            )
-                            dispatch(AuthStore.Message.SetError(error.message, error.details))
-                            dispatch(AuthStore.Message.StopLoading)
+                            try {
+                                val result = authRepository.register(
+                                    email = intent.email,
+                                    password = intent.password,
+                                    username = intent.username
+                                )
+                                handleAuthResult(result)
+                            } catch (e: Exception) {
+                                // Обрабатываем неожиданные ошибки
+                                val error = AppError(
+                                    code = ErrorCode.NETWORK_ERROR,
+                                    message = e.message ?: "Ошибка сети",
+                                    details = e.cause?.message
+                                )
+                                safeDispatch(Msg.SetError(error.message, error.details))
+                                safeDispatch(Msg.StopLoading)
+                            }
+                        }
+                    }
+                    is AuthStore.Intent.Logout -> {
+                        scope.launch {
+                            safeDispatch(Msg.StartLoading)
+                            safeDispatch(Msg.ClearError)
+
+                            try {
+                                val result = authRepository.logout()
+                                // Исправляем smart cast ошибку
+                                when (result) {
+                                    is AuthResult.Success -> {
+                                        // Независимо от результата, считаем пользователя вышедшим
+                                        safeDispatch(Msg.ClearUser)
+                                    }
+                                    else -> {
+                                        // Даже при ошибке, выходим из системы локально
+                                        safeDispatch(Msg.ClearUser)
+                                    }
+                                }
+                                safeDispatch(Msg.StopLoading)
+                            } catch (e: Exception) {
+                                // Даже при ошибке, выходим из системы локально
+                                safeDispatch(Msg.ClearUser)
+                                safeDispatch(Msg.StopLoading)
+                            }
+                        }
+                    }
+                    is AuthStore.Intent.UpdateProfile -> {
+                        scope.launch {
+                            safeDispatch(Msg.StartLoading)
+                            safeDispatch(Msg.ClearError)
+
+                            try {
+                                val result = authRepository.updateProfile(intent.username)
+                                handleAuthResult(result)
+                            } catch (e: Exception) {
+                                // Обрабатываем неожиданные ошибки
+                                val error = AppError(
+                                    code = ErrorCode.NETWORK_ERROR,
+                                    message = e.message ?: "Ошибка сети",
+                                    details = e.cause?.message
+                                )
+                                safeDispatch(Msg.SetError(error.message, error.details))
+                                safeDispatch(Msg.StopLoading)
+                            }
                         }
                     }
                 }
+                Unit
+            } catch (e: Exception) {
+                println("Error in executeIntent: ${e.message}")
             }
-        }
 
-        private fun handleAuthResult(result: AuthResult) {
+        private fun <T> handleAuthResult(result: AuthResult<T>) {
             when (result) {
-                is AuthResult.Success -> {
-                    if (result.user != null) {
-                        dispatch(AuthStore.Message.SetUser(result.user))
+                is AuthResult.Success<T> -> {
+                    // Исправляем smart cast ошибку
+                    val user = result.user
+                    if (user != null) {
+                        safeDispatch(Msg.SetUser(user))
                     } else {
-                        dispatch(AuthStore.Message.ClearUser)
+                        safeDispatch(Msg.ClearUser)
                     }
-                    dispatch(AuthStore.Message.StopLoading)
+                    safeDispatch(Msg.StopLoading)
                 }
-                is AuthResult.Error -> {
-                    dispatch(AuthStore.Message.SetError(result.error.message, result.error.details))
-                    dispatch(AuthStore.Message.StopLoading)
+                is AuthResult.Error<T> -> {
+                    safeDispatch(Msg.SetError(result.error.message, result.error.details))
+                    safeDispatch(Msg.StopLoading)
+                }
+                is AuthResult.Loading -> {
+                    // Состояние загрузки уже установлено
                 }
             }
         }
     }
 
-    private object ReducerImpl : Reducer<AuthStore.State, AuthStore.Message> {
-        override fun AuthStore.State.reduce(msg: AuthStore.Message): AuthStore.State =
+    private object ReducerImpl : Reducer<AuthStore.State, Msg> {
+        override fun AuthStore.State.reduce(msg: Msg): AuthStore.State =
             when (msg) {
-                is AuthStore.Message.StartLoading -> copy(isLoading = true)
-                is AuthStore.Message.StopLoading -> copy(isLoading = false)
-                is AuthStore.Message.SetUser -> copy(
+                is Msg.StartLoading -> copy(isLoading = true)
+                is Msg.StopLoading -> copy(isLoading = false)
+                is Msg.SetUser -> copy(
                     user = msg.user,
                     isAuthenticated = true
                 )
-                is AuthStore.Message.SetError -> copy(
+                is Msg.SetError -> copy(
                     error = msg.error,
                     errorDetails = msg.details
                 )
-                is AuthStore.Message.ClearUser -> copy(
+                is Msg.ClearUser -> copy(
                     user = null,
                     isAuthenticated = false
                 )
-                is AuthStore.Message.ClearError -> copy(
+                is Msg.ClearError -> copy(
                     error = null,
                     errorDetails = null
                 )

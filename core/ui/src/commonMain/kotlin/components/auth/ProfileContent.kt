@@ -87,7 +87,10 @@ fun ProfileContent(component: ProfileComponent) {
                 ) {
                     OutlinedTextField(
                         value = username,
-                        onValueChange = { username = it },
+                        onValueChange = {
+                            username = it
+                            component.onUsernameChange(it)
+                        },
                         label = { Text("Имя пользователя") },
                         leadingIcon = { Icon(RIcons.Person, null) },
                         modifier = Modifier.fillMaxWidth(),
@@ -204,7 +207,7 @@ fun ProfileContent(component: ProfileComponent) {
                 ) {
                     Button(
                         onClick = {
-                            component.onUpdateProfileClicked(username)
+                            component.onUpdateProfile()
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -227,7 +230,7 @@ fun ProfileContent(component: ProfileComponent) {
                     }
 
                     Button(
-                        onClick = { component.onLogoutClicked() },
+                        onClick = { component.onLogout() },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
@@ -245,6 +248,24 @@ fun ProfileContent(component: ProfileComponent) {
                             Icon(RIcons.Exit, null)
                             Spacer(Modifier.width(8.dp))
                             Text("Выйти")
+                        }
+                    }
+
+                    TextButton(
+                        onClick = { component.onBackClicked() },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.outline
+                        ),
+                        enabled = !state.loading
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(RIcons.ArrowBack, null)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Назад")
                         }
                     }
                 }

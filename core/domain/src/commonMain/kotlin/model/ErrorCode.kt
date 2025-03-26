@@ -29,7 +29,7 @@ enum class ErrorCode(val value: Int) {
          * Получение кода ошибки по числовому значению
          */
         fun fromCode(code: Int): ErrorCode {
-            return values().find { it.value == code } ?: UNKNOWN_ERROR
+            return entries.find { it.value == code } ?: UNKNOWN_ERROR
         }
     }
 }

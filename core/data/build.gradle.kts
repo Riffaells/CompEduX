@@ -6,8 +6,11 @@ plugins {
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            // Data модуль должен зависеть от domain согласно принципам чистой архитектуры
             implementation(projects.core.domain)
+
+            implementation(projects.feature.settings)
+            implementation(projects.core.network)
+
         }
     }
 }

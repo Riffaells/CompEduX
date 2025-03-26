@@ -12,7 +12,7 @@ class LogoutUseCase(private val authRepository: AuthRepository) {
      *
      * @return Результат операции выхода
      */
-    suspend operator fun invoke(): AuthResult {
+    suspend operator fun invoke(): AuthResult<Unit> {
         return authRepository.logout()
     }
 }

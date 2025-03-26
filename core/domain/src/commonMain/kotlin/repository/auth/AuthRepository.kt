@@ -1,13 +1,21 @@
 package repository.auth
 
+import kotlinx.coroutines.flow.StateFlow
 import model.AuthResult
 import model.User
+import model.auth.AuthResponse
+import model.auth.ServerStatusResponse
 
 /**
  * Репозиторий для работы с аутентификацией
  * Это интерфейс в domain слое, реализации находятся в data слое
  */
 interface AuthRepository {
+    /**
+     * Текущее состояние аутентификации
+     */
+    val authState: StateFlow<AuthState>
+
     /**
      * Регистрация нового пользователя
      * @param username Имя пользователя
@@ -19,7 +27,7 @@ interface AuthRepository {
         email: String,
         password: String,
         username: String
-    ): AuthResult
+    ): AuthResult<AuthResponse>
 
     /**
      * Авторизация пользователя
@@ -27,13 +35,13 @@ interface AuthRepository {
      * @param password Пароль пользователя
      * @return Результат операции авторизации
      */
-    suspend fun login(email: String, password: String): AuthResult
+    suspend fun login(email: String, password: String): AuthResult<AuthResponse>
 
     /**
      * Выход из системы
      * @return Результат операции выхода
      */
-    suspend fun logout(): AuthResult
+    suspend fun logout(): AuthResult<Unit>
 
     /**
      * Получение информации о текущем пользователе
@@ -52,11 +60,17 @@ interface AuthRepository {
      * @param username Новое имя пользователя
      * @return Результат операции обновления профиля
      */
-    suspend fun updateProfile(username: String): AuthResult
+    suspend fun updateProfile(username: String): AuthResult<User>
 
     /**
      * Проверяет статус сервера
      * @return Результат операции проверки статуса
      */
-    suspend fun checkServerStatus(): AuthResult
+    suspend fun checkServerStatus(): AuthResult<ServerStatusResponse>
+
+    /**
+     * Обновляет токен доступа, если он истек
+     * @return true, если токен успешно обновлен или не требует обновления, false в противном случае
+     */
+    suspend fun refreshTokenIfNeeded(): Boolean
 }

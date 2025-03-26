@@ -1,11 +1,12 @@
 package model.auth
 
+import model.User
+
 /**
  * Модель ответа аутентификации
  */
 data class AuthResponse(
-    val userId: String,
-    val username: String,
+    val user: User,
     val token: String,
-    val refreshToken: String? = null
+    val refreshToken: String
 )

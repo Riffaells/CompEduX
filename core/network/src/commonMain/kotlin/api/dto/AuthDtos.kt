@@ -43,7 +43,7 @@ data class UserResponse(
  * DTO ответа авторизации
  */
 @Serializable
-data class AuthResponse(
+data class AuthResponseDto(
     val user: UserResponse,
     val token: String
 )

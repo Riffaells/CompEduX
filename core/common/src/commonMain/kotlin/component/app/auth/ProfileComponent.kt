@@ -10,8 +10,14 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import component.app.auth.store.ProfileStore
 import component.app.auth.store.ProfileStoreFactory
+import model.User
+import org.kodein.di.DI
+import org.kodein.di.DIAware
+import org.kodein.di.instance
+import repository.auth.AuthRepository
 import utils.rDispatchers
 
 /**
@@ -28,7 +34,8 @@ interface ProfileComponent {
     data class State(
         val username: String = "",
         val loading: Boolean = false,
-        val error: String? = null
+        val error: String? = null,
+        val user: User? = null
     )
 }
 
@@ -36,12 +43,14 @@ interface ProfileComponent {
  * Реализация компонента профиля
  */
 class DefaultProfileComponent(
+    override val di: DI,
     componentContext: ComponentContext,
-    storeFactory: StoreFactory,
     private val onLogout: () -> Unit,
-    private val onUpdateProfile: (String) -> Unit,
     private val onBackClicked: () -> Unit
-) : ProfileComponent, ComponentContext by componentContext {
+) : ProfileComponent, DIAware, ComponentContext by componentContext {
+
+    private val authRepository: AuthRepository by instance()
+    private val storeFactory: StoreFactory by instance()
 
     private val scope = CoroutineScope(rDispatchers.main + SupervisorJob())
 
@@ -49,12 +58,23 @@ class DefaultProfileComponent(
         ProfileStoreFactory(storeFactory = storeFactory).create()
     }
 
+    // Initialize user data
+    init {
+        scope.launch {
+            val currentUser = authRepository.getCurrentUser()
+            currentUser?.let {
+                profileStore.accept(ProfileStore.Intent.UpdateUsername(it.username))
+            }
+        }
+    }
+
     override val state: StateFlow<ProfileComponent.State> = profileStore.stateFlow
         .map { storeState ->
             ProfileComponent.State(
                 username = storeState.username,
                 loading = storeState.loading,
-                error = storeState.error
+                error = storeState.error,
+                user = authRepository.getCurrentUser()
             )
         }
         .stateIn(
@@ -69,11 +89,22 @@ class DefaultProfileComponent(
 
     override fun onUpdateProfile() {
         val currentUsername = profileStore.state.username
-        onUpdateProfile(currentUsername)
+        scope.launch {
+            try {
+                profileStore.accept(ProfileStore.Intent.SaveProfile)
+                authRepository.updateProfile(currentUsername)
+            } catch (e: Exception) {
+                // Handle error if needed
+            }
+        }
     }
 
     override fun onLogout() {
-        onLogout()
+        scope.launch {
+            profileStore.accept(ProfileStore.Intent.Logout)
+            authRepository.logout()
+            onLogout()
+        }
     }
 
     override fun onBackClicked() {

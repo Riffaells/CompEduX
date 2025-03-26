@@ -31,7 +31,7 @@ data class LoginRequest(
  * Ответ на успешную аутентификацию или регистрацию
  */
 @Serializable
-data class AuthResponse(
+data class AuthResponseData(
     val token: String,
     val refreshToken: String,
     val userId: String,

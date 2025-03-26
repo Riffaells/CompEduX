@@ -5,14 +5,18 @@ plugins {
 }
 
 kotlin {
-
     sourceSets {
         commonMain.dependencies {
-
-
+            // Настройки
             implementation(projects.feature.settings)
-            implementation(projects.core.domain)
 
+            // Core модули
+            implementation(projects.core.domain)
+            implementation(projects.core.network)
+            implementation(projects.core.data)
+
+            // common не должен зависеть от ui и design,
+            // напротив, ui зависит от common и design
         }
     }
 }

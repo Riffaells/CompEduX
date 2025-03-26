@@ -3,22 +3,17 @@ package components.auth
 import androidx.compose.animation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import compedux.core.ui.generated.resources.Res
 import compedux.core.ui.generated.resources.*
-import component.app.auth.LoginComponent
+import component.app.auth.login.LoginComponent
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.resources.stringResource
 import ui.icon.RIcons
@@ -31,12 +26,6 @@ fun LoginContent(component: LoginComponent) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
-
-    // Обновляем локальное состояние из состояния компонента
-    LaunchedEffect(state) {
-        email = state.email
-        password = state.password
-    }
 
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -132,7 +121,7 @@ fun LoginContent(component: LoginComponent) {
                 }
 
                 // Индикатор загрузки
-                AnimatedVisibility(visible = state.loading) {
+                AnimatedVisibility(visible = state.isLoading) {
                     CircularProgressIndicator(
                         modifier = Modifier.padding(8.dp)
                     )
@@ -143,13 +132,13 @@ fun LoginContent(component: LoginComponent) {
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Button(
-                        onClick = { component.onLoginClicked(email, password) },
+                        onClick = { component.onLoginClick(email, password) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp)
                             .animateContentSize(),
                         shape = RoundedCornerShape(16.dp),
-                        enabled = !state.loading && email.isNotEmpty() && password.isNotEmpty()
+                        enabled = !state.isLoading && email.isNotEmpty() && password.isNotEmpty()
                     ) {
                         Row(
                             horizontalArrangement = Arrangement.Center,
@@ -162,9 +151,9 @@ fun LoginContent(component: LoginComponent) {
                     }
 
                     TextButton(
-                        onClick = { component.onRegisterClicked() },
+                        onClick = { component.onRegisterClick() },
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = !state.loading
+                        enabled = !state.isLoading
                     ) {
                         Row(
                             horizontalArrangement = Arrangement.Center,
@@ -177,12 +166,12 @@ fun LoginContent(component: LoginComponent) {
                     }
 
                     TextButton(
-                        onClick = { component.onBackClicked() },
+                        onClick = { component.onBackClick() },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.textButtonColors(
                             contentColor = MaterialTheme.colorScheme.outline
                         ),
-                        enabled = !state.loading
+                        enabled = !state.isLoading
                     ) {
                         Row(
                             horizontalArrangement = Arrangement.Center,

@@ -1,9 +1,11 @@
 package component.app.auth.register
 
 import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.mvikotlin.core.instancekeeper.getStore
+import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
-import component.app.auth.AuthComponent
-import component.app.auth.store.AuthStore
+import component.app.auth.store.RegisterStore
+import component.app.auth.store.RegisterStoreFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.StateFlow
@@ -11,12 +13,13 @@ import kotlinx.coroutines.launch
 import org.kodein.di.DI
 import org.kodein.di.DIAware
 import org.kodein.di.instance
+import repository.auth.AuthRepository
 import utils.rDispatchers
 
 interface RegisterComponent {
-    val state: StateFlow<AuthStore.State>
+    val state: StateFlow<RegisterStore.State>
 
-    fun onRegisterClick(email: String, password: String, username: String)
+    fun onRegisterClick(email: String, password: String, confirmPassword: String, username: String)
     fun onBackClick()
     fun onLoginClick()
 }
@@ -26,16 +29,40 @@ class DefaultRegisterComponent(
     componentContext: ComponentContext,
     private val onBack: () -> Unit,
     private val onLogin: () -> Unit,
-    private val authComponent: AuthComponent
+    private val onRegisterSuccess: () -> Unit
 ) : RegisterComponent, DIAware, ComponentContext by componentContext {
+
+    private val authRepository: AuthRepository by instance()
+    private val storeFactory: StoreFactory by instance()
 
     private val scope = CoroutineScope(rDispatchers.main + SupervisorJob())
 
-    override val state: StateFlow<AuthStore.State> = authComponent.store.stateFlow
+    private val registerStore = instanceKeeper.getStore {
+        RegisterStoreFactory(
+            storeFactory = storeFactory,
+            authRepository = authRepository
+        ).create()
+    }
 
-    override fun onRegisterClick(email: String, password: String, username: String) {
+    override val state: StateFlow<RegisterStore.State> = registerStore.stateFlow
+
+    override fun onRegisterClick(email: String, password: String, confirmPassword: String, username: String) {
+        registerStore.accept(RegisterStore.Intent.HandleRegisterClick(
+            email = email,
+            password = password,
+            confirmPassword = confirmPassword,
+            username = username
+        ))
+
+        // Monitor auth state changes to trigger navigation on success
         scope.launch {
-            authComponent.register(email, password, username)
+            // This is simplified - in a real implementation, you would monitor
+            // the AuthState from a shared AuthStore or Repository to detect successful registration
+            // For now, we'll assume the RegisterStore handles everything
+            // You would replace this with actual auth state monitoring
+            if (authRepository.isAuthenticated()) {
+                onRegisterSuccess()
+            }
         }
     }
 

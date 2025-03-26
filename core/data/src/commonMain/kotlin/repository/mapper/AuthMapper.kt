@@ -1,133 +1,143 @@
 package repository.mapper
 
-import api.dto.UserResponse
+import api.model.AuthResult as ApiAuthResult
 import model.AppError
-import model.AuthResult as DomainAuthResult
+import model.AuthResult
 import model.ErrorCode
 import model.User
-import model.auth.AuthError
-import model.auth.AuthResult as DataAuthResult
+import model.auth.AuthResponseData
 
 /**
- * Маппер для преобразования DTO в доменные объекты
+ * Mapper for converting authentication models between layers
  */
 object AuthMapper {
     /**
-     * Преобразует UserResponse в User
+     * Maps User model from data layer to domain User
      *
-     * @param response DTO пользователя
-     * @return Доменная модель пользователя
+     * @param user Data layer user model
+     * @return Domain user model
      */
-    fun mapUserResponseToUser(response: UserResponse): User {
+    fun mapDataUserToDomainUser(user: model.auth.User): User {
         return User(
-            id = response.id,
-            email = response.email,
-            username = response.username
+            id = user.id,
+            username = user.username,
+            email = user.email
         )
     }
 
     /**
-     * Создает успешный результат авторизации
+     * Creates a successful authentication result
      *
-     * @param user Пользователь
-     * @param token Токен аутентификации
-     * @return Результат успешной авторизации
+     * @param user User
+     * @param token Authentication token
+     * @return Successful authentication result
      */
-    fun createSuccessResult(user: User, token: String): DomainAuthResult {
-        return DomainAuthResult.Success(user, token)
+    fun createSuccessResult(user: User?, token: String?): AuthResult<User?> {
+        return AuthResult.Success(user, user, token)
     }
 
     /**
-     * Создает результат с ошибкой
+     * Creates an error result
      *
-     * @param error Ошибка приложения
-     * @return Результат с ошибкой
+     * @param error Application error
+     * @return Error result
      */
-    fun createErrorResult(error: AppError): DomainAuthResult {
-        return DomainAuthResult.Error(error)
+    fun <T> createErrorResult(error: AppError): AuthResult<T> {
+        return AuthResult.Error(error)
     }
 
     /**
-     * Создает результат с ошибкой
+     * Creates an error result
      *
-     * @param message Сообщение об ошибке
-     * @param errorCode Код ошибки
-     * @return Результат с ошибкой
+     * @param message Error message
+     * @param errorCode Error code
+     * @return Error result
      */
-    fun createErrorResult(
+    fun <T> createErrorResult(
         message: String,
         errorCode: ErrorCode = ErrorCode.UNKNOWN_ERROR,
         details: String? = null
-    ): DomainAuthResult {
+    ): AuthResult<T> {
         val appError = AppError(
             code = errorCode,
             message = message,
             details = details
         )
-        return DomainAuthResult.Error(appError)
+        return AuthResult.Error(appError)
     }
 
     /**
-     * Создает результат загрузки
+     * Creates a loading result
      *
-     * @return Результат загрузки
+     * @return Loading result
      */
-    fun createLoadingResult(): DomainAuthResult {
-        return DomainAuthResult.Loading
+    fun <T> createLoadingResult(): AuthResult<T> {
+        return AuthResult.Loading as AuthResult<T>
     }
 
     /**
-     * Создает результат отсутствия аутентификации
+     * Creates an unauthenticated result
      *
-     * @return Результат неавторизованного пользователя (успешный результат с null пользователем)
+     * @return Unauthenticated user result (successful result with null user)
      */
-    fun createUnauthenticatedResult(): DomainAuthResult {
-        return DomainAuthResult.Success(null, null)
+    fun <T> createUnauthenticatedResult(): AuthResult<T> {
+        return AuthResult.Success(null, null, null) as AuthResult<T>
     }
 
     /**
-     * Преобразует AuthResult<T> из data в доменный AuthResult
+     * Maps ApiAuthResult<T> to domain AuthResult
      *
-     * @param result Результат из data модуля
-     * @param mapSuccess Функция преобразования успешного результата
-     * @return Доменная модель результата
+     * @param result Result from API module
+     * @param mapSuccess Function to transform successful result
+     * @return Domain model of result
      */
-    fun <T> mapDataAuthResultToDomain(
-        result: DataAuthResult<T>,
-        mapSuccess: (T) -> DomainAuthResult
-    ): DomainAuthResult {
+    fun <T, R> mapApiAuthResultToDomain(
+        result: ApiAuthResult<T>,
+        mapSuccess: (T) -> AuthResult<R>
+    ): AuthResult<R> {
         return when (result) {
-            is DataAuthResult.Success -> mapSuccess(result.data)
-            is DataAuthResult.Error -> {
+            is ApiAuthResult.Success -> mapSuccess(result.data)
+            is ApiAuthResult.Error -> {
                 val appError = AppError(
-                    code = ErrorCode.fromCode(result.error.code.hashCode()),
+                    code = ErrorCode.fromCode(result.error.code),
                     message = result.error.message,
-                    details = null
+                    details = result.error.details
                 )
-                DomainAuthResult.Error(appError)
+                AuthResult.Error(appError)
             }
-            is DataAuthResult.Loading -> DomainAuthResult.Loading
+            is ApiAuthResult.Loading -> AuthResult.Loading as AuthResult<R>
         }
     }
 
     /**
-     * Преобразует AuthError в AppError
-     *
-     * @param error Ошибка аутентификации
-     * @return Доменная модель ошибки
+     * Maps authentication success response to domain model
      */
-    fun mapAuthErrorToAppError(error: AuthError): AppError {
-        return AppError(
-            code = when (error.code) {
-                "invalid_credentials" -> ErrorCode.INVALID_CREDENTIALS
-                "unauthorized" -> ErrorCode.UNAUTHORIZED
-                "token_expired" -> ErrorCode.TOKEN_EXPIRED
-                "network_error" -> ErrorCode.NETWORK_ERROR
-                "server_error" -> ErrorCode.SERVER_ERROR
-                else -> ErrorCode.UNKNOWN_ERROR
-            },
-            message = error.message,
-            details = null
+    fun mapAuthResponseToDomain(authResponse: AuthResponseData): AuthResult<User> {
+        val domainUser = User(
+            id = authResponse.userId,
+            username = authResponse.username,
+            email = authResponse.username // Using username as email since it's not provided in AuthResponse
+        )
+        return AuthResult.Success(domainUser, domainUser, authResponse.token)
+    }
+
+    /**
+     * Maps API error to domain error
+     */
+    fun <T> mapApiErrorToDomain(error: ApiAuthResult.Error<*>): AuthResult<T> {
+        val errorCode = when (error.error.code) {
+            2001 -> ErrorCode.INVALID_CREDENTIALS
+            2002 -> ErrorCode.UNAUTHORIZED
+            1003 -> ErrorCode.SERVER_ERROR
+            else -> ErrorCode.UNKNOWN_ERROR
+        }
+
+        return AuthResult.Error(
+            AppError(
+                code = errorCode,
+                message = error.error.message,
+                details = error.error.details
+            )
         )
     }
 }

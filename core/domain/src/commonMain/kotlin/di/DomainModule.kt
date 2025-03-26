@@ -4,11 +4,10 @@ import org.kodein.di.DI
 import org.kodein.di.bind
 import org.kodein.di.instance
 import org.kodein.di.singleton
-import repository.auth.AuthRepository
 import usecase.auth.*
 
 /**
- * Модуль зависимостей для компонентов домена
+ * Модуль для доменного слоя
  */
 val domainModule = DI.Module("domainModule") {
     // Use cases для аутентификации
@@ -25,19 +24,19 @@ val domainModule = DI.Module("domainModule") {
     }
 
     bind<GetCurrentUserUseCase>() with singleton {
-        GetCurrentUserUseCase(instance<AuthRepository>())
+        GetCurrentUserUseCase(instance())
     }
 
     bind<IsAuthenticatedUseCase>() with singleton {
-        IsAuthenticatedUseCase(instance<AuthRepository>())
+        IsAuthenticatedUseCase(instance())
     }
 
     bind<UpdateProfileUseCase>() with singleton {
-        UpdateProfileUseCase(instance<AuthRepository>())
+        UpdateProfileUseCase(instance())
     }
 
     bind<CheckServerStatusUseCase>() with singleton {
-        CheckServerStatusUseCase(instance<AuthRepository>())
+        CheckServerStatusUseCase(instance())
     }
 
     // Контейнер для всех use cases аутентификации

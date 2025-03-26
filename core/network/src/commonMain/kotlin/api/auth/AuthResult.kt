@@ -1,7 +1,9 @@
-package model
+package api.auth
+
+import model.AppError
 
 /**
- * Результат операций авторизации и регистрации
+ * Результат операций API авторизации и регистрации в сетевом уровне
  */
 sealed class AuthResult<T> {
     /**
@@ -10,7 +12,7 @@ sealed class AuthResult<T> {
      * @property user информация о пользователе (null если пользователь не аутентифицирован)
      * @property token токен доступа (null если пользователь не аутентифицирован)
      */
-    data class Success<T>(val data: T, val user: User? = null, val token: String? = null) : AuthResult<T>()
+    data class Success<T>(val data: T, val user: model.User? = null, val token: String? = null) : AuthResult<T>()
 
     /**
      * Ошибка операции

@@ -1,33 +1,35 @@
 package repository.auth
 
 import api.AuthApi
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import model.AppError
 import model.AuthResult
 import model.ErrorCode
 import model.User
-import model.auth.LoginRequest
-import model.auth.RefreshTokenRequest
-import model.auth.RegisterRequest
+import model.auth.AuthResponseData
 import model.auth.ServerStatusResponse
-import repository.mapper.AuthMapper
+import model.auth.RefreshTokenRequest
 import settings.MultiplatformSettings
 
 /**
- * Реальная реализация репозитория для работы с аутентификацией
+ * Реализация репозитория для работы с аутентификацией
  * Использует AuthApi из домена для взаимодействия с API
  */
-class DefaultAuthRepository(
+class AuthRepositoryImpl(
     private val authApi: AuthApi,
     private val settings: MultiplatformSettings
 ) : AuthRepository {
 
     private var currentUser: User? = null
+    private val _authState = MutableStateFlow<AuthState>(AuthState.Unauthenticated)
+    override val authState: StateFlow<AuthState> = _authState
 
     override suspend fun register(
         email: String,
         password: String,
         username: String
-    ): AuthResult {
+    ): AuthResult<AuthResponseData> {
         try {
             // Базовая валидация входных параметров
             if (email.isBlank() || password.isBlank() || username.isBlank()) {
@@ -43,9 +45,24 @@ class DefaultAuthRepository(
             // Делегируем выполнение API
             val result = authApi.register(username, email, password)
 
-            // Обновляем кэшированного пользователя, если успешно
-            if (result is AuthResult.Success && result.user != null) {
-                currentUser = result.user
+            // Обрабатываем результат
+            when (result) {
+                is AuthResult.Success -> {
+                    // Сохраняем токены выполняется в AuthApiAdapter
+
+                    // Обновляем кэшированного пользователя
+                    val user = result.user
+                    currentUser = user
+                    if (user != null) {
+                        _authState.value = AuthState.Authenticated(user)
+                    }
+                }
+                is AuthResult.Error -> {
+                    // Ничего не делаем, просто возвращаем ошибку
+                }
+                is AuthResult.Loading -> {
+                    // Ничего не делаем, просто возвращаем состояние загрузки
+                }
             }
 
             return result
@@ -60,7 +77,7 @@ class DefaultAuthRepository(
         }
     }
 
-    override suspend fun login(email: String, password: String): AuthResult {
+    override suspend fun login(email: String, password: String): AuthResult<AuthResponseData> {
         try {
             // Базовая валидация входных параметров
             if (email.isBlank() || password.isBlank()) {
@@ -76,9 +93,24 @@ class DefaultAuthRepository(
             // Делегируем выполнение API
             val result = authApi.login(email, password)
 
-            // Обновляем кэшированного пользователя, если успешно
-            if (result is AuthResult.Success && result.user != null) {
-                currentUser = result.user
+            // Обрабатываем результат
+            when (result) {
+                is AuthResult.Success -> {
+                    // Сохраняем токены выполняется в AuthApiAdapter
+
+                    // Обновляем кэшированного пользователя
+                    val user = result.user
+                    currentUser = user
+                    if (user != null) {
+                        _authState.value = AuthState.Authenticated(user)
+                    }
+                }
+                is AuthResult.Error -> {
+                    // Ничего не делаем, просто возвращаем ошибку
+                }
+                is AuthResult.Loading -> {
+                    // Ничего не делаем, просто возвращаем состояние загрузки
+                }
             }
 
             return result
@@ -93,18 +125,25 @@ class DefaultAuthRepository(
         }
     }
 
-    override suspend fun logout(): AuthResult {
+    override suspend fun logout(): AuthResult<Unit> {
         try {
             // Делегируем выполнение API
             val result = authApi.logout()
 
             // Очищаем кэш при выходе
             currentUser = null
+            _authState.value = AuthState.Unauthenticated
+
+            // Очистка токенов происходит в AuthApiAdapter
 
             return result
         } catch (e: Exception) {
             // Очищаем кэш при ошибке тоже
             currentUser = null
+            _authState.value = AuthState.Unauthenticated
+
+            // Очистка токенов происходит в AuthApiAdapter
+
             return AuthResult.Error(
                 AppError(
                     code = ErrorCode.NETWORK_ERROR,
@@ -131,9 +170,11 @@ class DefaultAuthRepository(
             val result = authApi.getCurrentUser()
 
             // Если успешно, обновляем кэш и возвращаем пользователя
-            if (result is AuthResult.Success && result.user != null) {
-                currentUser = result.user
-                return result.user
+            if (result is AuthResult.Success) {
+                val user = result.data
+                currentUser = user
+                _authState.value = AuthState.Authenticated(user)
+                return user
             }
 
             return null
@@ -146,7 +187,7 @@ class DefaultAuthRepository(
         return settings.security.hasAuthToken()
     }
 
-    override suspend fun updateProfile(username: String): AuthResult {
+    override suspend fun updateProfile(username: String): AuthResult<User> {
         try {
             // Базовая валидация входных параметров
             if (username.isBlank()) {
@@ -162,9 +203,22 @@ class DefaultAuthRepository(
             // Делегируем выполнение API
             val result = authApi.updateProfile(username)
 
-            // Обновляем кэшированного пользователя, если успешно
-            if (result is AuthResult.Success && result.user != null) {
-                currentUser = result.user
+            // Обрабатываем результат
+            when (result) {
+                is AuthResult.Success -> {
+                    // Обновляем кэшированного пользователя
+                    val user = result.data
+                    currentUser = user
+                    if (user != null) {
+                        _authState.value = AuthState.Authenticated(user)
+                    }
+                }
+                is AuthResult.Error -> {
+                    // Ничего не делаем, просто возвращаем ошибку
+                }
+                is AuthResult.Loading -> {
+                    // Ничего не делаем, просто возвращаем состояние загрузки
+                }
             }
 
             return result
@@ -179,12 +233,12 @@ class DefaultAuthRepository(
         }
     }
 
-    override suspend fun checkServerStatus(): AuthResult {
-        try {
+    override suspend fun checkServerStatus(): AuthResult<ServerStatusResponse> {
+        return try {
             // Делегируем выполнение API
-            return authApi.checkServerStatus()
+            authApi.checkServerStatus()
         } catch (e: Exception) {
-            return AuthResult.Error(
+            AuthResult.Error(
                 AppError(
                     code = ErrorCode.NETWORK_ERROR,
                     message = "Ошибка при проверке статуса сервера",
@@ -194,40 +248,17 @@ class DefaultAuthRepository(
         }
     }
 
-    /**
-     * Обновляет токен, если он истек
-     * @return true, если токен обновлен успешно или не требует обновления
-     */
-    private suspend fun refreshTokenIfNeeded(): Boolean {
-        // Получаем текущий refresh токен
-        val refreshToken = settings.security.getRefreshToken() ?: return false
-
+    override suspend fun refreshTokenIfNeeded(): Boolean {
         try {
-            // Создаем запрос на обновление токена
-            val request = RefreshTokenRequest(refreshToken)
-
-            // Выполняем запрос к API
-            val result = authApi.refreshToken(request)
-
-            // Обрабатываем результат
-            when (result) {
-                is model.auth.AuthResult.Success -> {
-                    // Сохраняем новый токен
-                    settings.security.saveAuthToken(result.data.token)
-                    settings.security.saveRefreshToken(result.data.refreshToken)
-                    return true
-                }
-                else -> {
-                    // Очищаем токены в случае ошибки
-                    settings.security.clearAuthToken()
-                    settings.security.clearRefreshToken()
-                    return false
-                }
+            val refreshToken = settings.security.getRefreshToken()
+            if (refreshToken == null) {
+                return false
             }
+
+            val request = RefreshTokenRequest(refreshToken)
+            val result = authApi.refreshToken(request)
+            return result is AuthResult.Success
         } catch (e: Exception) {
-            // Очищаем токены в случае ошибки
-            settings.security.clearAuthToken()
-            settings.security.clearRefreshToken()
             return false
         }
     }

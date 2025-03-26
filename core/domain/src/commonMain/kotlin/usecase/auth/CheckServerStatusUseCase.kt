@@ -5,16 +5,15 @@ import model.auth.ServerStatusResponse
 import repository.auth.AuthRepository
 
 /**
- * Use case для проверки статуса сервера
+ * UseCase для проверки статуса сервера
  */
-class CheckServerStatusUseCase(
-    private val authRepository: AuthRepository
-) {
+class CheckServerStatusUseCase(private val authRepository: AuthRepository) {
     /**
-     * Проверяет статус сервера
-     * @return Результат операции с данными о статусе сервера
+     * Выполнение проверки статуса сервера
+     *
+     * @return Результат операции проверки статуса
      */
-    suspend operator fun invoke(): AuthResult {
+    suspend operator fun invoke(): AuthResult<ServerStatusResponse> {
         return authRepository.checkServerStatus()
     }
 }

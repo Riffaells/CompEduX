@@ -1,7 +1,7 @@
 package api.auth
 
 import kotlinx.coroutines.flow.StateFlow
-import model.auth.AuthResponse
+import model.auth.AuthResponseData
 
 /**
  * Интерфейс менеджера токенов для хранения и обновления токенов аутентификации
@@ -15,7 +15,7 @@ interface ITokenManager {
     /**
      * Сохраняет данные аутентификации
      */
-    fun saveAuthData(authResponse: AuthResponse)
+    fun saveAuthData(authResponse: AuthResponseData)
 
     /**
      * Получает токен доступа

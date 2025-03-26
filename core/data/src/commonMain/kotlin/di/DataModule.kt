@@ -1,23 +1,32 @@
 package di
 
-import api.AuthApi as DomainAuthApi
-import api.auth.AuthApi as NetworkAuthApi
+import api.NetworkAuthApi
 import api.adapter.AuthApiAdapter
+import api.adapter.NetworkAuthApiAdapter
 import org.kodein.di.DI
 import org.kodein.di.bind
 import org.kodein.di.instance
 import org.kodein.di.singleton
 import repository.auth.AuthRepository
-import repository.auth.DefaultAuthRepository
+import repository.auth.AuthRepositoryImpl
 import repository.mapper.AuthMapper
+import repository.mapper.DataErrorMapper
 import repository.mapper.ErrorMapper
 import settings.MultiplatformSettings
+import api.AuthApi as DomainAuthApi
 
 /**
- * Модуль зависимостей для слоя данных
+ * Модуль для слоя данных
  */
 val dataModule = DI.Module("dataModule") {
-    // API адаптер для преобразования между доменным API и сетевым API
+    // NetworkAuthApi адаптер для преобразования между NetworkAuthApi и KtorAuthApi
+    bind<NetworkAuthApi>() with singleton {
+        NetworkAuthApiAdapter(
+            ktorAuthApi = instance()
+        )
+    }
+
+    // API адаптер для преобразования между доменным API и NetworkAuthApi
     bind<DomainAuthApi>() with singleton {
         AuthApiAdapter(
             networkAuthApi = instance<NetworkAuthApi>(),
@@ -27,15 +36,13 @@ val dataModule = DI.Module("dataModule") {
 
     // Репозиторий аутентификации
     bind<AuthRepository>() with singleton {
-        DefaultAuthRepository(
+        AuthRepositoryImpl(
             authApi = instance<DomainAuthApi>(),
             settings = instance<MultiplatformSettings>()
         )
     }
 
-    // Маппер ошибок
-    bind<ErrorMapper>() with singleton { ErrorMapper }
-
-    // Маппер аутентификации
+    // Мапперы
+    bind<ErrorMapper>() with singleton { DataErrorMapper() }
     bind<AuthMapper>() with singleton { AuthMapper }
 }
