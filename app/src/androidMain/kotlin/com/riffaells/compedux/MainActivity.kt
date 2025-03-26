@@ -13,9 +13,11 @@ import com.riffaells.compedux.di.appDI
 import component.root.DefaultRootComponent
 import component.root.RootComponentParams
 import components.root.RootContent
+import di.Logger
 import org.kodein.di.compose.withDI
 import org.kodein.di.direct
 import org.kodein.di.factory
+import org.kodein.di.instance
 
 class AppActivity : ComponentActivity() {
     private lateinit var rootComponent: DefaultRootComponent
@@ -24,6 +26,10 @@ class AppActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Получаем логгер из DI
+        val logger = appDI.direct.instance<Logger>()
+        logger.d("Запуск Android-приложения")
 
         // Отключаем проверку главного потока для Android
         System.setProperty("mvikotlin.enableThreadAssertions", "false")

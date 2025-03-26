@@ -26,6 +26,7 @@ mviKotlin = "4.3.0"
 kotlinx-datetime = "0.6.2"
 ktor = "3.1.1"
 napier = "2.7.1"
+slf4j = "1.7.36"
 
 android-compileSdk = "35"
 android-minSdk = "24"
@@ -112,6 +113,9 @@ ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "kto
 
 # Логирование
 napier = { module = "io.github.aakira:napier", version.ref = "napier" }
+slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
+slf4j-android = { module = "org.slf4j:slf4j-android", version.ref = "slf4j" }
+slf4j-simple = { module = "org.slf4j:slf4j-simple", version.ref = "slf4j" }
 
 skiko = { module = "org.jetbrains.skiko:skiko", version.ref = "skiko" }
 haze = { group = "dev.chrisbanes.haze",  name="haze",version.ref = "haze" }

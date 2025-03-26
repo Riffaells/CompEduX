@@ -8,6 +8,9 @@ import org.kodein.di.DI
 val allModules = DI.Module("allModules") {
     // Импортируем все модули в правильном порядке (от нижнего уровня к верхнему)
 
+    // 0. Логирование (самый базовый уровень)
+    import(loggingModule)
+
     // 1. Настройки и сериализация (базовый уровень)
     import(settingsModule)
 
@@ -18,7 +21,7 @@ val allModules = DI.Module("allModules") {
     import(networkModule)
 
     // 4. Слой данных (реализации репозиториев)
-    //import(dataModule)
+    import(dataModule)
 
     // 5. Компоненты приложения
     import(componentModule)

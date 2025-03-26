@@ -14,9 +14,6 @@ class MultiplatformConventionPlugin : Plugin<Project> {
             with(pluginManager) {
                 apply(libs.plugins.kmultiplatform.get().pluginId)
                 apply(libs.plugins.kotlin.serialization.get().pluginId)
-
-
-
             }
 
             extensions.configure<KotlinMultiplatformExtension> {
@@ -24,20 +21,21 @@ class MultiplatformConventionPlugin : Plugin<Project> {
                 val commonMain = sourceSets.commonMain
                 val commonTest = sourceSets.commonTest
                 val androidMain = sourceSets.androidMain
+                val jvmMain = sourceSets.jvmMain
+                val wasmJsMain = sourceSets.wasmJsMain
 
                 commonMain.dependencies {
                     implementation(libs.kotlinx.serialization.json)
                     implementation(libs.kotlinx.datetime)
                     implementation(libs.kotlin.stdlib)
                     implementation(libs.napier)
+                    implementation(libs.slf4j.api)
 
                     // Kodein DI
                     implementation(libs.kodein)
                     implementation(libs.kodein.compose)
 
-
                     implementation(libs.coroutines)
-
                 }
 
                 commonTest.dependencies {
@@ -48,6 +46,19 @@ class MultiplatformConventionPlugin : Plugin<Project> {
                     implementation(libs.coroutines.android)
                     implementation(libs.androidx.core)
 
+                    // Добавляем SLF4J для Android
+                    implementation(libs.slf4j.android)
+                }
+
+                // JVM-специфические зависимости
+                jvmMain.dependencies {
+                    // Добавляем SLF4J для JVM (Desktop)
+                    implementation(libs.slf4j.simple)
+                }
+
+                // WASM-специфические зависимости
+                wasmJsMain.dependencies {
+                    // Для WASM просто используем Napier, т.к. SLF4J не нужен
                 }
             }
         }
