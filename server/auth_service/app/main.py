@@ -1,13 +1,15 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 import logging
+import time
+import json
 
 from .api.routes import router as api_router
 from .core.config import settings
 from .db.init_db import init_db
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 # Отключаем предупреждения от passlib
 logging.getLogger('passlib').setLevel(logging.ERROR)
@@ -26,6 +28,27 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Middleware для логирования запросов и ответов
+@app.middleware("http")
+async def log_requests_and_responses(request: Request, call_next):
+    # Логируем запрос
+    request_body = await request.body()
+    request_body_str = request_body.decode() if request_body else ""
+    logger.debug(f"Request: {request.method} {request.url.path}")
+    if request_body_str:
+        try:
+            logger.debug(f"Request body: {json.loads(request_body_str)}")
+        except:
+            logger.debug(f"Request body: {request_body_str}")
+
+    # Обрабатываем запрос
+    response = await call_next(request)
+
+    # Логируем ответ
+    logger.debug(f"Response status: {response.status_code}")
+
+    return response
 
 # Include routers
 app.include_router(api_router)

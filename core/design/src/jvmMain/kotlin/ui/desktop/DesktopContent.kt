@@ -17,9 +17,10 @@ import androidx.compose.ui.window.WindowScope
 fun WindowScope.DesktopContent(
     modifier: Modifier = Modifier,
     isSpace: Boolean = false,
+    title: String,
     onCloseRequest: () -> Unit,
     onMinimizeRequest: () -> Unit,
-    onMaximizeRequest: () -> Unit
+    onMaximizeRequest: () -> Unit,
 ) {
 
     Box(
@@ -34,6 +35,7 @@ fun WindowScope.DesktopContent(
                 onCloseRequest = onCloseRequest,
                 onMinimizeRequest = onMinimizeRequest,
                 onMaximizeRequest = onMaximizeRequest,
+                text = title
             )
 
         }

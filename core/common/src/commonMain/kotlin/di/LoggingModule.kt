@@ -24,7 +24,45 @@ interface Logger {
 }
 
 /**
- * Кастомная реализация Antilog, которая выводит логи в более чистом формате
+ * Цвета текста в консоли ANSI
+ */
+object ConsoleColors {
+    const val RESET = "\u001B[0m"
+    const val BLACK = "\u001B[30m"
+    const val RED = "\u001B[31m"
+    const val GREEN = "\u001B[32m"
+    const val YELLOW = "\u001B[33m"
+    const val BLUE = "\u001B[34m"
+    const val PURPLE = "\u001B[35m"
+    const val CYAN = "\u001B[36m"
+    const val WHITE = "\u001B[37m"
+
+    // Яркие цвета
+    const val BRIGHT_RED = "\u001B[91m"
+    const val BRIGHT_GREEN = "\u001B[92m"
+    const val BRIGHT_YELLOW = "\u001B[93m"
+    const val BRIGHT_BLUE = "\u001B[94m"
+    const val BRIGHT_PURPLE = "\u001B[95m"
+    const val BRIGHT_CYAN = "\u001B[96m"
+    const val BRIGHT_WHITE = "\u001B[97m"
+
+    // Фоновые цвета
+    const val BG_RED = "\u001B[41m"
+    const val BG_GREEN = "\u001B[42m"
+    const val BG_YELLOW = "\u001B[43m"
+    const val BG_BLUE = "\u001B[44m"
+    const val BG_PURPLE = "\u001B[45m"
+    const val BG_CYAN = "\u001B[46m"
+    const val BG_WHITE = "\u001B[47m"
+
+    // Стили текста
+    const val BOLD = "\u001B[1m"
+    const val UNDERLINE = "\u001B[4m"
+    const val ITALIC = "\u001B[3m"
+}
+
+/**
+ * Кастомная реализация Antilog, которая выводит логи в более визуально различимом формате с цветами
  */
 class CustomAntilog : Antilog() {
     override fun performLog(
@@ -35,14 +73,14 @@ class CustomAntilog : Antilog() {
     ) {
         val tagString = if (tag != null) "[$tag]" else ""
 
-        // Эмодзи для разных уровней логирования
-        val emoji = when (priority) {
-            LogLevel.VERBOSE -> "🟣" // фиолетовый круг
-            LogLevel.DEBUG -> "🔵" // синий круг
-            LogLevel.INFO -> "🟢" // зеленый круг
-            LogLevel.WARNING -> "🟡" // желтый круг
-            LogLevel.ERROR -> "🔴" // красный круг
-            LogLevel.ASSERT -> "⚠️" // предупреждение
+        // Цвета и эмодзи для разных уровней логирования
+        val (color, emoji) = when (priority) {
+            LogLevel.VERBOSE -> Pair(ConsoleColors.PURPLE, "🟣") // фиолетовый
+            LogLevel.DEBUG -> Pair(ConsoleColors.BLUE, "🔵") // синий
+            LogLevel.INFO -> Pair(ConsoleColors.GREEN, "🟢") // зеленый
+            LogLevel.WARNING -> Pair(ConsoleColors.YELLOW, "🟡") // желтый
+            LogLevel.ERROR -> Pair(ConsoleColors.BRIGHT_RED, "🔴") // красный
+            LogLevel.ASSERT -> Pair(ConsoleColors.BG_RED + ConsoleColors.WHITE, "⚠️") // красный фон с белым текстом
         }
 
         val priorityChar = when (priority) {
@@ -61,16 +99,18 @@ class CustomAntilog : Antilog() {
             localDateTime.hour, localDateTime.minute, localDateTime.second, now.toEpochMilliseconds() % 1000)
 
         val output = buildString {
-            append("$emoji[$timeStr][$priorityChar] ")
+            append("$color$emoji[$timeStr][$priorityChar]")
             if (tag != null) {
-                append("$tagString ")
+                append(" $tagString")
             }
-            append(message ?: "")
+            append(" $message")
 
             if (throwable != null) {
                 append("\n")
                 append(throwable.stackTraceToString())
             }
+
+            append(ConsoleColors.RESET) // Сбросить форматирование
         }
 
         println(output)

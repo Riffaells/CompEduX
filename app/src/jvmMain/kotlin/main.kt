@@ -9,10 +9,13 @@ import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.lifecycle.LifecycleController
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.riffaells.compedux.di.appDI
+import compedux.app.generated.resources.Res
+import compedux.app.generated.resources.app_name
 import component.root.DefaultRootComponent
 import component.root.RootComponentParams
 import components.root.RootContent
 import di.Logger
+import org.jetbrains.compose.resources.stringResource
 import org.kodein.di.compose.withDI
 import org.kodein.di.direct
 import org.kodein.di.factory
@@ -114,6 +117,7 @@ fun main() {
 
                     DesktopContent(
                         modifier = Modifier,
+                        title = stringResource(Res.string.app_name),
                         isSpace = isSpace,
                         onCloseRequest = ::exitApplication,
                         onMinimizeRequest = { windowState.isMinimized = true },

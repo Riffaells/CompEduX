@@ -21,7 +21,7 @@ class UserModel(Base):
 
     Main field groups:
     - Identification: id, email, username, hashed_password
-    - Personal information: first_name, last_name, avatar_url, bio, location, preferred_language
+    - Personal information: first_name, last_name, avatar_url, bio, location, lang
     - Statistics: rating
     - Status and role: is_active, is_verified, role
     - Authentication: auth_provider, oauth_providers
@@ -43,7 +43,7 @@ class UserModel(Base):
     avatar_url = Column(String, nullable=True)
     bio = Column(Text, nullable=True)  # Brief biography
     location = Column(String, nullable=True)  # Location
-    preferred_language = Column(String, default="en")  # Preferred language
+    lang = Column(String, default="en")  # Preferred language
 
     # Statistics and rating
     rating = Column(Integer, default=0)  # User rating

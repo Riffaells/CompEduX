@@ -14,12 +14,12 @@ class UserBaseSchema(BaseModel):
     """
     email: EmailStr
     username: str
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
+    first_name: str = ""
+    last_name: str = ""
     avatar_url: Optional[HttpUrl] = None
-    bio: Optional[str] = None
-    location: Optional[str] = None
-    preferred_language: str = "en"
+    bio: str = ""
+    location: str = ""
+    lang: str = "en"
     rating: int = 0
     is_active: bool = True
     role: UserRole = UserRole.USER

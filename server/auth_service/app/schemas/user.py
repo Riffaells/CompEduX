@@ -76,9 +76,9 @@ class UserCreateSchema(BaseModel):
     email: EmailStr
     username: Optional[str] = None
     password: str = Field(..., min_length=8)
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    preferred_language: Optional[str] = None
+    first_name: str = ""
+    last_name: str = ""
+    lang: Optional[str] = None
 
     @field_validator('username', mode='before')
     def validate_username(cls, v):
@@ -107,7 +107,7 @@ class UserUpdateSchema(BaseModel):
     avatar_url: Optional[HttpUrl] = None
     bio: Optional[str] = None
     location: Optional[str] = None
-    preferred_language: Optional[str] = None
+    lang: Optional[str] = None
     password: Optional[str] = Field(None, min_length=8)
     is_active: Optional[bool] = None
     is_verified: Optional[bool] = None
@@ -151,7 +151,7 @@ class UserResponseSchema(UserBaseSchema):
     created_at: datetime
     updated_at: datetime
     last_login_at: Optional[datetime] = None
-    privacy_settings: PrivacySettingsSchema
+    # privacy_settings: PrivacySettingsSchema  # Удалено по требованию
     oauth_providers: List[UserOAuthProviderSchema] = []
     # Temporarily commented out rooms for troubleshooting
     # rooms: List[UserRoomSchema] = []

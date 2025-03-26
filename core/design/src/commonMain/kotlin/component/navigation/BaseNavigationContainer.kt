@@ -1,6 +1,5 @@
 package component.navigation
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -9,13 +8,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.*
 import io.github.aakira.napier.Napier
-import io.github.aakira.napier.Napier.log
-import io.github.aakira.napier.log
 import kotlinx.datetime.Clock
 
 /**
@@ -49,7 +45,7 @@ fun BaseNavigationContainer(
     content: @Composable BoxScope.() -> Unit
 ) {
     // Логируем создание контейнера
-    log (tag = "BaseNavigationContainer") { "Создание контейнера с тенью и скруглением"  }
+    Napier.d(tag = "BaseNavigationContainer") { "Создание контейнера с тенью и скруглением"  }
     val boxStartTime = Clock.System.now().toEpochMilliseconds()
 
     // Создаем стиль размытия на основе типа и цвета фона
@@ -103,19 +99,10 @@ fun BaseNavigationContainer(
                 spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
             )
             .clip(RoundedCornerShape(cornerRadius.dp))
-//            .background(
-//                backgroundColor.copy(alpha = 0.95f),
-//                shape = RoundedCornerShape(cornerRadius.dp)
-//            )
     } else {
         // Если размытие включено, применяем эффект размытия
         Napier.d("BaseNavigationContainer: Применяется эффект размытия типа $blurType")
         modifier
-//            .shadow(
-//                elevation = elevation.dp,
-//                shape = RoundedCornerShape(cornerRadius.dp),
-//                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-//            )
             .clip(RoundedCornerShape(cornerRadius.dp))
             .hazeEffect(
                 state = hazeState,

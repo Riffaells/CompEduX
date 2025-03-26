@@ -6,8 +6,8 @@ from sqlalchemy.orm import Session
 
 from ...db.session import get_db
 from ...models.user import UserModel, UserRole
-from ...schemas import UserResponseSchema, UserUpdateSchema, UserPublicProfileSchema
-from ...services.auth import get_current_user, get_user_by_id, get_user_by_username
+from ...schemas import UserResponseSchema, UserUpdateSchema, UserPublicProfileSchema, UserCreateSchema
+from ...services.auth import get_current_user, get_user_by_id, get_user_by_username, create_user
 
 router = APIRouter()
 

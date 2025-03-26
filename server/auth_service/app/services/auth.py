@@ -176,9 +176,9 @@ def create_user(db: Session, user_data: UserCreateSchema) -> UserModel:
         email=user_data.email,
         username=username,
         hashed_password=hashed_password,
-        first_name=user_data.first_name,
-        last_name=user_data.last_name,
-        preferred_language=user_data.preferred_language or "en"
+        first_name=user_data.first_name or "",
+        last_name=user_data.last_name or "",
+        lang=user_data.lang or "en"
     )
 
     db.add(db_user)

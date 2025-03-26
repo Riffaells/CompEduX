@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.WindowScope
 import ui.icon.RIcons
@@ -16,6 +17,7 @@ import ui.icon.RIcons
 
 @Composable
 fun WindowScope.TopBar(
+    text: String,
     modifier: Modifier = Modifier,
     onCloseRequest: () -> Unit,
     onMinimizeRequest: () -> Unit,
@@ -24,60 +26,58 @@ fun WindowScope.TopBar(
 ) = WindowDraggableArea(
     modifier = modifier.height(36.dp),
 ) {
-    Surface(
-        modifier = modifier.fillMaxSize(),
-    ) {
 
+
+    Row(
+
+        modifier = modifier.fillMaxSize(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Row(
+            modifier = modifier,
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Start,
+        ) {
+            Text(
+                text = text,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(10.dp),
+                fontWeight = FontWeight.Bold
+            )
+
+        }
 
         Row(
-
-            modifier = modifier.fillMaxSize(),
+            modifier = modifier,
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Row(
-                modifier = modifier,
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Start,
+            horizontalArrangement = Arrangement.End,
+
             ) {
-                Text(
-                    "RAlias",
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(10.dp),
-                )
+            // Кнопка свернуть
+            ButtonToolBar(
+                onClick = onMinimizeRequest,
+                imageVector = RIcons.Minimize,
+                contentDescription = "Minimize",
+                tint = MaterialTheme.colorScheme.primary
+            )
 
-            }
+            // Кнопка развернуть
+            ButtonToolBar(
+                onClick = onMaximizeRequest,
+                imageVector = RIcons.Maximize,
+                contentDescription = "Maximize",
+                tint = MaterialTheme.colorScheme.primary
+            )
 
-            Row(
-                modifier = modifier,
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.End,
-
-                ) {
-                // Кнопка свернуть
-                ButtonToolBar(
-                    onClick = onMinimizeRequest,
-                    imageVector = RIcons.Minimize,
-                    contentDescription = "Minimize",
-                    tint = MaterialTheme.colorScheme.primary
-                )
-
-                // Кнопка развернуть
-                ButtonToolBar(
-                    onClick = onMaximizeRequest,
-                    imageVector = RIcons.Maximize,
-                    contentDescription = "Maximize",
-                    tint = MaterialTheme.colorScheme.primary
-                )
-
-                // Кнопка закрыть
-                ButtonToolBar(
-                    onClick = onCloseRequest,
-                    imageVector = RIcons.Close,
-                    contentDescription = "Close",
-                    tint = Color.Red
-                )
-            }
+            // Кнопка закрыть
+            ButtonToolBar(
+                onClick = onCloseRequest,
+                imageVector = RIcons.Close,
+                contentDescription = "Close",
+                tint = Color.Red
+            )
         }
     }
+
 }
