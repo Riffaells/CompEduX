@@ -47,9 +47,11 @@ fun RootContent(
     val childStack by component.childStack.subscribeAsState()
     val state by component.state.collectAsState()
     val settings = component.settings
-    val appearance = settings.appearance
-    val theme by appearance.themeFlow.collectAsState()
-    val blackBackground by appearance.blackBackgroundFlow.collectAsState()
+
+    val theme by component.appearanceSettings.themeFlow.collectAsState()
+    val blackBackground by component.appearanceSettings.blackBackgroundFlow.collectAsState()
+
+
 
     val screenWidth = getScreenWidth()
     val isLargeScreen = screenWidth > 840.dp
@@ -58,7 +60,7 @@ fun RootContent(
     val navigationState = rememberNavigationState(isLargeScreen)
 
     // Определяем тему
-    val isDarkTheme = when (theme) {
+    val isDarkTheme =  when (theme) {
         AppearanceSettings.ThemeOption.THEME_SYSTEM -> null
         AppearanceSettings.ThemeOption.THEME_DARK -> true
         AppearanceSettings.ThemeOption.THEME_LIGHT -> false

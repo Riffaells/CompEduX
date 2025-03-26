@@ -68,7 +68,7 @@ class NetworkAuthApiAdapter(
     private fun convertAuthResponseDtoToData(dto: AuthResponseDto): AuthResponseData {
         return AuthResponseData(
             token = dto.token,
-            refreshToken = "", // RefreshToken might not be present in DTO
+            refreshToken = dto.refreshToken,
             userId = dto.user.id,
             username = dto.user.username,
             expiresIn = 0 // ExpiresIn might not be present in DTO

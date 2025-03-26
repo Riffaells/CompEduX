@@ -28,12 +28,14 @@ import org.kodein.di.DI
 import org.kodein.di.DIAware
 import org.kodein.di.factory
 import org.kodein.di.instance
+import settings.AppearanceSettings
 import settings.MultiplatformSettings
 
 
 /**
  * Параметры для создания корневого компонента
  */
+@OptIn(ExperimentalDecomposeApi::class)
 data class RootComponentParams(
     val componentContext: ComponentContext,
     val webHistoryController: WebHistoryController? = null,
@@ -62,6 +64,8 @@ interface RootComponent {
         class AuthChild(val component: DefaultAuthComponent) : Child()
         class RoomChild(val component: DefaultRoomComponent) : Child()
     }
+
+    val appearanceSettings: AppearanceSettings
 }
 
 @OptIn(ExperimentalDecomposeApi::class)
@@ -84,6 +88,9 @@ class DefaultRootComponent(
     }
 
     override val settings by instance<MultiplatformSettings>()
+
+
+    override val appearanceSettings by instance<AppearanceSettings>()
 
     private val stack = childStack(
         source = navigation,

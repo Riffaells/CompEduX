@@ -18,7 +18,7 @@ val allModules = DI.Module("allModules") {
     import(networkModule)
 
     // 4. Слой данных (реализации репозиториев)
-    import(dataModule)
+    //import(dataModule)
 
     // 5. Компоненты приложения
     import(componentModule)

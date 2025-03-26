@@ -122,10 +122,10 @@ class AuthApiAdapter(
                 result = result,
                 errorCode = ErrorCode.INVALID_CREDENTIALS,
                 successHandler = { data ->
-                    // Save token
+                    // Сохраняем токен
                     saveTokens(data.token, data.refreshToken)
 
-                    // Create domain user model from AuthResponse fields
+                    // Create domain user model from AuthResponseData fields
                     val domainUser = DomainUser(
                         id = data.userId,
                         username = data.username,
@@ -153,10 +153,10 @@ class AuthApiAdapter(
                 result = result,
                 errorCode = ErrorCode.INVALID_CREDENTIALS,
                 successHandler = { data ->
-                    // Save token
+                    // Сохраняем токен
                     saveTokens(data.token, data.refreshToken)
 
-                    // Create domain user model from AuthResponse fields
+                    // Create domain user model from AuthResponseData fields
                     val domainUser = DomainUser(
                         id = data.userId,
                         username = data.username,
@@ -290,11 +290,11 @@ class AuthApiAdapter(
                     // Save new tokens
                     saveTokens(data.token, data.refreshToken)
 
-                    // Create domain user model from AuthResponse fields
+                    // Create domain user model from AuthResponseData fields
                     val domainUser = DomainUser(
                         id = data.userId,
                         username = data.username,
-                        email = data.username // Using username as email since it's not provided in AuthResponse
+                        email = data.username // Using username as email since it's not provided in AuthResponseData
                     )
 
                     AuthResult.Success(data, domainUser, data.token)

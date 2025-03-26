@@ -18,6 +18,7 @@ import kotlinx.serialization.Serializable
 import org.kodein.di.DI
 import org.kodein.di.DIAware
 import org.kodein.di.instance
+import settings.AppearanceSettings
 import settings.MultiplatformSettings
 
 /**
@@ -81,9 +82,8 @@ class DefaultSettingsComponent(
     override val di: DI
 ) : SettingsComponent, DIAware, ComponentContext by componentContext {
 
-    private val settingsStoreFactory by instance<SettingsStoreFactory>()
     private val navigation = StackNavigation<SettingsComponent.Config>()
-    private val multiplatformSettings: MultiplatformSettings by instance()
+    private val multiplatformSettings by instance<MultiplatformSettings>()
 
     private val store = instanceKeeper.getStore {
         SettingsStoreFactory(

@@ -116,7 +116,7 @@ object AuthMapper {
         val domainUser = User(
             id = authResponse.userId,
             username = authResponse.username,
-            email = authResponse.username // Using username as email since it's not provided in AuthResponse
+            email = authResponse.username // Using username as email since it's not provided in AuthResponseData
         )
         return AuthResult.Success(domainUser, domainUser, authResponse.token)
     }

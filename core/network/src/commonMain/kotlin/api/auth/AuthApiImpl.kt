@@ -1,15 +1,30 @@
 package api.auth
 
+import api.dto.AuthResponseDto
+import api.dto.UserResponse
 import config.NetworkConfig
 import io.ktor.client.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
-import io.ktor.http.*
 import io.ktor.client.call.*
+import io.ktor.client.request.*
+import io.ktor.http.*
 import model.AppError
 import model.AuthResult
 import model.User
-import model.auth.*
+import model.auth.LoginRequest
+import model.auth.RefreshTokenRequest
+import model.auth.RegisterRequest
+import model.auth.ServerStatusResponse
+
+/**
+ * Функция-расширение для конвертации UserResponse в User
+ */
+private fun UserResponse.toUser(): User {
+    return User(
+        id = this.id,
+        username = this.username,
+        email = this.email
+    )
+}
 
 /**
  * Реализация API аутентификации
@@ -21,7 +36,7 @@ class AuthApiImpl(
 
     private suspend fun getBaseUrl(): String = networkConfig.getBaseUrl()
 
-    override suspend fun register(request: RegisterRequest): AuthResult<AuthResponse> {
+    override suspend fun register(request: RegisterRequest): AuthResult<AuthResponseDto> {
         return try {
             val baseUrl = getBaseUrl()
             val response = client.post("$baseUrl/auth/register") {
@@ -30,8 +45,8 @@ class AuthApiImpl(
             }
 
             if (response.status.isSuccess()) {
-                val authResponse = response.body<AuthResponse>()
-                AuthResult.Success(authResponse, authResponse.user, authResponse.token)
+                val authResponse = response.body<AuthResponseDto>()
+                AuthResult.Success(authResponse, authResponse.user.toUser(), authResponse.token)
             } else {
                 AuthResult.Error(AppError(message = "Registration failed"))
             }
@@ -40,7 +55,7 @@ class AuthApiImpl(
         }
     }
 
-    override suspend fun login(request: LoginRequest): AuthResult<AuthResponse> {
+    override suspend fun login(request: LoginRequest): AuthResult<AuthResponseDto> {
         return try {
             val baseUrl = getBaseUrl()
             val response = client.post("$baseUrl/auth/login") {
@@ -49,8 +64,8 @@ class AuthApiImpl(
             }
 
             if (response.status.isSuccess()) {
-                val authResponse = response.body<AuthResponse>()
-                AuthResult.Success(authResponse, authResponse.user, authResponse.token)
+                val authResponse = response.body<AuthResponseDto>()
+                AuthResult.Success(authResponse, authResponse.user.toUser(), authResponse.token)
             } else {
                 AuthResult.Error(AppError(message = "Login failed"))
             }
@@ -59,7 +74,7 @@ class AuthApiImpl(
         }
     }
 
-    override suspend fun refreshToken(request: RefreshTokenRequest): AuthResult<AuthResponse> {
+    override suspend fun refreshToken(request: RefreshTokenRequest): AuthResult<AuthResponseDto> {
         return try {
             val baseUrl = getBaseUrl()
             val response = client.post("$baseUrl/auth/refresh") {
@@ -68,8 +83,8 @@ class AuthApiImpl(
             }
 
             if (response.status.isSuccess()) {
-                val authResponse = response.body<AuthResponse>()
-                AuthResult.Success(authResponse, authResponse.user, authResponse.token)
+                val authResponse = response.body<AuthResponseDto>()
+                AuthResult.Success(authResponse, authResponse.user.toUser(), authResponse.token)
             } else {
                 AuthResult.Error(AppError(message = "Token refresh failed"))
             }

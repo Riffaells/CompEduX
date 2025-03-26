@@ -19,7 +19,7 @@ import settings.SecuritySettings
 import settings.ProfileSettings
 import utils.rDispatchers
 
-interface SettingsStore : Store<SettingsStore.Intent, SettingsStore.State, Nothing> {
+interface SettingsStore : Store<SettingsStore.Intent, SettingsStore.State, SettingsStore.Label> {
 
     sealed interface Intent {
         data object Init : Intent
@@ -42,6 +42,17 @@ interface SettingsStore : Store<SettingsStore.Intent, SettingsStore.State, Nothi
         data object ClearProfileData : Intent
     }
 
+    sealed interface Label {
+        data class ThemeChanged(val theme: Int) : Label
+        data class LanguageChanged(val language: String) : Label
+        data class BlackBackgroundChanged(val enabled: Boolean) : Label
+        data class StarrySkyChanged(val enabled: Boolean) : Label
+        data class ServerUrlChanged(val url: String) : Label
+        data class BiometricChanged(val enabled: Boolean) : Label
+        data class AutoLogoutTimeChanged(val minutes: Int) : Label
+        data class ProfileChanged(val username: String, val email: String) : Label
+    }
+
     @Serializable
     data class State(
         val theme: Int = AppearanceSettings.ThemeOption.DEFAULT,
@@ -61,7 +72,8 @@ interface SettingsStore : Store<SettingsStore.Intent, SettingsStore.State, Nothi
         val enableProfileNotifications: Boolean = true,
         val isProfileComplete: Boolean = false,
 
-        val loading: Boolean = false
+        val loading: Boolean = false,
+        val settingsApplied: Boolean = false
     )
 }
 
@@ -77,7 +89,7 @@ internal class SettingsStoreFactory(
     private val profileSettings by instance<ProfileSettings>()
 
     fun create(): SettingsStore =
-        object : SettingsStore, Store<SettingsStore.Intent, SettingsStore.State, Nothing> by storeFactory.create(
+        object : SettingsStore, Store<SettingsStore.Intent, SettingsStore.State, SettingsStore.Label> by storeFactory.create(
             name = "SettingsStore",
             initialState = SettingsStore.State(),
             bootstrapper = SimpleBootstrapper(Unit),
@@ -95,6 +107,7 @@ internal class SettingsStoreFactory(
         data class UpdateServerUrl(val url: String) : Msg
         data class UpdateUseBiometric(val enabled: Boolean) : Msg
         data class UpdateAutoLogoutTime(val minutes: Int) : Msg
+        data object SettingsApplied : Msg
 
         // Новые сообщения для профиля
         data class UpdateUsername(val username: String) : Msg
@@ -107,7 +120,7 @@ internal class SettingsStoreFactory(
     }
 
     private inner class ExecutorImpl :
-        CoroutineExecutor<SettingsStore.Intent, Unit, SettingsStore.State, Msg, Nothing>(
+        CoroutineExecutor<SettingsStore.Intent, Unit, SettingsStore.State, Msg, SettingsStore.Label>(
             rDispatchers.main
         ) {
 
@@ -118,10 +131,12 @@ internal class SettingsStoreFactory(
         }
 
         private fun loadAllSettings() {
+            dispatch(Msg.LoadingData)
             loadAppearanceSettings()
             loadNetworkSettings()
             loadSecuritySettings()
             loadProfileSettings()
+            dispatch(Msg.SettingsApplied)
         }
 
         private fun loadAppearanceSettings() {
@@ -187,24 +202,28 @@ internal class SettingsStoreFactory(
             scope.launch {
                 appearanceSettings.themeFlow.collectLatest { theme ->
                     dispatch(Msg.UpdateTheme(theme))
+                    publish(SettingsStore.Label.ThemeChanged(theme))
                 }
             }
 
             scope.launch {
                 appearanceSettings.langFlow.collectLatest { language ->
                     dispatch(Msg.UpdateLanguage(language))
+                    publish(SettingsStore.Label.LanguageChanged(language))
                 }
             }
 
             scope.launch {
                 appearanceSettings.blackBackgroundFlow.collectLatest { enabled ->
                     dispatch(Msg.UpdateBlackBackground(enabled))
+                    publish(SettingsStore.Label.BlackBackgroundChanged(enabled))
                 }
             }
 
             scope.launch {
                 appearanceSettings.starrySkyFlow.collectLatest { enabled ->
                     dispatch(Msg.UpdateStarrySky(enabled))
+                    publish(SettingsStore.Label.StarrySkyChanged(enabled))
                 }
             }
 
@@ -212,6 +231,7 @@ internal class SettingsStoreFactory(
             scope.launch {
                 networkSettings.serverUrlFlow.collectLatest { url ->
                     dispatch(Msg.UpdateServerUrl(url))
+                    publish(SettingsStore.Label.ServerUrlChanged(url))
                 }
             }
 
@@ -219,12 +239,14 @@ internal class SettingsStoreFactory(
             scope.launch {
                 securitySettings.useBiometricFlow.collectLatest { enabled ->
                     dispatch(Msg.UpdateUseBiometric(enabled))
+                    publish(SettingsStore.Label.BiometricChanged(enabled))
                 }
             }
 
             scope.launch {
                 securitySettings.autoLogoutTimeFlow.collectLatest { minutes ->
                     dispatch(Msg.UpdateAutoLogoutTime(minutes))
+                    publish(SettingsStore.Label.AutoLogoutTimeChanged(minutes))
                 }
             }
 
@@ -233,6 +255,8 @@ internal class SettingsStoreFactory(
                 profileSettings.usernameFlow.collectLatest { username ->
                     dispatch(Msg.UpdateUsername(username))
                     dispatch(Msg.UpdateProfileComplete(profileSettings.isProfileComplete()))
+                    val email = state().email
+                    publish(SettingsStore.Label.ProfileChanged(username, email))
                 }
             }
 
@@ -240,6 +264,8 @@ internal class SettingsStoreFactory(
                 profileSettings.emailFlow.collectLatest { email ->
                     dispatch(Msg.UpdateEmail(email))
                     dispatch(Msg.UpdateProfileComplete(profileSettings.isProfileComplete()))
+                    val username = state().username
+                    publish(SettingsStore.Label.ProfileChanged(username, email))
                 }
             }
 
@@ -268,7 +294,7 @@ internal class SettingsStoreFactory(
             }
         }
 
-        override fun executeIntent(intent: SettingsStore.Intent): Unit =
+        override fun executeIntent(intent: SettingsStore.Intent) {
             when (intent) {
                 is SettingsStore.Intent.Init -> {
                     dispatch(Msg.LoadData)
@@ -276,32 +302,67 @@ internal class SettingsStoreFactory(
                     setupObservers()
                 }
                 is SettingsStore.Intent.UpdateTheme -> {
-                    appearanceSettings.saveTheme(intent.theme)
-                    dispatch(Msg.UpdateTheme(intent.theme))
+                    scope.launch {
+                        appearanceSettings.saveTheme(intent.theme)
+                        // Применяем тему немедленно через label
+                        publish(SettingsStore.Label.ThemeChanged(intent.theme))
+                        // Обновляем состояние хранилища
+                        dispatch(Msg.UpdateTheme(intent.theme))
+                    }
                 }
                 is SettingsStore.Intent.UpdateLanguage -> {
-                    appearanceSettings.saveLang(intent.language)
-                    dispatch(Msg.UpdateLanguage(intent.language))
+                    scope.launch {
+                        appearanceSettings.saveLang(intent.language)
+                        // Применяем язык немедленно через label
+                        publish(SettingsStore.Label.LanguageChanged(intent.language))
+                        // Обновляем состояние хранилища
+                        dispatch(Msg.UpdateLanguage(intent.language))
+                    }
                 }
                 is SettingsStore.Intent.UpdateBlackBackground -> {
-                    appearanceSettings.saveBlackBackground(intent.enabled)
-                    dispatch(Msg.UpdateBlackBackground(intent.enabled))
+                    scope.launch {
+                        appearanceSettings.saveBlackBackground(intent.enabled)
+                        // Применяем изменение немедленно через label
+                        publish(SettingsStore.Label.BlackBackgroundChanged(intent.enabled))
+                        // Обновляем состояние хранилища
+                        dispatch(Msg.UpdateBlackBackground(intent.enabled))
+                    }
                 }
                 is SettingsStore.Intent.UpdateStarrySky -> {
-                    appearanceSettings.saveStarrySky(intent.enabled)
-                    dispatch(Msg.UpdateStarrySky(intent.enabled))
+                    scope.launch {
+                        appearanceSettings.saveStarrySky(intent.enabled)
+                        // Применяем изменение немедленно через label
+                        publish(SettingsStore.Label.StarrySkyChanged(intent.enabled))
+                        // Обновляем состояние хранилища
+                        dispatch(Msg.UpdateStarrySky(intent.enabled))
+                    }
                 }
                 is SettingsStore.Intent.UpdateServerUrl -> {
-                    networkSettings.saveServerUrl(intent.url)
-                    dispatch(Msg.UpdateServerUrl(intent.url))
+                    scope.launch {
+                        networkSettings.saveServerUrl(intent.url)
+                        // Применяем изменение немедленно через label
+                        publish(SettingsStore.Label.ServerUrlChanged(intent.url))
+                        // Обновляем состояние хранилища
+                        dispatch(Msg.UpdateServerUrl(intent.url))
+                    }
                 }
                 is SettingsStore.Intent.UpdateUseBiometric -> {
-                    securitySettings.saveUseBiometric(intent.enabled)
-                    dispatch(Msg.UpdateUseBiometric(intent.enabled))
+                    scope.launch {
+                        securitySettings.saveUseBiometric(intent.enabled)
+                        // Применяем изменение немедленно через label
+                        publish(SettingsStore.Label.BiometricChanged(intent.enabled))
+                        // Обновляем состояние хранилища
+                        dispatch(Msg.UpdateUseBiometric(intent.enabled))
+                    }
                 }
                 is SettingsStore.Intent.UpdateAutoLogoutTime -> {
-                    securitySettings.saveAutoLogoutTime(intent.minutes)
-                    dispatch(Msg.UpdateAutoLogoutTime(intent.minutes))
+                    scope.launch {
+                        securitySettings.saveAutoLogoutTime(intent.minutes)
+                        // Применяем изменение немедленно через label
+                        publish(SettingsStore.Label.AutoLogoutTimeChanged(intent.minutes))
+                        // Обновляем состояние хранилища
+                        dispatch(Msg.UpdateAutoLogoutTime(intent.minutes))
+                    }
                 }
                 is SettingsStore.Intent.Back -> {
                     // Обработка в компоненте
@@ -309,39 +370,58 @@ internal class SettingsStoreFactory(
 
                 // Обработка интентов профиля
                 is SettingsStore.Intent.UpdateUsername -> {
-                    profileSettings.saveUsername(intent.username)
-                    dispatch(Msg.UpdateUsername(intent.username))
-                    dispatch(Msg.UpdateProfileComplete(profileSettings.isProfileComplete()))
+                    scope.launch {
+                        profileSettings.saveUsername(intent.username)
+                        dispatch(Msg.UpdateUsername(intent.username))
+                        dispatch(Msg.UpdateProfileComplete(profileSettings.isProfileComplete()))
+                        val email = state().email
+                        publish(SettingsStore.Label.ProfileChanged(intent.username, email))
+                    }
                 }
                 is SettingsStore.Intent.UpdateEmail -> {
-                    profileSettings.saveEmail(intent.email)
-                    dispatch(Msg.UpdateEmail(intent.email))
-                    dispatch(Msg.UpdateProfileComplete(profileSettings.isProfileComplete()))
+                    scope.launch {
+                        profileSettings.saveEmail(intent.email)
+                        dispatch(Msg.UpdateEmail(intent.email))
+                        dispatch(Msg.UpdateProfileComplete(profileSettings.isProfileComplete()))
+                        val username = state().username
+                        publish(SettingsStore.Label.ProfileChanged(username, intent.email))
+                    }
                 }
                 is SettingsStore.Intent.UpdateAvatarUrl -> {
-                    profileSettings.saveAvatarUrl(intent.url)
-                    dispatch(Msg.UpdateAvatarUrl(intent.url))
+                    scope.launch {
+                        profileSettings.saveAvatarUrl(intent.url)
+                        dispatch(Msg.UpdateAvatarUrl(intent.url))
+                    }
                 }
                 is SettingsStore.Intent.UpdateStatus -> {
-                    profileSettings.saveStatus(intent.status)
-                    dispatch(Msg.UpdateStatus(intent.status))
+                    scope.launch {
+                        profileSettings.saveStatus(intent.status)
+                        dispatch(Msg.UpdateStatus(intent.status))
+                    }
                 }
                 is SettingsStore.Intent.UpdateProfilePublic -> {
-                    profileSettings.setProfilePublic(intent.isPublic)
-                    dispatch(Msg.UpdateProfilePublic(intent.isPublic))
+                    scope.launch {
+                        profileSettings.setProfilePublic(intent.isPublic)
+                        dispatch(Msg.UpdateProfilePublic(intent.isPublic))
+                    }
                 }
                 is SettingsStore.Intent.UpdateProfileNotifications -> {
-                    profileSettings.setProfileNotifications(intent.enabled)
-                    dispatch(Msg.UpdateProfileNotifications(intent.enabled))
+                    scope.launch {
+                        profileSettings.setProfileNotifications(intent.enabled)
+                        dispatch(Msg.UpdateProfileNotifications(intent.enabled))
+                    }
                 }
                 is SettingsStore.Intent.ClearProfileData -> {
-                    profileSettings.clearProfileData()
-                    loadProfileSettings()
+                    scope.launch {
+                        profileSettings.clearProfileData()
+                        loadProfileSettings()
+                    }
                 }
                 else -> {
                     // Обработка других интентов
                 }
             }
+        }
     }
 
     private object ReducerImpl : Reducer<SettingsStore.State, Msg> {
@@ -349,6 +429,7 @@ internal class SettingsStoreFactory(
             when (msg) {
                 Msg.LoadData -> copy(loading = false)
                 Msg.LoadingData -> copy(loading = true)
+                Msg.SettingsApplied -> copy(settingsApplied = true)
                 is Msg.UpdateTheme -> copy(theme = msg.theme)
                 is Msg.UpdateLanguage -> copy(language = msg.language)
                 is Msg.UpdateBlackBackground -> copy(blackBackground = msg.enabled)

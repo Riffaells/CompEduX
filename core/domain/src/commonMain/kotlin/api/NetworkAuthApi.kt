@@ -1,6 +1,5 @@
 package api
 
-import model.auth.AuthResponse
 import model.auth.AuthResponseData
 import model.auth.LoginRequest
 import model.auth.RefreshTokenRequest

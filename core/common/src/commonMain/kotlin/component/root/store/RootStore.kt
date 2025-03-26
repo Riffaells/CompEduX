@@ -39,7 +39,7 @@ internal class RootStoreFactory(
 ) : DIAware {
 
     // Получаем настройки через DI
-    private val settings: MultiplatformSettings by di.instance()
+    private val settings by instance<MultiplatformSettings>()
 
     // Флаг для отслеживания, загружены ли настройки
     private var settingsLoaded = false
@@ -49,7 +49,6 @@ internal class RootStoreFactory(
             Store<RootStore.Intent, RootStore.State, Nothing> by storeFactory.create(
                 name = "RootStore",
                 initialState = RootStore.State(),
-                // Отключаем автоматический bootstrapper для ускорения запуска
                 bootstrapper = SimpleBootstrapper(Unit),
                 executorFactory = ::ExecutorImpl,
                 reducer = ReducerImpl
@@ -74,6 +73,12 @@ internal class RootStoreFactory(
         override fun executeAction(action: Unit) {
             // Не делаем ничего в executeAction, чтобы не блокировать запуск
             // Инициализация будет выполнена позже по требованию
+
+            scope.launch {
+                settings.appearance.themeFlow.collect { theme ->
+                    println("Theme $theme is $theme")
+                }
+            }
         }
 
         private suspend fun loadInitialSettings() {
@@ -81,13 +86,9 @@ internal class RootStoreFactory(
                 // Проверяем, загружены ли настройки
                 if (!settingsLoaded) {
                     // Загрузка настроек в фоновом потоке
-                    val theme = withContext(Dispatchers.Default) {
-                        // Безопасный доступ к настройкам
 
-                        settings.appearance.themeFlow.first()
-                    }
                     // Обновление UI
-                    safeDispatch(Msg.UpdateTheme(theme))
+                    safeDispatch(Msg.UpdateTheme(settings.appearance.themeFlow.first()))
                     settingsLoaded = true
                 }
             } catch (e: Exception) {

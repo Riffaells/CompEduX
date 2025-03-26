@@ -45,7 +45,8 @@ data class UserResponse(
 @Serializable
 data class AuthResponseDto(
     val user: UserResponse,
-    val token: String
+    val token: String,
+    val refreshToken: String = ""
 )
 
 /**

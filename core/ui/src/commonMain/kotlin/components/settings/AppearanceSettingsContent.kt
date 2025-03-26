@@ -24,6 +24,7 @@ fun AppearanceSettingsContent(
 ) {
     val scrollState = rememberScrollState()
 
+
     Column(
         modifier = modifier
             .fillMaxSize()

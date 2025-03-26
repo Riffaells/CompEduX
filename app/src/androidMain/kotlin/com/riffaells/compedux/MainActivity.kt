@@ -13,7 +13,6 @@ import com.riffaells.compedux.di.appDI
 import component.root.DefaultRootComponent
 import component.root.RootComponentParams
 import components.root.RootContent
-import di.RootComponentParams
 import org.kodein.di.compose.withDI
 import org.kodein.di.direct
 import org.kodein.di.factory
