@@ -144,7 +144,7 @@ fun RegisterContent(component: RegisterComponent) {
                                     username = value
                                 }
                             },
-                            label = { Text("Имя пользователя") },
+                            label = { Text("Придумайте классное имя") },
                             leadingIcon = {
                                 Box(
                                     modifier = Modifier
@@ -170,7 +170,7 @@ fun RegisterContent(component: RegisterComponent) {
                                     Text("${username.length}/20", color = MaterialTheme.colorScheme.error)
                                 }
                             },
-                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                            colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = MaterialTheme.colorScheme.primary,
                                 unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
                             )
@@ -181,7 +181,7 @@ fun RegisterContent(component: RegisterComponent) {
                             onValueChange = { value ->
                                 email = value
                             },
-                            label = { Text("Email") },
+                            label = { Text("Ваша волшебная почта") },
                             leadingIcon = {
                                 Box(
                                     modifier = Modifier
@@ -201,7 +201,7 @@ fun RegisterContent(component: RegisterComponent) {
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
                             singleLine = true,
-                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                            colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = MaterialTheme.colorScheme.primary,
                                 unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
                             )
@@ -212,7 +212,7 @@ fun RegisterContent(component: RegisterComponent) {
                             onValueChange = { value ->
                                 password = value
                             },
-                            label = { Text("Пароль") },
+                            label = { Text("Секретный пароль (никому не говорите!)") },
                             leadingIcon = {
                                 Box(
                                     modifier = Modifier
@@ -241,7 +241,7 @@ fun RegisterContent(component: RegisterComponent) {
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
                             singleLine = true,
-                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                            colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = MaterialTheme.colorScheme.primary,
                                 unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
                             )
@@ -252,7 +252,7 @@ fun RegisterContent(component: RegisterComponent) {
                             onValueChange = { value ->
                                 confirmPassword = value
                             },
-                            label = { Text("Подтвердите пароль") },
+                            label = { Text("Повторите свой супер-пароль ещё разок") },
                             leadingIcon = {
                                 Box(
                                     modifier = Modifier
@@ -282,7 +282,7 @@ fun RegisterContent(component: RegisterComponent) {
                             shape = RoundedCornerShape(16.dp),
                             singleLine = true,
                             isError = password != confirmPassword && confirmPassword.isNotEmpty(),
-                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                            colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = MaterialTheme.colorScheme.primary,
                                 unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
                                 errorBorderColor = MaterialTheme.colorScheme.error
