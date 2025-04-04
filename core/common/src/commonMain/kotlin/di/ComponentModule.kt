@@ -121,7 +121,7 @@ val componentModule = DI.Module("componentModule") {
             componentContext = params.componentContext,
             onBack = params.onBack,
             storeFactory = instance(),
-            authRepository = instance()
+            authUseCases = instance()
         )
     }
 

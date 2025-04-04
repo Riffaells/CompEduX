@@ -14,10 +14,12 @@ import kotlinx.coroutines.launch
 import component.app.auth.store.ProfileStore
 import component.app.auth.store.ProfileStoreFactory
 import model.User
+import model.AuthResult
 import org.kodein.di.DI
 import org.kodein.di.DIAware
 import org.kodein.di.instance
 import repository.auth.AuthRepository
+import usecase.auth.AuthUseCases
 import utils.rDispatchers
 
 /**
@@ -49,7 +51,7 @@ class DefaultProfileComponent(
     private val onBackClicked: () -> Unit
 ) : ProfileComponent, DIAware, ComponentContext by componentContext {
 
-    private val authRepository: AuthRepository by instance()
+    private val authRepository: AuthUseCases by instance()
     private val storeFactory: StoreFactory by instance()
 
     private val scope = CoroutineScope(rDispatchers.main + SupervisorJob())
@@ -62,8 +64,8 @@ class DefaultProfileComponent(
     init {
         scope.launch {
             val currentUser = authRepository.getCurrentUser()
-            currentUser?.let {
-                profileStore.accept(ProfileStore.Intent.UpdateUsername(it.username))
+            if (currentUser != null) {
+                profileStore.accept(ProfileStore.Intent.UpdateUsername(currentUser.username))
             }
         }
     }
@@ -74,7 +76,7 @@ class DefaultProfileComponent(
                 username = storeState.username,
                 loading = storeState.loading,
                 error = storeState.error,
-                user = authRepository.getCurrentUser()
+                user = null // Will be loaded asynchronously
             )
         }
         .stateIn(
@@ -92,7 +94,8 @@ class DefaultProfileComponent(
         scope.launch {
             try {
                 profileStore.accept(ProfileStore.Intent.SaveProfile)
-                authRepository.updateProfile(currentUsername)
+                val result = authRepository.updateProfile(currentUsername)
+                // Handle result if needed
             } catch (e: Exception) {
                 // Handle error if needed
             }

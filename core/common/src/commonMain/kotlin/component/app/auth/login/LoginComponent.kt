@@ -4,7 +4,6 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
-import component.app.auth.store.AuthStore
 import component.app.auth.store.LoginStore
 import component.app.auth.store.LoginStoreFactory
 import kotlinx.coroutines.CoroutineScope
@@ -14,7 +13,7 @@ import kotlinx.coroutines.launch
 import org.kodein.di.DI
 import org.kodein.di.DIAware
 import org.kodein.di.instance
-import repository.auth.AuthRepository
+import usecase.auth.AuthUseCases
 import utils.rDispatchers
 
 interface LoginComponent {
@@ -33,7 +32,7 @@ class DefaultLoginComponent(
     private val onLoginSuccess: () -> Unit
 ) : LoginComponent, DIAware, ComponentContext by componentContext {
 
-    private val authRepository: AuthRepository by instance()
+    private val authUseCases: AuthUseCases by instance()
     private val storeFactory: StoreFactory by instance()
 
     private val scope = CoroutineScope(rDispatchers.main + SupervisorJob())
@@ -41,7 +40,7 @@ class DefaultLoginComponent(
     private val loginStore = instanceKeeper.getStore {
         LoginStoreFactory(
             storeFactory = storeFactory,
-            authRepository = authRepository
+            di = di
         ).create()
     }
 
@@ -55,7 +54,7 @@ class DefaultLoginComponent(
             // the AuthState from a shared AuthStore or Repository to detect successful login
             // For now, we'll assume the LoginStore handles everything
             // You would replace this with actual auth state monitoring
-            if (authRepository.isAuthenticated()) {
+            if (authUseCases.isAuthenticated()) {
                 onLoginSuccess()
             }
         }

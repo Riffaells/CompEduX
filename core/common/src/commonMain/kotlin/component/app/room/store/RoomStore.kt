@@ -11,6 +11,7 @@ import org.kodein.di.DI
 import org.kodein.di.DIAware
 import org.kodein.di.instance
 import repository.auth.AuthRepository
+import usecase.auth.AuthUseCases
 import utils.rDispatchers
 
 interface RoomStore : Store<RoomStore.Intent, RoomStore.State, Nothing> {
@@ -39,7 +40,7 @@ internal class RoomStoreFactory(
     override val di: DI
 ) : DIAware {
 
-    private val authRepository: AuthRepository by instance()
+    private val authUseCases: AuthUseCases by instance()
 
     fun create(): RoomStore =
         object : RoomStore, Store<RoomStore.Intent, RoomStore.State, Nothing> by storeFactory.create(
@@ -76,12 +77,8 @@ internal class RoomStoreFactory(
 
         private fun checkAuthStatus() {
             scope.launch {
-                try {
-                    val isAuthenticated = authRepository.isAuthenticated()
-                    safeDispatch(Msg.UpdateAuthStatus(isAuthenticated))
-                } catch (e: Exception) {
-                    println("Error checking auth status: ${e.message}")
-                }
+                    safeDispatch(Msg.UpdateAuthStatus(authUseCases.isAuthenticated()))
+
             }
         }
 

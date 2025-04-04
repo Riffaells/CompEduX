@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 import org.kodein.di.DI
 import org.kodein.di.DIAware
 import org.kodein.di.instance
-import repository.auth.AuthRepository
+import usecase.auth.AuthUseCases
 import utils.rDispatchers
 
 interface RegisterComponent {
@@ -32,7 +32,7 @@ class DefaultRegisterComponent(
     private val onRegisterSuccess: () -> Unit
 ) : RegisterComponent, DIAware, ComponentContext by componentContext {
 
-    private val authRepository: AuthRepository by instance()
+    private val authUseCases: AuthUseCases by instance()
     private val storeFactory: StoreFactory by instance()
 
     private val scope = CoroutineScope(rDispatchers.main + SupervisorJob())
@@ -40,7 +40,7 @@ class DefaultRegisterComponent(
     private val registerStore = instanceKeeper.getStore {
         RegisterStoreFactory(
             storeFactory = storeFactory,
-            authRepository = authRepository
+            di = di
         ).create()
     }
 
@@ -60,7 +60,7 @@ class DefaultRegisterComponent(
             // the AuthState from a shared AuthStore or Repository to detect successful registration
             // For now, we'll assume the RegisterStore handles everything
             // You would replace this with actual auth state monitoring
-            if (authRepository.isAuthenticated()) {
+            if (authUseCases.isAuthenticated()) {
                 onRegisterSuccess()
             }
         }

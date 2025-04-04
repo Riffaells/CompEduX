@@ -8,7 +8,10 @@ import model.AppError
 import model.AuthResult
 import model.ErrorCode
 import model.User
-import repository.auth.AuthRepository
+import org.kodein.di.DI
+import org.kodein.di.DIAware
+import org.kodein.di.direct
+import org.kodein.di.instance
 import usecase.auth.AuthUseCases
 import utils.rDispatchers
 
@@ -41,8 +44,11 @@ interface AuthStore : Store<AuthStore.Intent, AuthStore.State, Nothing> {
 
 class AuthStoreFactory(
     private val storeFactory: StoreFactory,
-    private val authRepository: AuthRepository
-) {
+    override val di: DI
+) : DIAware {
+
+    private val authUseCases: AuthUseCases by instance()
+
     fun create(): AuthStore =
         object : AuthStore, Store<AuthStore.Intent, AuthStore.State, Nothing> by storeFactory.create(
             name = "AuthStore",
@@ -88,8 +94,8 @@ class AuthStoreFactory(
                             safeDispatch(Msg.ClearError)
 
                             try {
-                                val result = authRepository.login(intent.email, intent.password)
-                                handleAuthResult(result)
+                                val result = authUseCases.login(intent.email, intent.password)
+                                handleAuthResult<model.auth.AuthResponseData>(result)
                             } catch (e: Exception) {
                                 // Обрабатываем неожиданные ошибки
                                 val error = AppError(
@@ -108,12 +114,12 @@ class AuthStoreFactory(
                             safeDispatch(Msg.ClearError)
 
                             try {
-                                val result = authRepository.register(
+                                val result = authUseCases.register(
                                     email = intent.email,
                                     password = intent.password,
                                     username = intent.username
                                 )
-                                handleAuthResult(result)
+                                handleAuthResult<model.auth.AuthResponseData>(result)
                             } catch (e: Exception) {
                                 // Обрабатываем неожиданные ошибки
                                 val error = AppError(
@@ -132,10 +138,10 @@ class AuthStoreFactory(
                             safeDispatch(Msg.ClearError)
 
                             try {
-                                val result = authRepository.logout()
+                                val result = authUseCases.logout()
                                 // Исправляем smart cast ошибку
                                 when (result) {
-                                    is AuthResult.Success -> {
+                                    is AuthResult.Success<Unit> -> {
                                         // Независимо от результата, считаем пользователя вышедшим
                                         safeDispatch(Msg.ClearUser)
                                     }
@@ -158,8 +164,8 @@ class AuthStoreFactory(
                             safeDispatch(Msg.ClearError)
 
                             try {
-                                val result = authRepository.updateProfile(intent.username)
-                                handleAuthResult(result)
+                                val result = authUseCases.updateProfile(intent.username)
+                                handleAuthResult<User>(result)
                             } catch (e: Exception) {
                                 // Обрабатываем неожиданные ошибки
                                 val error = AppError(
@@ -180,21 +186,19 @@ class AuthStoreFactory(
 
         private fun <T> handleAuthResult(result: AuthResult<T>) {
             when (result) {
-                is AuthResult.Success<T> -> {
-                    // Исправляем smart cast ошибку
+                is AuthResult.Success -> {
+                    // Проверяем, есть ли пользователь в результате
                     val user = result.user
                     if (user != null) {
                         safeDispatch(Msg.SetUser(user))
-                    } else {
-                        safeDispatch(Msg.ClearUser)
                     }
                     safeDispatch(Msg.StopLoading)
                 }
-                is AuthResult.Error<T> -> {
+                is AuthResult.Error -> {
                     safeDispatch(Msg.SetError(result.error.message, result.error.details))
                     safeDispatch(Msg.StopLoading)
                 }
-                is AuthResult.Loading -> {
+                else -> {
                     // Состояние загрузки уже установлено
                 }
             }

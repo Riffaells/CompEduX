@@ -14,6 +14,7 @@ import component.app.auth.register.RegisterComponent
 import component.app.auth.store.AuthStore
 import component.app.auth.store.AuthStoreFactory
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
@@ -21,7 +22,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import model.User
 import org.kodein.di.*
-import repository.auth.AuthRepository
+import usecase.auth.AuthUseCases
 import utils.rDispatchers
 
 /**
@@ -74,13 +75,13 @@ interface AuthComponent {
     fun onBackClicked()
 }
 
-@OptIn(ExperimentalDecomposeApi::class)
+@OptIn(ExperimentalCoroutinesApi::class)
 class DefaultAuthComponent(
     override val di: DI,
     componentContext: ComponentContext,
     private val onBack: () -> Unit,
     private val storeFactory: StoreFactory,
-    private val authRepository: AuthRepository
+    private val authUseCases: AuthUseCases
 ) : AuthComponent, DIAware, ComponentContext by componentContext {
 
     private val navigation = StackNavigation<Config>()
@@ -88,12 +89,13 @@ class DefaultAuthComponent(
     private val _store = instanceKeeper.getStore {
         AuthStoreFactory(
             storeFactory = storeFactory,
-            authRepository = authRepository
+            di = di
         ).create()
     }
 
     private val scope = CoroutineScope(rDispatchers.main)
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     private val _childStack = childStack(
         source = navigation,
         serializer = Config.serializer(),
@@ -103,7 +105,7 @@ class DefaultAuthComponent(
 
             // If user is already authenticated, go to profile
             scope.launch {
-                if (authRepository.isAuthenticated()) {
+                if (authUseCases.isAuthenticated()) {
                     navigation.bringToFront(Config.Profile)
                 }
             }

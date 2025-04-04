@@ -3,12 +3,13 @@ package component.app.auth.store
 import com.arkivanov.mvikotlin.core.store.Reducer
 import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
-import com.arkivanov.mvikotlin.core.store.create
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import model.AuthResult
-import repository.auth.AuthRepository
+import org.kodein.di.DI
+import org.kodein.di.instance
+import usecase.auth.AuthUseCases
 import usecase.auth.LoginUseCase
 import utils.rDispatchers
 
@@ -36,8 +37,10 @@ interface LoginStore : Store<LoginStore.Intent, LoginStore.State, Nothing> {
 
 class LoginStoreFactory(
     private val storeFactory: StoreFactory,
-    private val authRepository: AuthRepository
+    val di: DI,
 ) {
+    private val authUseCases by di.instance<AuthUseCases>()
+
     fun create(): LoginStore =
         object : LoginStore, Store<LoginStore.Intent, LoginStore.State, Nothing> by storeFactory.create(
             name = "LoginStore",
@@ -72,8 +75,7 @@ class LoginStoreFactory(
                             safeDispatch(LoginStore.Message.ClearError)
 
                             try {
-                                val loginUseCase = LoginUseCase(authRepository)
-                                val result = loginUseCase(intent.email, intent.password)
+                                val result = authUseCases.login(intent.email, intent.password)
 
                                 when (result) {
                                     is AuthResult.Success<*> -> {

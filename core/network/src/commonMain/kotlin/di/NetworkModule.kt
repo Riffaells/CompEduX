@@ -12,6 +12,7 @@ import kotlinx.serialization.json.Json
 import model.AppError
 import model.ErrorCode
 import org.kodein.di.*
+import repository.mapper.ErrorMapper
 
 /**
  * Модуль зависимостей для сетевых компонентов
@@ -27,18 +28,13 @@ val networkModule = DI.Module("networkModule") {
         }
     }
 
-    // Примечание: NetworkConfig получается из SettingsModule
-    // и не должен быть определен здесь, чтобы избежать конфликта
-
-    // Примечание: ErrorMapper получается из DataModule
-    // и не должен быть определен здесь, чтобы избежать конфликта
-
-    // Фабрика HTTP клиента
+    // Фабрика HTTP клиента использует зависимости, импортированные из других модулей
+    // Примечание: NetworkConfig и ErrorMapper должны быть предоставлены другими модулями
     bindSingleton<HttpClientFactory> {
         HttpClientFactory(
             json = instance(),
-            errorMapper = instance(),
-            networkConfig = instance()
+            errorMapper = instance<ErrorMapper>(),
+            networkConfig = instance<NetworkConfig>()
         )
     }
 

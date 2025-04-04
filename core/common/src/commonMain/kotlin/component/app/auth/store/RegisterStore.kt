@@ -8,7 +8,11 @@ import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import model.AuthResult
+import org.kodein.di.DI
+import org.kodein.di.DIAware
+import org.kodein.di.instance
 import repository.auth.AuthRepository
+import usecase.auth.AuthUseCases
 import usecase.auth.RegisterUseCase
 import utils.rDispatchers
 
@@ -40,8 +44,10 @@ interface RegisterStore : Store<RegisterStore.Intent, RegisterStore.State, Nothi
 
 class RegisterStoreFactory(
     private val storeFactory: StoreFactory,
-    private val authRepository: AuthRepository
-) {
+    override val di: DI
+):DIAware {
+
+    private val authUseCases by instance<AuthUseCases>()
     fun create(): RegisterStore =
         object : RegisterStore, Store<RegisterStore.Intent, RegisterStore.State, Nothing> by storeFactory.create(
             name = "RegisterStore",
@@ -82,8 +88,7 @@ class RegisterStoreFactory(
                             safeDispatch(RegisterStore.Message.ClearError)
 
                             try {
-                                val registerUseCase = RegisterUseCase(authRepository)
-                                val result = registerUseCase(intent.email, intent.password, intent.username)
+                                val result = authUseCases.register(intent.email, intent.password, intent.username)
 
                                 when (result) {
                                     is AuthResult.Success<*> -> {
