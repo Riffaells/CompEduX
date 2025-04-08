@@ -1,10 +1,9 @@
 package api.adapter
 
 import api.NetworkAuthApi
-import api.auth.AuthApi as KtorAuthApi
-import api.dto.AuthResponseDto
-import model.AuthResult as KtorAuthResult
-import api.model.AuthResult as ApiAuthResult
+import api.auth.AuthApi
+import api.dto.NetworkAuthResponseDto
+import api.model.AuthResultNetwork
 import model.ApiError
 import model.User
 import model.auth.AuthResponseDomain
@@ -14,57 +13,17 @@ import model.auth.RegisterRequest
 import model.auth.ServerStatusResponse
 
 /**
- * Adapter for transforming between domain and Ktor API interfaces.
- * Implements NetworkAuthApi interface using AuthApi from Ktor.
+ * Адаптер для преобразования между доменными и API интерфейсами.
+ * Реализует интерфейс NetworkAuthApi, используя AuthApi.
  */
 class NetworkAuthApiAdapter(
-    private val ktorAuthApi: KtorAuthApi
+    private val authApi: AuthApi
 ) : NetworkAuthApi {
 
     /**
-     * Generic method to handle KtorAuthResult and convert it to ApiAuthResult
+     * Преобразование NetworkAuthResponseDto в AuthResponseDomain
      */
-    private fun <T, R> handleKtorResult(
-        result: KtorAuthResult<T>,
-        errorMessage: String,
-        transform: (T) -> R
-    ): ApiAuthResult<R> {
-        return when (result) {
-            is KtorAuthResult.Success -> {
-                ApiAuthResult.Success(transform(result.data))
-            }
-            is KtorAuthResult.Error -> {
-                ApiAuthResult.Error(
-                    ApiError(
-                        message = result.error.message,
-                        code = result.error.code.hashCode(),
-                        details = result.error.details
-                    )
-                )
-            }
-            is KtorAuthResult.Loading -> {
-                ApiAuthResult.Loading
-            }
-        }
-    }
-
-    /**
-     * Generic method to handle exceptions in API calls
-     */
-    private fun <T> handleException(e: Exception, errorMessage: String): ApiAuthResult<T> {
-        return ApiAuthResult.Error(
-            ApiError(
-                message = errorMessage,
-                code = -1,
-                details = e.message
-            )
-        )
-    }
-
-    /**
-     * Convert AuthResponseDto to AuthResponseDomain
-     */
-    private fun convertAuthResponseDtoToData(dto: AuthResponseDto): AuthResponseDomain {
+    private fun convertToAuthResponseDomain(dto: NetworkAuthResponseDto): AuthResponseDomain {
         return AuthResponseDomain(
             accessToken = dto.accessToken,
             refreshToken = dto.refreshToken,
@@ -72,66 +31,116 @@ class NetworkAuthApiAdapter(
         )
     }
 
-    override suspend fun register(request: RegisterRequest): ApiAuthResult<AuthResponseDomain> {
+    override suspend fun register(request: RegisterRequest): AuthResultNetwork<AuthResponseDomain> {
         return try {
-            val result = ktorAuthApi.register(request)
-            handleKtorResult(result, "Error during registration", ::convertAuthResponseDtoToData)
+            val result = authApi.register(request)
+            when (result) {
+                is AuthResultNetwork.Success -> AuthResultNetwork.Success(convertToAuthResponseDomain(result.data))
+                is AuthResultNetwork.Error -> AuthResultNetwork.Error(result.error)
+                is AuthResultNetwork.Loading -> AuthResultNetwork.Loading
+            }
         } catch (e: Exception) {
-            handleException(e, "Error during registration")
+            AuthResultNetwork.Error(
+                ApiError(
+                    message = "Ошибка при регистрации: ${e.message}",
+                    code = -1,
+                    details = e.stackTraceToString()
+                )
+            )
         }
     }
 
-    override suspend fun login(request: LoginRequest): ApiAuthResult<AuthResponseDomain> {
+    override suspend fun login(request: LoginRequest): AuthResultNetwork<AuthResponseDomain> {
         return try {
-            val result = ktorAuthApi.login(request)
-            handleKtorResult(result, "Error during login", ::convertAuthResponseDtoToData)
+            val result = authApi.login(request)
+            when (result) {
+                is AuthResultNetwork.Success -> AuthResultNetwork.Success(convertToAuthResponseDomain(result.data))
+                is AuthResultNetwork.Error -> AuthResultNetwork.Error(result.error)
+                is AuthResultNetwork.Loading -> AuthResultNetwork.Loading
+            }
         } catch (e: Exception) {
-            handleException(e, "Error during login")
+            AuthResultNetwork.Error(
+                ApiError(
+                    message = "Ошибка при входе: ${e.message}",
+                    code = -1,
+                    details = e.stackTraceToString()
+                )
+            )
         }
     }
 
-    override suspend fun refreshToken(request: RefreshTokenRequest): ApiAuthResult<AuthResponseDomain> {
+    override suspend fun refreshToken(request: RefreshTokenRequest): AuthResultNetwork<AuthResponseDomain> {
         return try {
-            val result = ktorAuthApi.refreshToken(request)
-            handleKtorResult(result, "Error while refreshing token", ::convertAuthResponseDtoToData)
+            val result = authApi.refreshToken(request)
+            when (result) {
+                is AuthResultNetwork.Success -> AuthResultNetwork.Success(convertToAuthResponseDomain(result.data))
+                is AuthResultNetwork.Error -> AuthResultNetwork.Error(result.error)
+                is AuthResultNetwork.Loading -> AuthResultNetwork.Loading
+            }
         } catch (e: Exception) {
-            handleException(e, "Error while refreshing token")
+            AuthResultNetwork.Error(
+                ApiError(
+                    message = "Ошибка при обновлении токена: ${e.message}",
+                    code = -1,
+                    details = e.stackTraceToString()
+                )
+            )
         }
     }
 
-    override suspend fun getCurrentUser(token: String): ApiAuthResult<User> {
+    override suspend fun getCurrentUser(token: String): AuthResultNetwork<User> {
         return try {
-            val result = ktorAuthApi.getCurrentUser(token)
-            handleKtorResult(result, "Error while getting user data") { it }
+            authApi.getCurrentUser(token)
         } catch (e: Exception) {
-            handleException(e, "Error while getting user data")
+            AuthResultNetwork.Error(
+                ApiError(
+                    message = "Ошибка при получении данных пользователя: ${e.message}",
+                    code = -1,
+                    details = e.stackTraceToString()
+                )
+            )
         }
     }
 
-    override suspend fun logout(token: String): ApiAuthResult<Unit> {
+    override suspend fun logout(token: String): AuthResultNetwork<Unit> {
         return try {
-            val result = ktorAuthApi.logout(token)
-            handleKtorResult(result, "Error during logout") { it }
+            authApi.logout(token)
         } catch (e: Exception) {
-            handleException(e, "Error during logout")
+            AuthResultNetwork.Error(
+                ApiError(
+                    message = "Ошибка при выходе из системы: ${e.message}",
+                    code = -1,
+                    details = e.stackTraceToString()
+                )
+            )
         }
     }
 
-    override suspend fun checkServerStatus(): ApiAuthResult<ServerStatusResponse> {
+    override suspend fun checkServerStatus(): AuthResultNetwork<ServerStatusResponse> {
         return try {
-            val result = ktorAuthApi.checkServerStatus()
-            handleKtorResult(result, "Error while checking server status") { it }
+            authApi.checkServerStatus()
         } catch (e: Exception) {
-            handleException(e, "Error while checking server status")
+            AuthResultNetwork.Error(
+                ApiError(
+                    message = "Ошибка при проверке статуса сервера: ${e.message}",
+                    code = -1,
+                    details = e.stackTraceToString()
+                )
+            )
         }
     }
 
-    override suspend fun updateProfile(token: String, username: String): ApiAuthResult<User> {
+    override suspend fun updateProfile(token: String, username: String): AuthResultNetwork<User> {
         return try {
-            val result = ktorAuthApi.updateProfile(token, username)
-            handleKtorResult(result, "Error during profile update") { it }
+            authApi.updateProfile(token, username)
         } catch (e: Exception) {
-            handleException(e, "Error during profile update")
+            AuthResultNetwork.Error(
+                ApiError(
+                    message = "Ошибка при обновлении профиля: ${e.message}",
+                    code = -1,
+                    details = e.stackTraceToString()
+                )
+            )
         }
     }
 }

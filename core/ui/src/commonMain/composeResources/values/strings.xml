@@ -69,6 +69,14 @@
     <string name="network_server_url">URL сервера</string>
     <string name="network_server_url_desc">Введите адрес сервера для подключения</string>
     <string name="network_additional_settings">Дополнительные настройки</string>
+    <string name="network_timeouts_title">Тайм-ауты подключения</string>
+    <string name="network_custom_timeouts">Пользовательские тайм-ауты</string>
+    <string name="network_custom_timeouts_desc">Настроить собственные значения тайм-аутов</string>
+    <string name="network_connection_timeout">Тайм-аут соединения</string>
+    <string name="network_connection_timeout_desc">Время ожидания установки соединения с сервером</string>
+    <string name="network_read_timeout">Тайм-аут чтения</string>
+    <string name="network_read_timeout_desc">Время ожидания ответа от сервера</string>
+    <string name="network_seconds_format">%d сек.</string>
 
     <!-- Настройки безопасности -->
     <string name="security_settings_title">Настройки безопасности</string>

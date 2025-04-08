@@ -7,68 +7,63 @@ import kotlinx.serialization.SerialName
  * DTO запроса авторизации
  */
 @Serializable
-data class LoginRequest(
-    val username: String,
-    val password: String
+data class NetworkLoginRequestDto(
+    @SerialName("email") val email: String,
+    @SerialName("password") val password: String
 )
 
 /**
  * DTO запроса регистрации
  */
 @Serializable
-data class RegisterRequest(
-    val email: String,
-    val password: String,
-    val username: String
+data class NetworkRegisterRequestDto(
+    @SerialName("email") val email: String,
+    @SerialName("password") val password: String,
+    @SerialName("username") val username: String
 )
 
 /**
  * DTO запроса обновления профиля
  */
 @Serializable
-data class UpdateProfileRequest(
-    val username: String
+data class NetworkUpdateProfileRequestDto(
+    @SerialName("username") val username: String
 )
 
 /**
- * DTO ответа с пользователем
+ * DTO ответа с базовой информацией о пользователе
  */
 @Serializable
-data class UserResponse(
-    val id: String,
-    val email: String,
-    val username: String
+data class NetworkUserResponseDto(
+    @SerialName("id") val id: String,
+    @SerialName("email") val email: String,
+    @SerialName("username") val username: String
 )
 
 /**
  * DTO запроса обновления токена
  */
 @Serializable
-data class RefreshTokenRequest(
-    @SerialName("refresh_token")
-    val refreshToken: String
+data class NetworkRefreshTokenRequestDto(
+    @SerialName("refresh_token") val refreshToken: String
 )
 
 /**
- * DTO ответа авторизации по новому формату
+ * DTO ответа авторизации
  */
 @Serializable
-data class AuthResponseDto(
-    @SerialName("access_token")
-    val accessToken: String,
-
-    @SerialName("refresh_token")
-    val refreshToken: String,
-
-    @SerialName("token_type")
-    val tokenType: String = "bearer"
+data class NetworkAuthResponseDto(
+    @SerialName("access_token") val accessToken: String,
+    @SerialName("refresh_token") val refreshToken: String,
+    @SerialName("token_type") val tokenType: String = "bearer"
 )
 
 /**
  * DTO ответа с ошибкой
  */
 @Serializable
-data class ErrorResponse(
-    val code: String,
-    val message: String
+data class NetworkErrorResponseDto(
+    @SerialName("code") val code: Int,
+    @SerialName("message") val message: String,
+    @SerialName("details") val details: String? = null
 )

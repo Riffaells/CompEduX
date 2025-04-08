@@ -8,7 +8,6 @@ import model.auth.*
 import settings.MultiplatformSettings
 import api.AuthApi as DomainAuthApi
 import api.model.AuthResult as NetworkAuthResult
-import model.User as NetworkUser
 import model.User as DomainUser
 
 /**
@@ -47,7 +46,7 @@ class AuthApiAdapter(
     /**
      * Creates a domain user object from a network model
      */
-    private fun createDomainUser(networkUser: NetworkUser, email: String? = null): DomainUser {
+    private fun createDomainUser(networkUser: model.User, email: String? = null): DomainUser {
         return DomainUser(
             id = networkUser.id,
             username = networkUser.username,
@@ -87,8 +86,8 @@ class AuthApiAdapter(
     @Suppress("UNCHECKED_CAST")
     private fun <T, R> handleNetworkResult(
         result: NetworkAuthResult<T>,
-        successHandler: (T) -> AuthResult.Success<R>,
-        errorCode: ErrorCode
+        errorCode: ErrorCode,
+        successHandler: (T) -> AuthResult.Success<R>
     ): AuthResult<R> {
         return when (result) {
             is NetworkAuthResult.Success -> successHandler(result.data)
@@ -98,7 +97,7 @@ class AuthApiAdapter(
                     createError(
                         code = errorCode,
                         message = result.error.message,
-                        details = result.error.code.toString()
+                        details = result.error.details
                     )
                 )
             }
@@ -118,7 +117,7 @@ class AuthApiAdapter(
             val result = networkAuthApi.register(request)
 
             // Transform result to domain model
-            return handleNetworkResult(
+            return handleNetworkResult<AuthResponseDomain, AuthResponseDomain>(
                 result = result,
                 errorCode = ErrorCode.INVALID_CREDENTIALS,
                 successHandler = { data ->
@@ -140,16 +139,16 @@ class AuthApiAdapter(
         }
     }
 
-    override suspend fun login(email: String, password: String): AuthResult<AuthResponseDomain> {
+    override suspend fun login(username: String, password: String): AuthResult<AuthResponseDomain> {
         try {
             // Create request for network API
-            val request = LoginRequest(email, password)
+            val request = LoginRequest(username, password)
 
             // Call network API
             val result = networkAuthApi.login(request)
 
             // Transform result to domain model
-            return handleNetworkResult(
+            return handleNetworkResult<AuthResponseDomain, AuthResponseDomain>(
                 result = result,
                 errorCode = ErrorCode.INVALID_CREDENTIALS,
                 successHandler = { data ->
@@ -189,7 +188,7 @@ class AuthApiAdapter(
             val result = networkAuthApi.getCurrentUser(token)
 
             // Transform result to domain model
-            return handleNetworkResult(
+            return handleNetworkResult<model.User, DomainUser>(
                 result = result,
                 errorCode = ErrorCode.UNAUTHORIZED,
                 successHandler = { data ->
@@ -233,7 +232,7 @@ class AuthApiAdapter(
             val result = networkAuthApi.checkServerStatus()
 
             // Transform result to domain model
-            return handleNetworkResult(
+            return handleNetworkResult<ServerStatusResponse, ServerStatusResponse>(
                 result = result,
                 errorCode = ErrorCode.SERVER_ERROR,
                 successHandler = { data ->
@@ -263,7 +262,7 @@ class AuthApiAdapter(
             val result = networkAuthApi.updateProfile(token, username)
 
             // Transform result to domain model
-            return handleNetworkResult(
+            return handleNetworkResult<model.User, DomainUser>(
                 result = result,
                 errorCode = ErrorCode.UNAUTHORIZED,
                 successHandler = { data ->
@@ -283,7 +282,7 @@ class AuthApiAdapter(
             val result = networkAuthApi.refreshToken(request)
 
             // Transform result to domain model
-            return handleNetworkResult(
+            return handleNetworkResult<AuthResponseDomain, AuthResponseDomain>(
                 result = result,
                 errorCode = ErrorCode.UNAUTHORIZED,
                 successHandler = { data ->

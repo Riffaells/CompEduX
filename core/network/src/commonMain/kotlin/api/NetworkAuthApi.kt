@@ -1,6 +1,6 @@
 package api
 
-import api.model.AuthResult
+import api.model.AuthResultNetwork
 import model.User
 import model.auth.AuthResponseDomain
 import model.auth.LoginRequest
@@ -18,41 +18,41 @@ interface NetworkAuthApi {
      * @param request данные для регистрации
      * @return результат операции с данными аутентификации
      */
-    suspend fun register(request: RegisterRequest): AuthResult<AuthResponseDomain>
+    suspend fun register(request: RegisterRequest): AuthResultNetwork<AuthResponseDomain>
 
     /**
      * Вход в систему
      * @param request данные для входа
      * @return результат операции с данными аутентификации
      */
-    suspend fun login(request: LoginRequest): AuthResult<AuthResponseDomain>
+    suspend fun login(request: LoginRequest): AuthResultNetwork<AuthResponseDomain>
 
     /**
      * Обновление токена доступа
      * @param request запрос на обновление токена
      * @return результат операции с новыми данными аутентификации
      */
-    suspend fun refreshToken(request: RefreshTokenRequest): AuthResult<AuthResponseDomain>
+    suspend fun refreshToken(request: RefreshTokenRequest): AuthResultNetwork<AuthResponseDomain>
 
     /**
      * Получение данных текущего пользователя
      * @param token токен доступа
      * @return результат операции с данными пользователя
      */
-    suspend fun getCurrentUser(token: String): AuthResult<User>
+    suspend fun getCurrentUser(token: String): AuthResultNetwork<User>
 
     /**
      * Выход из системы
      * @param token токен доступа
      * @return результат операции
      */
-    suspend fun logout(token: String): AuthResult<Unit>
+    suspend fun logout(token: String): AuthResultNetwork<Unit>
 
     /**
      * Проверка статуса сервера
      * @return результат операции со статусом сервера
      */
-    suspend fun checkServerStatus(): AuthResult<ServerStatusResponse>
+    suspend fun checkServerStatus(): AuthResultNetwork<ServerStatusResponse>
 
     /**
      * Обновление профиля пользователя
@@ -60,5 +60,5 @@ interface NetworkAuthApi {
      * @param username новое имя пользователя
      * @return результат операции с обновленными данными пользователя
      */
-    suspend fun updateProfile(token: String, username: String): AuthResult<User>
+    suspend fun updateProfile(token: String, username: String): AuthResultNetwork<User>
 }

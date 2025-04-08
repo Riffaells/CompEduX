@@ -3,14 +3,11 @@ package di
 import api.auth.AuthApi
 import api.auth.AuthApiImpl
 import client.HttpClientFactory
+import client.InMemoryTokenStorage
+import client.TokenStorage
 import config.NetworkConfig
 import io.ktor.client.*
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.json.Json
-import model.AppError
-import model.ErrorCode
 import org.kodein.di.*
 import repository.mapper.ErrorMapper
 
@@ -26,6 +23,11 @@ val networkModule = DI.Module("networkModule") {
             prettyPrint = true
             coerceInputValues = true
         }
+    }
+
+    // Хранилище токенов
+    bindSingleton<TokenStorage> {
+        InMemoryTokenStorage()
     }
 
     // Фабрика HTTP клиента использует зависимости, импортированные из других модулей

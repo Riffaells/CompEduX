@@ -33,6 +33,7 @@ data class SettingsComponentParams(
 interface SettingsComponent {
     val state: StateFlow<SettingsStore.State>
     val childStack: Value<ChildStack<SettingsComponent.Config, SettingsComponent.Child>>
+    val settings: MultiplatformSettings
 
     fun onAction(action: SettingsStore.Intent)
     fun onCategorySelected(category: SettingsComponent.SettingsCategory)
@@ -112,6 +113,9 @@ class DefaultSettingsComponent(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     override val state: StateFlow<SettingsStore.State> = store.stateFlow
+
+    override val settings: MultiplatformSettings
+        get() = multiplatformSettings
 
     override fun onAction(action: SettingsStore.Intent) {
         when (action) {

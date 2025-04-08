@@ -24,6 +24,12 @@ import compedux.core.ui.generated.resources.*
 import component.app.settings.SettingsComponent
 import component.app.settings.store.SettingsStore
 import component.settings.CategoryBlock
+import components.settings.appearance.AppearanceSettingsContent
+import components.settings.experimental.ExperimentalSettingsContent
+import components.settings.language.LanguageSettingsContent
+import components.settings.notifications.NotificationsSettingsContent
+import components.settings.profile.ProfileSettingsContent
+import components.settings.security.SecuritySettingsContent
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.resources.stringResource
 import ui.icon.RIcons
@@ -100,8 +106,7 @@ fun SettingsCategoryScreen(
                     )
 
                     SettingsComponent.SettingsCategory.NETWORK -> NetworkSettingsContent(
-                        state = state,
-                        onAction = component::onAction,
+                        settings = component.settings,
                         modifier = Modifier.fillMaxSize()
                     )
 

@@ -1,4 +1,4 @@
-package components.settings
+package components.settings.base
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector

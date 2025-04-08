@@ -28,6 +28,8 @@ import compedux.core.ui.generated.resources.Res
 import compedux.core.ui.generated.resources.*
 import component.app.settings.SettingsComponent
 import component.app.settings.store.SettingsStore
+import components.settings.base.SettingCategory
+import components.settings.base.SettingCategoryItem
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.ExperimentalResourceApi

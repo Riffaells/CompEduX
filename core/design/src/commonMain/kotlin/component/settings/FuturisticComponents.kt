@@ -11,6 +11,9 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -22,17 +25,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 /**
- * Стилизованный компонент фильтра-чипа в футуристическом стиле.
+ * Стилизованный фильтр-чип в футуристическом дизайне
  *
- * @param text Текст, отображаемый на чипе
- * @param selected Состояние выбора чипа
+ * @param text Текст чипа
+ * @param icon Иконка чипа
+ * @param selected Выбран ли чип
  * @param onClick Обработчик нажатия
- * @param modifier Модификатор для кастомизации
+ * @param modifier Модификатор для настройки внешнего вида
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FuturisticFilterChip(
     text: String,
+    icon: ImageVector,
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -40,7 +45,24 @@ fun FuturisticFilterChip(
     FilterChip(
         selected = selected,
         onClick = onClick,
-        label = { Text(text) },
+        label = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+        },
         shape = RoundedCornerShape(16.dp),
         border = FilterChipDefaults.filterChipBorder(
             enabled = true,
@@ -62,12 +84,12 @@ fun FuturisticFilterChip(
 }
 
 /**
- * Стилизованный компонент опции-чипа с чистым футуристическим дизайном.
+ * Стилизованный опциональный чип в футуристическом дизайне
  *
- * @param text Текст, отображаемый на чипе
- * @param selected Состояние выбора чипа
+ * @param text Текст чипа
+ * @param selected Выбран ли чип
  * @param onClick Обработчик нажатия
- * @param modifier Модификатор для кастомизации
+ * @param modifier Модификатор для настройки внешнего вида
  */
 @Composable
 fun FuturisticOptionChip(
@@ -247,11 +269,11 @@ fun FuturisticProgressBar(
 }
 
 /**
- * Стилизованный заголовок раздела в футуристическом стиле.
+ * Стилизованный заголовок секции
  *
- * @param title Текст заголовка
- * @param badge Опциональный значок рядом с заголовком
- * @param modifier Модификатор для кастомизации
+ * @param title Заголовок секции
+ * @param badge Опциональный значок для отображения рядом с заголовком
+ * @param modifier Модификатор для настройки внешнего вида
  */
 @Composable
 fun SectionHeader(
@@ -319,6 +341,76 @@ fun ExpandableButton(
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+}
+
+/**
+ * Значок новой функции с всплывающей подсказкой
+ *
+ * @param tooltipText Текст для всплывающей подсказки
+ * @param titleText Заголовок для всплывающей подсказки
+ * @param icon Иконка для значка
+ */
+@Composable
+fun NewFeatureBadge(
+    tooltipText: String,
+    titleText: String = "Новая функция",
+    icon: ImageVector = RIcons.ExperimentNew
+) {
+    var tooltipVisible by remember { mutableStateOf(false) }
+
+    Box(
+        modifier = Modifier
+            .padding(start = 8.dp)
+    ) {
+        Surface(
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.tertiaryContainer,
+            modifier = Modifier
+                .size(16.dp)
+                .shadow(2.dp, CircleShape)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = titleText,
+                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                modifier = Modifier
+                    .size(12.dp)
+                    .padding(2.dp)
+            )
+        }
+
+        TooltipBox(
+            positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+            tooltip = {
+                PlainTooltip {
+                    Column(
+                        modifier = Modifier.padding(8.dp)
+                    ) {
+                        Text(
+                            text = titleText,
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+
+                        Text(
+                            text = tooltipText,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            },
+            state = rememberTooltipState(),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(16.dp)
+                    .clickable { tooltipVisible = !tooltipVisible }
             )
         }
     }

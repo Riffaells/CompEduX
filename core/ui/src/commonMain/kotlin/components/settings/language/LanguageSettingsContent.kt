@@ -1,4 +1,4 @@
-package components.settings
+package components.settings.language
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState

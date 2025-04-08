@@ -1,4 +1,4 @@
-package components.settings
+package components.settings.base
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*

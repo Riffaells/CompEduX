@@ -5,19 +5,19 @@ import model.ApiError
 /**
  * Результат операций авторизации/регистрации в API слое
  */
-sealed class AuthResult<out T> {
+sealed class AuthResultNetwork<out T> {
     /**
      * Успешный результат с данными
      */
-    data class Success<T>(val data: T) : AuthResult<T>()
+    data class Success<T>(val data: T) : AuthResultNetwork<T>()
 
     /**
      * Ошибка операции
      */
-    data class Error<T>(val error: ApiError) : AuthResult<T>()
+    data class Error(val error: ApiError) : AuthResultNetwork<Nothing>()
 
     /**
      * Состояние загрузки
      */
-    data object Loading : AuthResult<Nothing>()
+    data object Loading : AuthResultNetwork<Nothing>()
 }

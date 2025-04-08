@@ -1,6 +1,6 @@
 package repository.mapper
 
-import api.model.AuthResult as ApiAuthResult
+import api.model.AuthResultNetwork as ApiAuthResult
 import model.AppError
 import model.AuthResult
 import model.ErrorCode
@@ -11,7 +11,7 @@ import model.auth.AuthResponseDomain
 /**
  * Mapper for converting authentication models between layers
  */
-object AuthMapper {
+object DataAuthMapper {
     /**
      * Maps User model from data layer to domain User
      *
@@ -125,7 +125,7 @@ object AuthMapper {
     /**
      * Maps API error to domain error
      */
-    fun <T> mapApiErrorToDomain(error: ApiAuthResult.Error<*>): AuthResult<T> {
+    fun <T> mapApiErrorToDomain(error: ApiAuthResult.Error): AuthResult<T> {
         val errorCode = when (error.error.code) {
             2001 -> ErrorCode.INVALID_CREDENTIALS
             2002 -> ErrorCode.UNAUTHORIZED
