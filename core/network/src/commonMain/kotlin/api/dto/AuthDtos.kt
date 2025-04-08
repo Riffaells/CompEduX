@@ -1,13 +1,14 @@
 package api.dto
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerialName
 
 /**
  * DTO запроса авторизации
  */
 @Serializable
 data class LoginRequest(
-    val email: String,
+    val username: String,
     val password: String
 )
 
@@ -44,7 +45,8 @@ data class UserResponse(
  */
 @Serializable
 data class RefreshTokenRequest(
-    val refresh_token: String
+    @SerialName("refresh_token")
+    val refreshToken: String
 )
 
 /**
@@ -52,9 +54,14 @@ data class RefreshTokenRequest(
  */
 @Serializable
 data class AuthResponseDto(
-    val access_token: String,
-    val refresh_token: String,
-    val token_type: String = "bearer"
+    @SerialName("access_token")
+    val accessToken: String,
+
+    @SerialName("refresh_token")
+    val refreshToken: String,
+
+    @SerialName("token_type")
+    val tokenType: String = "bearer"
 )
 
 /**

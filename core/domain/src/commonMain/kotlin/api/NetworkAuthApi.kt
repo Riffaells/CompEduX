@@ -1,6 +1,6 @@
 package api
 
-import model.auth.AuthResponseData
+import model.auth.AuthResponseDomain
 import model.auth.LoginRequest
 import model.auth.RefreshTokenRequest
 import model.auth.RegisterRequest
@@ -17,21 +17,21 @@ interface NetworkAuthApi {
      * @param request Данные для регистрации
      * @return Результат операции с данными аутентификации
      */
-    suspend fun register(request: RegisterRequest): api.model.AuthResult<AuthResponseData>
+    suspend fun register(request: RegisterRequest): api.model.AuthResult<AuthResponseDomain>
 
     /**
      * Авторизация пользователя
      * @param request Данные для авторизации
      * @return Результат операции с данными аутентификации
      */
-    suspend fun login(request: LoginRequest): api.model.AuthResult<AuthResponseData>
+    suspend fun login(request: LoginRequest): api.model.AuthResult<AuthResponseDomain>
 
     /**
      * Обновление токена доступа
      * @param request Запрос на обновление токена
      * @return Результат операции с новыми данными аутентификации
      */
-    suspend fun refreshToken(request: RefreshTokenRequest): api.model.AuthResult<AuthResponseData>
+    suspend fun refreshToken(request: RefreshTokenRequest): api.model.AuthResult<AuthResponseDomain>
 
     /**
      * Получение информации о текущем пользователе

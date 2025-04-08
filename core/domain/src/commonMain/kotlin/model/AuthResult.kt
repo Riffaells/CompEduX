@@ -7,10 +7,8 @@ sealed class AuthResult<T> {
     /**
      * Успешный результат
      * @property data данные результата операции
-     * @property user информация о пользователе (null если пользователь не аутентифицирован)
-     * @property token токен доступа (null если пользователь не аутентифицирован)
      */
-    data class Success<T>(val data: T, val user: User? = null, val token: String? = null) : AuthResult<T>()
+    data class Success<T>(val data: T) : AuthResult<T>()
 
     /**
      * Ошибка операции

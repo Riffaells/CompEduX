@@ -32,11 +32,9 @@ data class LoginRequest(
  */
 @Serializable
 data class AuthResponseData(
-    val token: String,
+    val accessToken: String,
     val refreshToken: String,
-    val userId: String,
-    val username: String,
-    val expiresIn: Long
+    val tokenType: String
 )
 
 /**

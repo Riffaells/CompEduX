@@ -109,7 +109,7 @@ class AuthApiAdapter(
         }
     }
 
-    override suspend fun register(username: String, email: String, password: String): AuthResult<AuthResponseData> {
+    override suspend fun register(username: String, email: String, password: String): AuthResult<AuthResponseDomain> {
         try {
             // Create request for network API
             val request = RegisterRequest(username, email, password)
@@ -123,16 +123,16 @@ class AuthApiAdapter(
                 errorCode = ErrorCode.INVALID_CREDENTIALS,
                 successHandler = { data ->
                     // Сохраняем токен
-                    saveTokens(data.token, data.refreshToken)
+                    saveTokens(data.accessToken, data.refreshToken)
 
-                    // Create domain user model from AuthResponseData fields
-                    val domainUser = DomainUser(
-                        id = data.userId,
-                        username = data.username,
-                        email = email
+                    // Создаем доменную модель из данных сети
+                    val domainResponse = AuthResponseDomain(
+                        accessToken = data.accessToken,
+                        refreshToken = data.refreshToken,
+                        tokenType = data.tokenType
                     )
 
-                    AuthResult.Success(data, domainUser, data.token)
+                    AuthResult.Success(domainResponse)
                 }
             )
         } catch (e: Exception) {
@@ -140,7 +140,7 @@ class AuthApiAdapter(
         }
     }
 
-    override suspend fun login(email: String, password: String): AuthResult<AuthResponseData> {
+    override suspend fun login(email: String, password: String): AuthResult<AuthResponseDomain> {
         try {
             // Create request for network API
             val request = LoginRequest(email, password)
@@ -154,16 +154,16 @@ class AuthApiAdapter(
                 errorCode = ErrorCode.INVALID_CREDENTIALS,
                 successHandler = { data ->
                     // Сохраняем токен
-                    saveTokens(data.token, data.refreshToken)
+                    saveTokens(data.accessToken, data.refreshToken)
 
-                    // Create domain user model from AuthResponseData fields
-                    val domainUser = DomainUser(
-                        id = data.userId,
-                        username = data.username,
-                        email = email
+                    // Создаем доменную модель из данных сети
+                    val domainResponse = AuthResponseDomain(
+                        accessToken = data.accessToken,
+                        refreshToken = data.refreshToken,
+                        tokenType = data.tokenType
                     )
 
-                    AuthResult.Success(data, domainUser, data.token)
+                    AuthResult.Success(domainResponse)
                 }
             )
         } catch (e: Exception) {
@@ -195,7 +195,7 @@ class AuthApiAdapter(
                 successHandler = { data ->
                     // Create domain user model
                     val domainUser = createDomainUser(data)
-                    AuthResult.Success(domainUser, domainUser, token)
+                    AuthResult.Success(domainUser)
                 }
             )
         } catch (e: Exception) {
@@ -208,7 +208,7 @@ class AuthApiAdapter(
             // Get token
             val token = settings.security.getAuthToken()
             if (token == null) {
-                return AuthResult.Success(Unit, null, null)
+                return AuthResult.Success(Unit)
             }
 
             // Call network API
@@ -218,12 +218,12 @@ class AuthApiAdapter(
             clearTokens()
 
             // On logout, always return success regardless of the request result
-            return AuthResult.Success(Unit, null, null)
+            return AuthResult.Success(Unit)
         } catch (e: Exception) {
             // Clear tokens on error
             clearTokens()
 
-            return AuthResult.Success(Unit, null, null)
+            return AuthResult.Success(Unit)
         }
     }
 
@@ -237,7 +237,7 @@ class AuthApiAdapter(
                 result = result,
                 errorCode = ErrorCode.SERVER_ERROR,
                 successHandler = { data ->
-                    AuthResult.Success(data, null, null)
+                    AuthResult.Success(data)
                 }
             )
         } catch (e: Exception) {
@@ -269,7 +269,7 @@ class AuthApiAdapter(
                 successHandler = { data ->
                     // Create domain user model
                     val domainUser = createDomainUser(data)
-                    AuthResult.Success(domainUser, domainUser, token)
+                    AuthResult.Success(domainUser)
                 }
             )
         } catch (e: Exception) {
@@ -277,7 +277,7 @@ class AuthApiAdapter(
         }
     }
 
-    override suspend fun refreshToken(request: RefreshTokenRequest): AuthResult<AuthResponseData> {
+    override suspend fun refreshToken(request: RefreshTokenRequest): AuthResult<AuthResponseDomain> {
         try {
             // Call network API
             val result = networkAuthApi.refreshToken(request)
@@ -288,16 +288,16 @@ class AuthApiAdapter(
                 errorCode = ErrorCode.UNAUTHORIZED,
                 successHandler = { data ->
                     // Save new tokens
-                    saveTokens(data.token, data.refreshToken)
+                    saveTokens(data.accessToken, data.refreshToken)
 
-                    // Create domain user model from AuthResponseData fields
-                    val domainUser = DomainUser(
-                        id = data.userId,
-                        username = data.username,
-                        email = data.username // Using username as email since it's not provided in AuthResponseData
+                    // Создаем доменную модель из данных сети
+                    val domainResponse = AuthResponseDomain(
+                        accessToken = data.accessToken,
+                        refreshToken = data.refreshToken,
+                        tokenType = data.tokenType
                     )
 
-                    AuthResult.Success(data, domainUser, data.token)
+                    AuthResult.Success(domainResponse)
                 }
             )
         } catch (e: Exception) {

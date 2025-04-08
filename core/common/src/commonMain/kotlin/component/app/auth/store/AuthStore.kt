@@ -102,7 +102,7 @@ class AuthStoreFactory(
                                 val result = withContext(rDispatchers.io) {
                                     authUseCases.login(intent.email, intent.password)
                                 }
-                                handleAuthResult<model.auth.AuthResponseData>(result)
+                                handleAuthResult<model.auth.AuthResponseDomain>(result)
                             } catch (e: Exception) {
                                 // Обрабатываем неожиданные ошибки
                                 val error = AppError(
@@ -130,7 +130,7 @@ class AuthStoreFactory(
                                         username = intent.username
                                     )
                                 }
-                                handleAuthResult<model.auth.AuthResponseData>(result)
+                                handleAuthResult<model.auth.AuthResponseDomain>(result)
                             } catch (e: Exception) {
                                 // Обрабатываем неожиданные ошибки
                                 val error = AppError(
@@ -214,10 +214,22 @@ class AuthStoreFactory(
         private fun <T> handleAuthResult(result: AuthResult<T>) {
             when (result) {
                 is AuthResult.Success -> {
-                    // Проверяем, есть ли пользователь в результате
-                    val user = result.user
-                    if (user != null) {
-                        safeDispatch(Msg.SetUser(user))
+                    // В новой версии AuthResult больше нет поля user
+                    // Вместо этого мы запускаем отдельный запрос, чтобы получить пользователя
+                    // Запускаем отдельный запрос для получения текущего пользователя
+                    scope.launch {
+                        try {
+                            val userResult = withContext(rDispatchers.io) {
+                                authUseCases.getCurrentUser()
+                            }
+                            if (userResult is AuthResult.Success<User>) {
+                                // Пользователь уже не может быть null в новой версии AuthResult
+                                safeDispatch(Msg.SetUser(userResult.data))
+                            }
+                        } catch (e: Exception) {
+                            println("Error getting current user: ${e.message}")
+                            // Не устанавливаем ошибку, так как авторизация уже прошла успешно
+                        }
                     }
                     safeDispatch(Msg.StopLoading)
                 }

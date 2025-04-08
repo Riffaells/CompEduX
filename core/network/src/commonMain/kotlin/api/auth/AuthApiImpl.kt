@@ -17,6 +17,7 @@ import model.auth.RefreshTokenRequest
 import model.auth.RegisterRequest
 import model.auth.ServerStatusResponse
 import kotlinx.serialization.json.*
+import kotlin.io.encoding.ExperimentalEncodingApi
 
 /**
  * Функция-расширение для конвертации UserResponse в User
@@ -72,6 +73,7 @@ private fun extractExpirationFromToken(token: String): Long {
 /**
  * Функция для декодирования Base64Url строки в обычную строку
  */
+@OptIn(ExperimentalEncodingApi::class)
 private fun String.decodeBase64(): String {
     // Добавляем недостающие символы '=' для корректного декодирования
     val padding = when (length % 4) {
@@ -86,9 +88,8 @@ private fun String.decodeBase64(): String {
         .replace('-', '+')
         .replace('_', '/') + padding
 
-    // Декодируем как Base64 и получаем строку
-    val decoded = io.ktor.utils.io.core.toByteArray(io.ktor.utils.io.core.String(base64))
-    return decoded.decodeToString()
+    // Используем более простой способ декодирования
+    return kotlin.io.encoding.Base64.decode(base64).decodeToString()
 }
 
 /**
@@ -104,7 +105,7 @@ class AuthApiImpl(
     override suspend fun register(request: RegisterRequest): AuthResult<AuthResponseDto> {
         return try {
             val baseUrl = getBaseUrl()
-            val response = client.post("$baseUrl/auth/register") {
+            val response = client.post("$baseUrl/api/v1/auth/register") {
                 contentType(ContentType.Application.Json)
                 setBody(api.dto.RegisterRequest(
                     email = request.email,
@@ -115,25 +116,21 @@ class AuthApiImpl(
 
             if (response.status.isSuccess()) {
                 val authResponse = response.body<AuthResponseDto>()
-                // Извлекаем userId из токена
-                val userId = extractUserIdFromToken(authResponse.access_token)
-                val expiresIn = extractExpirationFromToken(authResponse.access_token)
+                // Извлекаем userId и expiresIn из токена - это может быть полезно в логах
+                val userId = extractUserIdFromToken(authResponse.accessToken)
+                val expiresIn = extractExpirationFromToken(authResponse.accessToken)
 
-                // Получаем информацию о пользователе
-                val userResult = getCurrentUser(authResponse.access_token)
-                val user = if (userResult is AuthResult.Success) userResult.data else null
+                // Получаем информацию о пользователе - это больше не нужно передавать в AuthResult
+                val userResult = getCurrentUser(authResponse.accessToken)
 
-                AuthResult.Success(
-                    data = authResponse,
-                    user = user,
-                    token = authResponse.access_token
-                )
+                // Возвращаем только данные без user и token
+                AuthResult.Success(authResponse)
             } else {
                 val errorBody = response.body<String>()
                 AuthResult.Error(
                     AppError(
                         message = "Registration failed: ${response.status.description}",
-                        code = ErrorCode.REGISTRATION_FAILED,
+                        code = ErrorCode.UNKNOWN_ERROR,
                         details = errorBody
                     )
                 )
@@ -151,35 +148,31 @@ class AuthApiImpl(
     override suspend fun login(request: LoginRequest): AuthResult<AuthResponseDto> {
         return try {
             val baseUrl = getBaseUrl()
-            val response = client.post("$baseUrl/auth/login") {
+            val response = client.post("$baseUrl/api/v1/auth/login") {
                 contentType(ContentType.Application.Json)
                 setBody(api.dto.LoginRequest(
-                    email = request.email,
+                    username = request.username,
                     password = request.password
                 ))
             }
 
             if (response.status.isSuccess()) {
                 val authResponse = response.body<AuthResponseDto>()
-                // Извлекаем userId из токена
-                val userId = extractUserIdFromToken(authResponse.access_token)
-                val expiresIn = extractExpirationFromToken(authResponse.access_token)
+                // Извлекаем userId и expiresIn из токена - это может быть полезно в логах
+                val userId = extractUserIdFromToken(authResponse.accessToken)
+                val expiresIn = extractExpirationFromToken(authResponse.accessToken)
 
-                // Получаем информацию о пользователе
-                val userResult = getCurrentUser(authResponse.access_token)
-                val user = if (userResult is AuthResult.Success) userResult.data else null
+                // Получаем информацию о пользователе - это больше не нужно передавать в AuthResult
+                val userResult = getCurrentUser(authResponse.accessToken)
 
-                AuthResult.Success(
-                    data = authResponse,
-                    user = user,
-                    token = authResponse.access_token
-                )
+                // Возвращаем только данные без user и token
+                AuthResult.Success(authResponse)
             } else {
                 val errorBody = response.body<String>()
                 AuthResult.Error(
                     AppError(
                         message = "Login failed: ${response.status.description}",
-                        code = ErrorCode.LOGIN_FAILED,
+                        code = ErrorCode.UNKNOWN_ERROR,
                         details = errorBody
                     )
                 )
@@ -197,30 +190,27 @@ class AuthApiImpl(
     override suspend fun refreshToken(request: RefreshTokenRequest): AuthResult<AuthResponseDto> {
         return try {
             val baseUrl = getBaseUrl()
-            val response = client.post("$baseUrl/auth/refresh") {
+            val response = client.post("$baseUrl/api/v1/auth/refresh") {
                 contentType(ContentType.Application.Json)
                 setBody(api.dto.RefreshTokenRequest(
-                    refresh_token = request.refreshToken
+                    refreshToken = request.refreshToken
                 ))
             }
 
             if (response.status.isSuccess()) {
                 val authResponse = response.body<AuthResponseDto>()
-                // Извлекаем userId из токена
-                val userId = extractUserIdFromToken(authResponse.access_token)
-                val expiresIn = extractExpirationFromToken(authResponse.access_token)
+                // Извлекаем userId и expiresIn из токена - это может быть полезно в логах
+                val userId = extractUserIdFromToken(authResponse.accessToken)
+                val expiresIn = extractExpirationFromToken(authResponse.accessToken)
 
-                AuthResult.Success(
-                    data = authResponse,
-                    user = null, // Пользователя нужно будет получить отдельно при необходимости
-                    token = authResponse.access_token
-                )
+                // Возвращаем только данные без user и token
+                AuthResult.Success(authResponse)
             } else {
                 val errorBody = response.body<String>()
                 AuthResult.Error(
                     AppError(
                         message = "Token refresh failed: ${response.status.description}",
-                        code = ErrorCode.TOKEN_REFRESH_FAILED,
+                        code = ErrorCode.UNKNOWN_ERROR,
                         details = errorBody
                     )
                 )
@@ -238,7 +228,7 @@ class AuthApiImpl(
     override suspend fun getCurrentUser(token: String): AuthResult<User> {
         return try {
             val baseUrl = getBaseUrl()
-            val response = client.get("$baseUrl/auth/me") {
+            val response = client.get("$baseUrl/api/v1/auth/me") {
                 header("Authorization", "Bearer $token")
             }
 
@@ -250,7 +240,7 @@ class AuthApiImpl(
                 AuthResult.Error(
                     AppError(
                         message = "Failed to get user info: ${response.status.description}",
-                        code = ErrorCode.USER_INFO_FAILED,
+                        code = ErrorCode.UNKNOWN_ERROR,
                         details = errorBody
                     )
                 )
@@ -268,7 +258,7 @@ class AuthApiImpl(
     override suspend fun logout(token: String): AuthResult<Unit> {
         return try {
             val baseUrl = getBaseUrl()
-            val response = client.post("$baseUrl/auth/logout") {
+            val response = client.post("$baseUrl/api/v1/auth/logout") {
                 header("Authorization", "Bearer $token")
             }
 
@@ -279,7 +269,7 @@ class AuthApiImpl(
                 AuthResult.Error(
                     AppError(
                         message = "Logout failed: ${response.status.description}",
-                        code = ErrorCode.LOGOUT_FAILED,
+                        code = ErrorCode.UNKNOWN_ERROR,
                         details = errorBody
                     )
                 )
@@ -297,7 +287,7 @@ class AuthApiImpl(
     override suspend fun checkServerStatus(): AuthResult<ServerStatusResponse> {
         return try {
             val baseUrl = getBaseUrl()
-            val response = client.get("$baseUrl/status")
+            val response = client.get("$baseUrl/api/v1/status")
 
             if (response.status.isSuccess()) {
                 val status = response.body<ServerStatusResponse>()
@@ -307,7 +297,7 @@ class AuthApiImpl(
                 AuthResult.Error(
                     AppError(
                         message = "Failed to check server status: ${response.status.description}",
-                        code = ErrorCode.SERVER_STATUS_FAILED,
+                        code = ErrorCode.UNKNOWN_ERROR,
                         details = errorBody
                     )
                 )
@@ -325,7 +315,7 @@ class AuthApiImpl(
     override suspend fun updateProfile(token: String, username: String): AuthResult<User> {
         return try {
             val baseUrl = getBaseUrl()
-            val response = client.put("$baseUrl/users/profile") {
+            val response = client.put("$baseUrl/api/v1/users/profile") {
                 header("Authorization", "Bearer $token")
                 contentType(ContentType.Application.Json)
                 setBody(api.dto.UpdateProfileRequest(username = username))
@@ -339,7 +329,7 @@ class AuthApiImpl(
                 AuthResult.Error(
                     AppError(
                         message = "Failed to update profile: ${response.status.description}",
-                        code = ErrorCode.PROFILE_UPDATE_FAILED,
+                        code = ErrorCode.UNKNOWN_ERROR,
                         details = errorBody
                     )
                 )

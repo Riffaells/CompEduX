@@ -3,7 +3,7 @@ package repository.auth
 import kotlinx.coroutines.flow.StateFlow
 import model.AuthResult
 import model.User
-import model.auth.AuthResponseData
+import model.auth.AuthResponseDomain
 import model.auth.ServerStatusResponse
 
 /**
@@ -27,7 +27,7 @@ interface AuthRepository {
         email: String,
         password: String,
         username: String
-    ): AuthResult<AuthResponseData>
+    ): AuthResult<AuthResponseDomain>
 
     /**
      * Авторизация пользователя
@@ -35,7 +35,7 @@ interface AuthRepository {
      * @param password Пароль пользователя
      * @return Результат операции авторизации
      */
-    suspend fun login(email: String, password: String): AuthResult<AuthResponseData>
+    suspend fun login(email: String, password: String): AuthResult<AuthResponseDomain>
 
     /**
      * Выход из системы

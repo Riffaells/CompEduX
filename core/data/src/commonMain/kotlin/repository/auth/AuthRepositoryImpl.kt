@@ -11,6 +11,7 @@ import model.auth.AuthResponseData
 import model.auth.ServerStatusResponse
 import model.auth.RefreshTokenRequest
 import settings.MultiplatformSettings
+import model.auth.AuthResponseDomain
 
 /**
  * Реализация репозитория для работы с аутентификацией
@@ -29,7 +30,7 @@ class AuthRepositoryImpl(
         email: String,
         password: String,
         username: String
-    ): AuthResult<AuthResponseData> {
+    ): AuthResult<AuthResponseDomain> {
         try {
             // Базовая валидация входных параметров
             if (email.isBlank() || password.isBlank() || username.isBlank()) {
@@ -48,14 +49,8 @@ class AuthRepositoryImpl(
             // Обрабатываем результат
             when (result) {
                 is AuthResult.Success -> {
-                    // Сохраняем токены выполняется в AuthApiAdapter
-
-                    // Обновляем кэшированного пользователя
-                    val user = result.user
-                    currentUser = user
-                    if (user != null) {
-                        _authState.value = AuthState.Authenticated(user)
-                    }
+                    // После успешной регистрации нужно получить пользователя отдельным запросом
+                    getCurrentUser()
                 }
                 is AuthResult.Error -> {
                     // Ничего не делаем, просто возвращаем ошибку
@@ -77,7 +72,7 @@ class AuthRepositoryImpl(
         }
     }
 
-    override suspend fun login(email: String, password: String): AuthResult<AuthResponseData> {
+    override suspend fun login(email: String, password: String): AuthResult<AuthResponseDomain> {
         try {
             // Базовая валидация входных параметров
             if (email.isBlank() || password.isBlank()) {
@@ -96,14 +91,8 @@ class AuthRepositoryImpl(
             // Обрабатываем результат
             when (result) {
                 is AuthResult.Success -> {
-                    // Сохраняем токены выполняется в AuthApiAdapter
-
-                    // Обновляем кэшированного пользователя
-                    val user = result.user
-                    currentUser = user
-                    if (user != null) {
-                        _authState.value = AuthState.Authenticated(user)
-                    }
+                    // После успешной авторизации нужно получить пользователя отдельным запросом
+                    getCurrentUser()
                 }
                 is AuthResult.Error -> {
                     // Ничего не делаем, просто возвращаем ошибку

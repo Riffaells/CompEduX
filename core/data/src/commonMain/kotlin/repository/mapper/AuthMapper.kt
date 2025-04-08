@@ -6,6 +6,7 @@ import model.AuthResult
 import model.ErrorCode
 import model.User
 import model.auth.AuthResponseData
+import model.auth.AuthResponseDomain
 
 /**
  * Mapper for converting authentication models between layers
@@ -28,12 +29,11 @@ object AuthMapper {
     /**
      * Creates a successful authentication result
      *
-     * @param user User
-     * @param token Authentication token
-     * @return Successful authentication result
+     * @param data Данные для возврата
+     * @return Successful result
      */
-    fun createSuccessResult(user: User?, token: String?): AuthResult<User?> {
-        return AuthResult.Success(user, user, token)
+    fun <T> createSuccessResult(data: T): AuthResult<T> {
+        return AuthResult.Success(data)
     }
 
     /**
@@ -78,10 +78,10 @@ object AuthMapper {
     /**
      * Creates an unauthenticated result
      *
-     * @return Unauthenticated user result (successful result with null user)
+     * @return Unauthenticated result (successful result with null data)
      */
-    fun <T> createUnauthenticatedResult(): AuthResult<T> {
-        return AuthResult.Success(null, null, null) as AuthResult<T>
+    fun <T> createUnauthenticatedResult(): AuthResult<T?> {
+        return AuthResult.Success(null)
     }
 
     /**
@@ -112,13 +112,14 @@ object AuthMapper {
     /**
      * Maps authentication success response to domain model
      */
-    fun mapAuthResponseToDomain(authResponse: AuthResponseData): AuthResult<User> {
-        val domainUser = User(
-            id = authResponse.userId,
-            username = authResponse.username,
-            email = authResponse.username // Using username as email since it's not provided in AuthResponseData
+    fun mapAuthResponseToDomain(authResponse: AuthResponseData): AuthResult<AuthResponseDomain> {
+        return AuthResult.Success(
+            AuthResponseDomain(
+                accessToken = authResponse.accessToken,
+                refreshToken = authResponse.refreshToken,
+                tokenType = authResponse.tokenType
+            )
         )
-        return AuthResult.Success(domainUser, domainUser, authResponse.token)
     }
 
     /**

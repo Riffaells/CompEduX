@@ -2,7 +2,7 @@ package api
 
 import model.AuthResult
 import model.User
-import model.auth.AuthResponseData
+import model.auth.AuthResponseDomain
 import model.auth.ServerStatusResponse
 import model.auth.RefreshTokenRequest
 
@@ -18,7 +18,7 @@ interface AuthApi {
      * @param username Имя пользователя
      * @return Результат операции с данными аутентификации
      */
-    suspend fun register(username: String, email: String, password: String): AuthResult<AuthResponseData>
+    suspend fun register(username: String, email: String, password: String): AuthResult<AuthResponseDomain>
 
     /**
      * Авторизация пользователя
@@ -26,7 +26,7 @@ interface AuthApi {
      * @param password Пароль пользователя
      * @return Результат операции с данными аутентификации
      */
-    suspend fun login(email: String, password: String): AuthResult<AuthResponseData>
+    suspend fun login(email: String, password: String): AuthResult<AuthResponseDomain>
 
     /**
      * Получение информации о текущем пользователе
@@ -58,5 +58,5 @@ interface AuthApi {
      * @param refreshToken Токен обновления
      * @return Результат операции с данными аутентификации
      */
-    suspend fun refreshToken(request: RefreshTokenRequest): AuthResult<AuthResponseData>
+    suspend fun refreshToken(request: RefreshTokenRequest): AuthResult<AuthResponseDomain>
 }

@@ -7,7 +7,7 @@ import model.AuthResult as KtorAuthResult
 import api.model.AuthResult as ApiAuthResult
 import model.ApiError
 import model.User
-import model.auth.AuthResponseData
+import model.auth.AuthResponseDomain
 import model.auth.LoginRequest
 import model.auth.RefreshTokenRequest
 import model.auth.RegisterRequest
@@ -43,8 +43,7 @@ class NetworkAuthApiAdapter(
                 )
             }
             is KtorAuthResult.Loading -> {
-                @Suppress("UNCHECKED_CAST")
-                ApiAuthResult.Loading as ApiAuthResult<R>
+                ApiAuthResult.Loading
             }
         }
     }
@@ -63,19 +62,17 @@ class NetworkAuthApiAdapter(
     }
 
     /**
-     * Convert AuthResponseDto to AuthResponseData
+     * Convert AuthResponseDto to AuthResponseDomain
      */
-    private fun convertAuthResponseDtoToData(dto: AuthResponseDto): AuthResponseData {
-        return AuthResponseData(
-            token = dto.token,
+    private fun convertAuthResponseDtoToData(dto: AuthResponseDto): AuthResponseDomain {
+        return AuthResponseDomain(
+            accessToken = dto.accessToken,
             refreshToken = dto.refreshToken,
-            userId = dto.user.id,
-            username = dto.user.username,
-            expiresIn = 0 // ExpiresIn might not be present in DTO
+            tokenType = dto.tokenType
         )
     }
 
-    override suspend fun register(request: RegisterRequest): ApiAuthResult<AuthResponseData> {
+    override suspend fun register(request: RegisterRequest): ApiAuthResult<AuthResponseDomain> {
         return try {
             val result = ktorAuthApi.register(request)
             handleKtorResult(result, "Error during registration", ::convertAuthResponseDtoToData)
@@ -84,7 +81,7 @@ class NetworkAuthApiAdapter(
         }
     }
 
-    override suspend fun login(request: LoginRequest): ApiAuthResult<AuthResponseData> {
+    override suspend fun login(request: LoginRequest): ApiAuthResult<AuthResponseDomain> {
         return try {
             val result = ktorAuthApi.login(request)
             handleKtorResult(result, "Error during login", ::convertAuthResponseDtoToData)
@@ -93,7 +90,7 @@ class NetworkAuthApiAdapter(
         }
     }
 
-    override suspend fun refreshToken(request: RefreshTokenRequest): ApiAuthResult<AuthResponseData> {
+    override suspend fun refreshToken(request: RefreshTokenRequest): ApiAuthResult<AuthResponseDomain> {
         return try {
             val result = ktorAuthApi.refreshToken(request)
             handleKtorResult(result, "Error while refreshing token", ::convertAuthResponseDtoToData)
@@ -130,13 +127,11 @@ class NetworkAuthApiAdapter(
     }
 
     override suspend fun updateProfile(token: String, username: String): ApiAuthResult<User> {
-        // The updateProfile method is not available in KtorAuthApi interface
-        return ApiAuthResult.Error(
-            ApiError(
-                message = "Profile update function is not implemented in the current API",
-                code = -1,
-                details = "This functionality is not available in the KtorAuthApi interface"
-            )
-        )
+        return try {
+            val result = ktorAuthApi.updateProfile(token, username)
+            handleKtorResult(result, "Error during profile update") { it }
+        } catch (e: Exception) {
+            handleException(e, "Error during profile update")
+        }
     }
 }
