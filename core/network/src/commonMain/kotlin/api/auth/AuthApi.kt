@@ -49,4 +49,12 @@ interface AuthApi {
      * @return Результат операции с данными о статусе сервера
      */
     suspend fun checkServerStatus(): AuthResult<ServerStatusResponse>
+
+    /**
+     * Обновление профиля пользователя
+     * @param token Токен доступа
+     * @param username Новое имя пользователя
+     * @return Результат операции с обновленными данными пользователя
+     */
+    suspend fun updateProfile(token: String, username: String): AuthResult<User>
 }

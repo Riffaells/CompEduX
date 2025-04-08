@@ -30,7 +30,10 @@ import utils.NavigationExecutor
 import utils.rDispatchers
 
 /**
- * Параметры для создания компонента аутентификации
+ * Parameters for creating the authentication component.
+ *
+ * @property componentContext Decompose component context.
+ * @property onBack Callback for returning from the authentication component.
  */
 data class AuthComponentParams(
     val componentContext: ComponentContext,
@@ -38,7 +41,12 @@ data class AuthComponentParams(
 )
 
 /**
- * Параметры для создания компонента входа в систему
+ * Parameters for creating the login component.
+ *
+ * @property componentContext Decompose component context.
+ * @property onBack Callback for returning.
+ * @property onRegister Callback for navigating to registration.
+ * @property onLoginSuccess Callback for successful login.
  */
 data class LoginComponentParams(
     val componentContext: ComponentContext,
@@ -48,7 +56,12 @@ data class LoginComponentParams(
 )
 
 /**
- * Параметры для создания компонента регистрации
+ * Parameters for creating the registration component.
+ *
+ * @property componentContext Decompose component context.
+ * @property onBack Callback for returning.
+ * @property onLogin Callback for navigating to login.
+ * @property onRegisterSuccess Callback for successful registration.
  */
 data class RegisterComponentParams(
     val componentContext: ComponentContext,
@@ -58,7 +71,11 @@ data class RegisterComponentParams(
 )
 
 /**
- * Параметры для создания компонента профиля
+ * Parameters for creating the profile component.
+ *
+ * @property componentContext Decompose component context.
+ * @property onLogout Callback for logging out.
+ * @property onBackClicked Callback for returning.
  */
 data class ProfileComponentParams(
     val componentContext: ComponentContext,
@@ -66,24 +83,70 @@ data class ProfileComponentParams(
     val onBackClicked: () -> Unit
 )
 
+/**
+ * Interface for the authentication component, responsible for navigation between
+ * login, registration, and profile screens, as well as managing the authentication state.
+ */
 interface AuthComponent {
+    /**
+     * Authentication state of the user.
+     */
     val state: StateFlow<AuthStore.State>
+
+    /**
+     * Stack of child components for navigation.
+     */
     val childStack: Value<ChildStack<*, Child>>
 
+    /**
+     * Sealed class representing authentication child components.
+     */
     sealed class Child {
         class LoginChild(val component: LoginComponent) : Child()
         class RegisterChild(val component: RegisterComponent) : Child()
         class ProfileChild(val component: ProfileComponent) : Child()
     }
 
-    // Методы навигации
+    // Navigation methods
+
+    /**
+     * Navigate to the login screen.
+     */
     fun navigateToLogin()
+
+    /**
+     * Navigate to the registration screen.
+     */
     fun navigateToRegister()
+
+    /**
+     * Navigate to the profile screen.
+     */
     fun navigateToProfile()
+
+    /**
+     * Navigate back to the previous screen in the navigation stack.
+     */
     fun navigateBack()
+
+    /**
+     * Handle back button click.
+     */
     fun onBackClicked()
 }
 
+/**
+ * Implementation of the authentication component, using Decompose for navigation
+ * and MVIKotlin for state management.
+ *
+ * The component manages navigation between three screens:
+ * - Login
+ * - Registration
+ * - User Profile
+ *
+ * Authentication state is stored in AuthStore and automatically restored
+ * when the component is created.
+ */
 @OptIn(ExperimentalCoroutinesApi::class)
 class DefaultAuthComponent(
     override val di: DI,
@@ -93,21 +156,31 @@ class DefaultAuthComponent(
     private val authUseCases: AuthUseCases
 ) : AuthComponent, DIAware, ComponentContext by componentContext {
 
+    /**
+     * Stack navigation for screens.
+     */
     private val navigation = StackNavigation<Config>()
 
-    // Создаем scope, связанный с жизненным циклом компонента
-    // Использование coroutineScope из Essenty гарантирует автоматическую отмену
-    // корутин при уничтожении компонента
+    /**
+     * Coroutine scope bound to the component's lifecycle.
+     * Automatically canceled when the component is destroyed.
+     */
     private val scope = coroutineScope(rDispatchers.main)
 
-    // Создаем навигационный executor, используя scope, связанный с жизненным циклом
+    /**
+     * Safe navigation handler that ensures navigation operations
+     * are executed on the main thread.
+     */
     private val navigationExecutor = NavigationExecutor(
         navigation = navigation,
         scope = scope,
         mainDispatcher = rDispatchers.main,
-        logger = { message -> println("Navigation: $message") }
+        logger = { message -> println("Auth Navigation: $message") }
     )
 
+    /**
+     * Authentication state store.
+     */
     private val _store = instanceKeeper.getStore {
         AuthStoreFactory(
             storeFactory = storeFactory,
@@ -115,42 +188,41 @@ class DefaultAuthComponent(
         ).create()
     }
 
+    /**
+     * Stack of child components (Login, Register, Profile).
+     */
     @OptIn(ExperimentalCoroutinesApi::class)
     private val _childStack = childStack(
         source = navigation,
         serializer = Config.serializer(),
         initialStack = {
-            // Проверяем авторизован ли пользователь
-            var initialConfiguration = Config.Login
-
-            // Возвращаем начальный стек навигации
-            listOf(initialConfiguration)
+            // Initial configuration - login screen
+            listOf(Config.Login)
         },
         handleBackButton = true,
         childFactory = ::child
     )
 
-    // Подписываемся на изменения состояния в init блоке
+    /**
+     * Component initialization: authentication check and subscribing to state changes.
+     */
     init {
-        // Асинхронно проверяем авторизацию при создании компонента
+        // Asynchronously check the current authentication state
         scope.launch {
             val isAuthenticated = withContext(rDispatchers.io) {
                 authUseCases.isAuthenticated()
             }
             if (isAuthenticated) {
-                // Устанавливаем флаг авторизации
                 _store.accept(AuthStore.Intent.SetAuthenticated(true))
             }
         }
 
-        // Подписка на изменение состояния isAuthenticated
-        // Эта подписка будет работать все время жизни компонента
+        // Subscribe to authentication state changes for automatic navigation
         scope.launch {
             _store.stateFlow
                 .map { it.isAuthenticated }
                 .collect { isAuth ->
                     if (isAuth) {
-                        // Вызываем навигацию в главном потоке
                         navigationExecutor.navigateTo(Config.Profile)
                     }
                 }
@@ -158,7 +230,6 @@ class DefaultAuthComponent(
     }
 
     override val childStack: Value<ChildStack<*, AuthComponent.Child>> = _childStack
-
     override val state: StateFlow<AuthStore.State> = _store.stateFlow
 
     override fun onBackClicked() {
@@ -170,7 +241,7 @@ class DefaultAuthComponent(
     }
 
     override fun navigateToRegister() {
-        navigationExecutor.push(Config.Register)
+        navigationExecutor.navigateTo(Config.Register)
     }
 
     override fun navigateToProfile() {
@@ -181,6 +252,9 @@ class DefaultAuthComponent(
         navigationExecutor.pop()
     }
 
+    /**
+     * Create a child component based on the configuration.
+     */
     private fun child(config: Config, componentContext: ComponentContext): AuthComponent.Child =
         when (config) {
             Config.Login -> AuthComponent.Child.LoginChild(loginComponent(componentContext))
@@ -188,6 +262,9 @@ class DefaultAuthComponent(
             Config.Profile -> AuthComponent.Child.ProfileChild(profileComponent(componentContext))
         }
 
+    /**
+     * Create a login component.
+     */
     private fun loginComponent(componentContext: ComponentContext): LoginComponent {
         val loginComponentFactory by factory<LoginComponentParams, DefaultLoginComponent>()
         return loginComponentFactory(
@@ -196,13 +273,15 @@ class DefaultAuthComponent(
                 onBack = onBack,
                 onRegister = ::navigateToRegister,
                 onLoginSuccess = {
-                    // Вместо вызова навигации, обновляем состояние
                     _store.accept(AuthStore.Intent.SetAuthenticated(true))
                 }
             )
         )
     }
 
+    /**
+     * Create a registration component.
+     */
     private fun registerComponent(componentContext: ComponentContext): RegisterComponent {
         val registerComponentFactory by factory<RegisterComponentParams, DefaultRegisterComponent>()
         return registerComponentFactory(
@@ -211,22 +290,22 @@ class DefaultAuthComponent(
                 onBack = ::navigateBack,
                 onLogin = ::navigateBack,
                 onRegisterSuccess = {
-                    // Вместо вызова навигации, обновляем состояние
                     _store.accept(AuthStore.Intent.SetAuthenticated(true))
                 }
             )
         )
     }
 
+    /**
+     * Create a profile component.
+     */
     private fun profileComponent(componentContext: ComponentContext): ProfileComponent {
         val profileComponentFactory by factory<ProfileComponentParams, DefaultProfileComponent>()
         return profileComponentFactory(
             ProfileComponentParams(
                 componentContext = componentContext,
                 onLogout = {
-                    // Handle logout in the auth store
                     _store.accept(AuthStore.Intent.Logout)
-                    // Вместо вызова навигации через MainThreadWorker, используем navigationExecutor
                     navigationExecutor.navigateTo(Config.Login)
                 },
                 onBackClicked = onBack
@@ -234,6 +313,9 @@ class DefaultAuthComponent(
         )
     }
 
+    /**
+     * Configurations for navigating between authentication screens.
+     */
     @Serializable
     private sealed interface Config {
         @Serializable

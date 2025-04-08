@@ -5,9 +5,10 @@ package model.auth
  * Используется как промежуточная модель между domain и network слоями
  */
 data class AuthResponseData(
-    val token: String,
+    val accessToken: String,
     val refreshToken: String,
-    val userId: String,
-    val username: String,
-    val expiresIn: Long
+    val tokenType: String,
+    val userId: String = "", // ID пользователя извлекается из токена
+    val username: String = "", // Имя пользователя получается в отдельном запросе
+    val expiresIn: Long = 0 // Время истечения токена извлекается из JWT payload
 )

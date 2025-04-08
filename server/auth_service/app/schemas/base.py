@@ -17,8 +17,8 @@ class UserBaseSchema(BaseModel):
     first_name: str = ""
     last_name: str = ""
     avatar_url: Optional[HttpUrl] = None
-    bio: str = ""
-    location: str = ""
+    bio: Optional[str] = ""
+    location: Optional[str] = ""
     lang: str = "en"
     rating: int = 0
     is_active: bool = True

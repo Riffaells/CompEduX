@@ -40,13 +40,21 @@ data class UserResponse(
 )
 
 /**
- * DTO ответа авторизации
+ * DTO запроса обновления токена
+ */
+@Serializable
+data class RefreshTokenRequest(
+    val refresh_token: String
+)
+
+/**
+ * DTO ответа авторизации по новому формату
  */
 @Serializable
 data class AuthResponseDto(
-    val user: UserResponse,
-    val token: String,
-    val refreshToken: String = ""
+    val access_token: String,
+    val refresh_token: String,
+    val token_type: String = "bearer"
 )
 
 /**

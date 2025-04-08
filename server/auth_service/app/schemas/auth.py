@@ -29,3 +29,13 @@ class TokenRefreshSchema(BaseModel):
     Used to obtain a new access token using a refresh token.
     """
     refresh_token: str
+
+
+class TokenPayloadSchema(BaseModel):
+    """
+    Schema for token payload.
+
+    Contains information stored inside the JWT token.
+    """
+    sub: str  # user ID
+    exp: int  # expiration timestamp

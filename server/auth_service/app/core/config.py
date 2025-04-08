@@ -54,7 +54,17 @@ class Settings(BaseSettings):
     def SQLALCHEMY_DATABASE_URI(self) -> PostgresDsn:
         """
         Construct PostgreSQL connection URI from individual settings.
+        If in development mode and PostgreSQL settings are not available,
+        return empty string to allow using SQLite.
         """
+        # В режиме разработки можем использовать SQLite
+        if self.ENV == "development":
+            try:
+                return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+            except Exception:
+                # Возвращаем пустую строку, чтобы main.py мог установить SQLite
+                return ""
+        # В production всегда используем PostgreSQL
         return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
     # OAuth settings
