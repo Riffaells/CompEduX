@@ -41,6 +41,13 @@
     <string name="profile_clear_data">Очистить данные профиля</string>
     <string name="profile_complete">Профиль заполнен</string>
     <string name="profile_incomplete">Профиль не заполнен</string>
+    <string name="profile_personal_info">Персональная информация</string>
+    <string name="profile_avatar_url_desc">Ссылка на изображение вашего аватара</string>
+    <string name="profile_username_desc">Ваше имя, видимое другим пользователям</string>
+    <string name="profile_email_desc">Адрес электронной почты для связи</string>
+    <string name="profile_status_desc">Короткое сообщение о себе</string>
+    <string name="profile_status_placeholder">Чем вы сейчас занимаетесь?</string>
+    <string name="profile_privacy_settings">Настройки приватности</string>
 
     <!-- Настройки внешнего вида -->
     <string name="appearance_settings_title">Настройки внешнего вида</string>

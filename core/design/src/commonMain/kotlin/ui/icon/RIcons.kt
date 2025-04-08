@@ -43,5 +43,7 @@ object RIcons {
     val Person = Icons.Rounded.Person
     val ContentCopy = Icons.Rounded.ContentCopy
 
+    val Translate = Icons.Rounded.Translate
+
 
 }

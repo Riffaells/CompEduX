@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     AUTH_SECRET_KEY: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    ADMIN_API_KEY: str = "admin_secret_key"  # API ключ для административных эндпоинтов
 
     # CORS settings
     BACKEND_CORS_ORIGINS: List[str] = ["*"]

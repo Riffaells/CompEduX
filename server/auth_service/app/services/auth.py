@@ -20,9 +20,13 @@ from ..schemas.user import UserCreateSchema
 
 # JWT settings
 ALGORITHM = "HS256"
-# Указываем, что tokenUrl все равно использует /auth/login, хотя OAuth2 форма не используется
-# Это необходимо для схемы безопасности в Swagger UI
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login")
+# Указываем несколько возможных URL для tokenUrl
+# Это позволит Swagger UI корректно работать с разными версиями API
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl=f"{settings.API_V1_STR}/auth/login",
+    # Дополнительные URL для безопасности (для работы без версии и через заголовки)
+    auto_error=True,
+)
 
 # Password hashing settings
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

@@ -4,12 +4,18 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
@@ -18,17 +24,23 @@ import androidx.compose.ui.unit.dp
  *
  * @param title Заголовок настройки
  * @param description Описание настройки
- * @param value Текущее значение текстового поля
+ * @param value Текущее значение текстового поля (TextFieldValue)
  * @param onValueChange Обработчик изменения значения текстового поля
  * @param isExperimental Флаг, указывающий, является ли настройка экспериментальной
+ * @param placeholder Текст-подсказка, отображаемая когда поле пустое
+ * @param trailingIcon Иконка, отображаемая в конце текстового поля
+ * @param onTrailingIconClick Обработчик нажатия на иконку в конце поля
  */
 @Composable
 fun SettingTextField(
     title: String,
     description: String,
-    value: String,
-    onValueChange: (String) -> Unit,
-    isExperimental: Boolean = false
+    value: TextFieldValue,
+    onValueChange: (TextFieldValue) -> Unit,
+    isExperimental: Boolean = false,
+    placeholder: String? = null,
+    trailingIcon: ImageVector? = null,
+    onTrailingIconClick: (() -> Unit)? = null
 ) {
     Column(
         modifier = Modifier
@@ -59,7 +71,30 @@ fun SettingTextField(
             value = value,
             onValueChange = onValueChange,
             modifier = Modifier.fillMaxWidth(),
-            singleLine = true
+            singleLine = true,
+            shape = RoundedCornerShape(16.dp),
+            colors = TextFieldDefaults.colors(
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                cursorColor = MaterialTheme.colorScheme.primary,
+                focusedIndicatorColor = MaterialTheme.colorScheme.primary
+            ),
+            placeholder = placeholder?.let {
+                { Text(text = it) }
+            },
+            trailingIcon = trailingIcon?.let {
+                {
+                    IconButton(onClick = { onTrailingIconClick?.invoke() }) {
+                        Icon(
+                            imageVector = it,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
         )
     }
 }
