@@ -40,3 +40,26 @@ class PrivacyLevel(str, Enum):
     PUBLIC = "public"      # Visible to everyone
     FRIENDS = "friends"    # Visible only to friends
     PRIVATE = "private"    # Visible only to the user
+
+
+class BeveragePreference(str, Enum):
+    """
+    User's preferred beverage for breaks.
+
+    This is used to enhance user experience by showing personalized
+    messages during break times.
+
+    Attributes:
+        COFFEE: Coffee preference.
+        TEA: Tea preference.
+        WATER: Water preference.
+        JUICE: Juice preference.
+        SODA: Soda preference.
+        NONE: No preference specified.
+    """
+    COFFEE = "coffee"
+    TEA = "tea"
+    WATER = "water"
+    JUICE = "juice"
+    SODA = "soda"
+    NONE = "none"

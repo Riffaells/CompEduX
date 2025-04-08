@@ -1,7 +1,7 @@
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, HttpUrl, ConfigDict
+from pydantic import BaseModel, EmailStr, ConfigDict
 
 from ..models.enums import OAuthProvider, UserRole
 
@@ -10,17 +10,12 @@ class UserBaseSchema(BaseModel):
     """
     Base user schema with essential fields.
 
-    Used as a foundation for other user schemas.
+    This schema is used for creating and updating users, not for responses.
+    For responses, use UserResponseSchema which avoids duplication.
     """
     email: EmailStr
     username: str
-    first_name: str = ""
-    last_name: str = ""
-    avatar_url: Optional[HttpUrl] = None
-    bio: Optional[str] = ""
-    location: Optional[str] = ""
-    lang: str = "en"
-    rating: int = 0
+    lang: Optional[str] = None  # Language preference, optional
     is_active: bool = True
     role: UserRole = UserRole.USER
     auth_provider: OAuthProvider = OAuthProvider.EMAIL

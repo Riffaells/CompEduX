@@ -24,6 +24,7 @@ from ...services.auth import (
     get_current_user,
     refresh_access_token,
 )
+from ..utils import prepare_user_response
 
 # Настройка логирования
 logger = logging.getLogger(__name__)
@@ -38,11 +39,23 @@ class LoginRequest(BaseModel):
 @router.post("/register", response_model=TokenSchema)
 async def register(user_in: UserCreateSchema, db: Session = Depends(get_db)):
     """
-    Register a new user and get access token
+    Register a new user and get access token.
+
+    Handles regular users and test accounts with special email formats.
+    Test accounts use format: test+anything@test.com
     """
     try:
-        # Создаем пользователя - здесь уже включена логика для тестового аккаунта
+        # Check if this is a test account
+        is_test_account = user_in.email and user_in.email.startswith("test+") and user_in.email.endswith("@test.com")
+
+        if is_test_account:
+            logger.info(f"Processing test account registration: {user_in.email}")
+
+        # Создаем пользователя - включая логику для тестового аккаунта
         user = create_user(db, user_in)
+
+        if is_test_account:
+            logger.info(f"Test account created/updated successfully: {user.email} (ID: {user.id})")
 
         # Генерируем access token - логика JWT-авторизации
         access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -51,7 +64,7 @@ async def register(user_in: UserCreateSchema, db: Session = Depends(get_db)):
             expires_delta=access_token_expires
         )
 
-        # Генерируем refresh token - обновлено для предотвращения дубликатов
+        # Генерируем refresh token
         refresh_token = create_refresh_token(user.id, db)
 
         return {
@@ -61,14 +74,17 @@ async def register(user_in: UserCreateSchema, db: Session = Depends(get_db)):
         }
     except Exception as e:
         db.rollback()  # Откатываем транзакцию в случае ошибки
-        raise e
+        logger.error(f"Error during user registration: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Registration failed: {str(e)}"
+        )
 
 
 @router.post("/login", response_model=TokenSchema)
 async def login(
     login_data: LoginRequest,
-    db: Session = Depends(get_db),
-    response: Response = None
+    db: Session = Depends(get_db)
 ):
     """
     Authenticate user and get tokens.
@@ -105,10 +121,6 @@ async def login(
     # Create refresh token
     refresh_token = create_refresh_token(user.id, db)
 
-    # Добавляем версию API в заголовок ответа
-    if response:
-        response.headers["X-API-Version"] = "v1"
-
     # Возвращаем только токены, без информации о пользователе
     return {
         "access_token": access_token,
@@ -120,50 +132,35 @@ async def login(
 @router.post("/refresh", response_model=TokenSchema)
 async def refresh(
     token_data: TokenRefreshSchema,
-    db: Session = Depends(get_db),
-    response: Response = None
+    db: Session = Depends(get_db)
 ):
     """
     Refresh access token using refresh token.
 
     Returns new access and refresh tokens.
     """
-    # Добавляем версию API в заголовок ответа
-    if response:
-        response.headers["X-API-Version"] = "v1"
-
     return refresh_access_token(token_data, db)
 
 
 @router.get("/me", response_model=UserResponseSchema)
 async def get_current_user_info(
-    current_user: UserModel = Depends(get_current_user),
-    response: Response = None
+    current_user: UserModel = Depends(get_current_user)
 ):
     """
     Get information about the current authenticated user.
 
-    Returns full user data.
+    Returns full user data, properly structured without duplication.
     """
-    # Добавляем версию API в заголовок ответа
-    if response:
-        response.headers["X-API-Version"] = "v1"
-
-    return current_user
+    return prepare_user_response(current_user)
 
 
 @router.post("/logout")
 async def logout(
     token_data: TokenRefreshSchema,
     current_user: UserModel = Depends(get_current_user),
-    db: Session = Depends(get_db),
-    response: Response = None
+    db: Session = Depends(get_db)
 ):
     """Logout (revoke refresh token)"""
-    # Добавляем версию API в заголовок ответа
-    if response:
-        response.headers["X-API-Version"] = "v1"
-
     # Find refresh token in database
     db_token = db.query(RefreshTokenModel).filter(
         RefreshTokenModel.token == token_data.refresh_token,
@@ -180,10 +177,6 @@ async def logout(
 
 
 @router.post("/verify-token")
-async def verify_token(current_user: UserModel = Depends(get_current_user), response: Response = None):
+async def verify_token(current_user: UserModel = Depends(get_current_user)):
     """Verify token and return user ID"""
-    # Добавляем версию API в заголовок ответа
-    if response:
-        response.headers["X-API-Version"] = "v1"
-
     return {"user_id": str(current_user.id), "valid": True}

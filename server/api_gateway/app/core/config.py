@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     # Настройки безопасности
     AUTH_SECRET_KEY: str
 
+    # JWT настройки
+    JWT_ALGORITHM: str = "HS256"
+    JWT_PUBLIC_KEY: str = ""  # В development используем для проверки тот же секретный ключ что и для подписи
+
     # Настройки CORS
     BACKEND_CORS_ORIGINS: List[str] = ["*"]
 

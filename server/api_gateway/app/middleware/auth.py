@@ -1,128 +1,99 @@
-from fastapi import Request, HTTPException
-from fastapi.responses import JSONResponse
-import httpx
-from typing import List, Dict
+from fastapi import Request, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security.utils import get_authorization_scheme_param
+from typing import Optional, Dict, Any
+import jwt
+from jwt.exceptions import PyJWTError
 import logging
-import time
-
+import httpx
 from app.core.config import settings
+import time
 
 logger = logging.getLogger(__name__)
 
-# Простой кэш токенов для избежания постоянных запросов к сервису авторизации
-token_cache: Dict[str, Dict] = {}
-# Время жизни кэша токенов (секунды)
-TOKEN_CACHE_TTL = 60
+# Используем глобальную переменную для кэширования состояния сервиса авторизации
+_auth_service_up = None
+_last_auth_check = 0
+_AUTH_CHECK_INTERVAL = 60  # 1 минута между проверками
+
+# Создаем объект для проверки Bearer токена
+security = HTTPBearer(auto_error=False)
 
 class AuthMiddleware:
     """
-    Middleware для проверки JWT токенов и добавления информации о пользователе в запрос.
+    Middleware для проверки JWT токена и добавления информации о пользователе
+    к запросу.
     """
-    def __init__(
-        self,
-        public_paths: List[str] = None,
-        auth_service_url: str = None
-    ):
-        # Определяем публичные пути, которые не требуют авторизации
-        self.public_paths = public_paths or [
-            # Системные эндпоинты
-            "/docs",
-            "/redoc",
-            "/openapi.json",
 
-            # API Gateway эндпоинты
-            "/healthz",
-            "/test-auth-connection",
-
-            # Auth эндпоинты (с префиксом и без)
-            f"{settings.API_V1_STR}/auth/login",
-            f"{settings.API_V1_STR}/auth/register",
-            f"{settings.API_V1_STR}/auth/refresh",
-            "/auth/login",
-            "/auth/register",
-            "/auth/refresh",
-            "/login",
-            "/register"
-        ]
-        self.auth_service_url = auth_service_url or settings.AUTH_SERVICE_URL
+    def __init__(self):
+        """Инициализация middleware"""
+        self.public_key = settings.JWT_PUBLIC_KEY
+        self.algorithm = settings.JWT_ALGORITHM
 
     async def __call__(self, request: Request, call_next):
-        # Проверяем, является ли путь публичным
-        path = request.url.path
-        if any(path.startswith(public_path) for public_path in self.public_paths):
-            # Если путь публичный, пропускаем проверку авторизации
-            return await call_next(request)
+        """
+        Проверяет JWT токен и добавляет информации о пользователе к запросу.
+        Если токен невалидный или отсутствует, запрос продолжается, но без
+        добавления информации о пользователе.
+        """
+        user = None
 
-        # Проверяем наличие токена в заголовке запроса
-        auth_header = request.headers.get("Authorization")
-        if not auth_header or not auth_header.startswith("Bearer "):
-            return JSONResponse(
-                status_code=401,
-                content={"detail": "Not authenticated"},
-                headers={"WWW-Authenticate": "Bearer"}
-            )
+        # Получаем токен из заголовков
+        credentials = self._get_credentials(request)
 
-        # Получаем токен из заголовка
-        token = auth_header.split(" ")[1]
-
-        # Проверяем токен в кэше
-        current_time = time.time()
-        cache_entry = token_cache.get(token)
-        if cache_entry and current_time - cache_entry.get('timestamp', 0) < TOKEN_CACHE_TTL:
-            # Токен найден в кэше и еще действителен
-            request.state.user_id = cache_entry.get('user_id')
-            request.state.authenticated = True
-            request.state.token = token
-        else:
-            # Токена нет в кэше или он устарел, проверяем через auth_service
+        # Если есть токен, проверяем его и получаем информацию о пользователе
+        if credentials:
             try:
-                # Импортируем глобальный HTTP-клиент
-                from app.main import http_client
+                # Проверяем токен с помощью JWT
+                payload = self._verify_jwt_token(credentials.credentials)
 
-                verify_url = f"{self.auth_service_url}/auth/verify-token"
+                if payload:
+                    # Добавляем информацию о пользователе к запросу
+                    user = {
+                        "id": str(payload.get("user_id", "")),
+                        "email": payload.get("email", ""),
+                        "username": payload.get("username", ""),
+                        "is_admin": payload.get("is_admin", False),
+                        "scopes": payload.get("scopes", [])
+                    }
 
-                # Отправляем запрос на проверку токена, используя глобальный клиент
-                response = await http_client.post(
-                    verify_url,
-                    headers={"Authorization": f"Bearer {token}"},
-                )
+                    # Логгируем успешное получение пользователя
+                    logger.debug(f"User authenticated: {user['username']}")
+            except Exception as e:
+                # Если токен невалидный, продолжаем запрос без добавления
+                # информации о пользователе
+                logger.warning(f"Invalid token: {str(e)}")
 
-                # Если токен недействителен
-                if response.status_code != 200:
-                    # Удаляем из кэша, если был
-                    if token in token_cache:
-                        del token_cache[token]
-
-                    return JSONResponse(
-                        status_code=401,
-                        content={"detail": "Invalid or expired token"},
-                        headers={"WWW-Authenticate": "Bearer"}
-                    )
-
-                # Токен действителен, обновляем кэш
-                user_info = response.json()
-                token_cache[token] = {
-                    'user_id': user_info.get('user_id'),
-                    'timestamp': current_time
-                }
-
-                # Добавляем информацию о пользователе в state запроса
-                request.state.user_id = user_info.get("user_id")
-                request.state.authenticated = True
-                request.state.token = token
-
-            except httpx.RequestError as exc:
-                # Если auth_service недоступен, возвращаем ошибку
-                logger.error(f"Auth service unavailable: {str(exc)}")
-                return JSONResponse(
-                    status_code=503,
-                    content={"detail": "Authorization service unavailable"}
-                )
-
-        # Добавляем версию API в заголовки запроса к следующим сервисам
-        request.headers.__dict__["_list"].append(
-            (b"X-API-Version", b"v1")
-        )
+        # Добавляем информацию о пользователе к запросу (или None, если токен невалидный)
+        request.state.user = user
 
         # Продолжаем обработку запроса
         return await call_next(request)
+
+    def _get_credentials(self, request: Request) -> Optional[HTTPAuthorizationCredentials]:
+        """
+        Извлекает Bearer токен из заголовка Authorization
+        """
+        authorization = request.headers.get("Authorization")
+        scheme, credentials = get_authorization_scheme_param(authorization)
+
+        if not authorization or scheme.lower() != "bearer":
+            return None
+
+        return HTTPAuthorizationCredentials(scheme=scheme, credentials=credentials)
+
+    def _verify_jwt_token(self, token: str) -> Optional[Dict[str, Any]]:
+        """
+        Проверяет JWT токен и возвращает payload, если токен валидный
+        """
+        try:
+            payload = jwt.decode(
+                token,
+                self.public_key,
+                algorithms=[self.algorithm],
+                options={"verify_signature": True}
+            )
+            return payload
+        except PyJWTError as e:
+            logger.warning(f"JWT validation error: {str(e)}")
+            return None

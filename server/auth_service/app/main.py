@@ -10,6 +10,12 @@ import asyncio
 from typing import Optional, Callable, Dict, Any, TypeVar
 from fastapi import status
 import uuid
+import os
+from datetime import datetime
+from pathlib import Path
+import logging
+import logging.config
+import yaml
 
 from .api.routes import auth, users
 from .core.config import settings
@@ -23,6 +29,13 @@ log_level = "debug" if settings.DEBUG else "info"
 log_config_path = "auth_service/app/core/logging.conf"
 setup_logging(level=log_level, enable_file_logging=True, config_path=log_config_path)
 logger = get_logger("main")
+
+# Setup database connection for development mode using SQLite
+if os.getenv("ENV") == "development":
+    sqlite_path = Path(__file__).parent.parent / "dev.db"
+    os.environ["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
+        "SQLALCHEMY_DATABASE_URI", f"sqlite:///{sqlite_path}"
+    )
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -198,8 +211,8 @@ class VersionedAPIRoute(APIRouter):
     """
     Расширение APIRouter для добавления версии API в заголовок ответа
     """
-    def __init__(self, version: str = "v1", *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, version: str = "v1", **kwargs):
+        super().__init__(**kwargs)
         self.version = version
 
     def get_route_handler(self):

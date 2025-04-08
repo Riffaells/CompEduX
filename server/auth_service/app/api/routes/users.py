@@ -8,6 +8,7 @@ from ...db.session import get_db
 from ...models.user import UserModel, UserRole
 from ...schemas import UserResponseSchema, UserUpdateSchema, UserPublicProfileSchema, UserCreateSchema
 from ...services.auth import get_current_user, get_user_by_id, get_user_by_username, create_user
+from ..utils import prepare_user_response
 
 router = APIRouter()
 
@@ -31,7 +32,7 @@ async def read_users(
 ):
     """Get a list of users (admin only)"""
     users = db.query(UserModel).offset(skip).limit(limit).all()
-    return users
+    return [prepare_user_response(user) for user in users]
 
 
 @router.get("/id/{user_id}", response_model=UserResponseSchema)
@@ -56,7 +57,7 @@ async def read_user(
             detail="User not found"
         )
 
-    return user
+    return prepare_user_response(user)
 
 
 @router.patch("/id/{user_id}", response_model=UserResponseSchema)
@@ -102,7 +103,7 @@ async def update_user(
     db.commit()
     db.refresh(user)
 
-    return user
+    return prepare_user_response(user)
 
 
 @router.delete("/id/{user_id}", status_code=status.HTTP_204_NO_CONTENT)

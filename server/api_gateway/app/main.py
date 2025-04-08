@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request, Response, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import httpx
 import logging
+import os
 from typing import Dict, Any
 from contextlib import asynccontextmanager
 
@@ -19,6 +20,11 @@ logging.getLogger("uvicorn").setLevel(logging.WARNING)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("asyncio").setLevel(logging.WARNING)
 logging.getLogger("fastapi").setLevel(logging.WARNING)
+
+# В режиме разработки используем AUTH_SECRET_KEY как JWT_PUBLIC_KEY, если JWT_PUBLIC_KEY не указан
+if settings.ENV == "development" and not settings.JWT_PUBLIC_KEY and settings.AUTH_SECRET_KEY:
+    settings.JWT_PUBLIC_KEY = settings.AUTH_SECRET_KEY
+    logger.info("Using AUTH_SECRET_KEY as JWT_PUBLIC_KEY in development mode")
 
 # Глобальный HTTP-клиент для повторного использования соединений
 # Это значительно ускорит все HTTP-запросы через API Gateway

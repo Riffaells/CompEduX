@@ -3,6 +3,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
 from .session import engine, SessionLocal
 from ..core.config import settings
+from ..models.enums import BeveragePreference
 
 logger = logging.getLogger(__name__)
 
@@ -11,6 +12,7 @@ def init_db():
     Инициализация базы данных.
 
     Проверяет подключение к базе данных и создает необходимые таблицы.
+    При обновлении структуры базы данных, существующие таблицы удаляются и создаются заново.
     """
     try:
         # Проверка подключения к базе данных
@@ -18,10 +20,64 @@ def init_db():
             conn.execute(text("SELECT 1"))
         logger.info("Подключение к базе данных успешно установлено")
 
-        # Создание таблиц
+        # Удаление и создание таблиц
         from ..models.base import Base
+
+        # В режиме разработки сбрасываем все таблицы и создаем их заново
+        if settings.ENV == "development":
+            logger.info("Режим разработки: сброс и пересоздание всех таблиц")
+            Base.metadata.drop_all(bind=engine)
+            logger.info("Таблицы успешно удалены")
+
+        # Создание таблиц
         Base.metadata.create_all(bind=engine)
         logger.info("Таблицы базы данных успешно созданы")
+
+        # Создаем тестового пользователя, если в режиме разработки
+        if settings.ENV == "development":
+            from ..models.user import UserModel, UserProfileModel, UserPreferencesModel, UserRatingModel
+            from ..services.auth import get_password_hash, get_user_by_email
+
+            db = SessionLocal()
+            # Проверяем, есть ли уже тестовый пользователь
+            test_user = get_user_by_email(db, "test@example.com")
+
+            if not test_user:
+                logger.info("Создание тестового пользователя для разработки")
+                test_user = UserModel(
+                    email="test@example.com",
+                    username="test",
+                    hashed_password=get_password_hash("test123"),
+                    is_verified=True
+                )
+
+                # Создаем профиль
+                test_user.profile = UserProfileModel(
+                    first_name="Test",
+                    last_name="User",
+                    bio="This is a test user for development purposes",
+                    location="Test Location"
+                )
+
+                # Создаем настройки
+                test_user.preferences = UserPreferencesModel(
+                    beverage_preference=BeveragePreference.COFFEE,
+                    theme="dark"
+                )
+
+                # Создаем рейтинги
+                test_user.ratings = UserRatingModel(
+                    contribution_rating=4.5,
+                    bot_score=0.1,
+                    expertise_rating=3.8,
+                    competition_rating=4.2
+                )
+
+                db.add(test_user)
+                db.commit()
+                logger.info(f"Тестовый пользователь создан: {test_user.email} (ID: {test_user.id})")
+
+            db.close()
 
         return True
     except OperationalError as e:
@@ -103,6 +159,8 @@ def init_db():
 
                 # Повторная попытка создания таблиц
                 from ..models.base import Base
+                if settings.ENV == "development":
+                    Base.metadata.drop_all(bind=engine)
                 Base.metadata.create_all(bind=engine)
                 logger.info("Таблицы базы данных успешно созданы после исправления проблемы с пользователем")
 

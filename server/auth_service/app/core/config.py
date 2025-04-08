@@ -52,20 +52,26 @@ class Settings(BaseSettings):
     POSTGRES_ADMIN_PASSWORD: str = "secure_password"  # Пароль администратора PostgreSQL
 
     @property
-    def SQLALCHEMY_DATABASE_URI(self) -> PostgresDsn:
+    def SQLALCHEMY_DATABASE_URI(self) -> str:
         """
-        Construct PostgreSQL connection URI from individual settings.
-        If in development mode and PostgreSQL settings are not available,
-        return empty string to allow using SQLite.
+        Database connection URI string.
+        In development environment, this may return an empty string to use SQLite instead.
+        In production, PostgreSQL will be used.
         """
-        # В режиме разработки можем использовать SQLite
-        if self.ENV == "development":
+        # If we're in development mode and PostgreSQL settings are not available,
+        # we'll allow SQLite to be used by returning an empty string
+        # (The main.py will set up the SQLite path if needed)
+        if os.getenv("ENV") == "development":
             try:
-                return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+                return self.construct_postgres_uri()
             except Exception:
-                # Возвращаем пустую строку, чтобы main.py мог установить SQLite
                 return ""
-        # В production всегда используем PostgreSQL
+
+        # In production, always use PostgreSQL
+        return self.construct_postgres_uri()
+
+    def construct_postgres_uri(self) -> str:
+        """Helper method to construct PostgreSQL URI"""
         return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
     # OAuth settings

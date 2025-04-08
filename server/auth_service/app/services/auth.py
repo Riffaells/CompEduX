@@ -4,6 +4,7 @@ import random
 import string
 import uuid
 from uuid import UUID
+import logging
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -14,9 +15,10 @@ from sqlalchemy.orm import Session
 from ..core.config import settings
 from ..db.session import get_db
 from ..models.auth import RefreshTokenModel
-from ..models.user import UserModel
+from ..models.user import UserModel, UserProfileModel, UserPreferencesModel, UserRatingModel
 from ..schemas.auth import TokenRefreshSchema
 from ..schemas.user import UserCreateSchema
+from ..models.enums import BeveragePreference
 
 # JWT settings
 ALGORITHM = "HS256"
@@ -134,7 +136,8 @@ def authenticate_user(db: Session, login: str, password: str) -> Optional[UserMo
                 username="test",
                 password=password or "test123",
                 first_name="Test",
-                last_name="User"
+                last_name="User",
+                beverage_preference=BeveragePreference.NONE
             )
             user = create_user(db, test_user_data)
 
@@ -211,86 +214,122 @@ def generate_username(email: str, db: Session) -> str:
     return username
 
 
-def create_user(db: Session, user_data: UserCreateSchema) -> UserModel:
-    """Create new user"""
-    # Специальное условие для тестовых аккаунтов
-    is_test_account = user_data.email == "test@example.com" or user_data.username == "test"
+def create_user(db: Session, user_in: UserCreateSchema) -> UserModel:
+    """
+    Create a new user record, with special handling for test accounts.
 
-    # Специальная обработка для тестовых аккаунтов
+    For test accounts (email format: test+*@test.com):
+    - Updates existing test account if found
+    - Creates new test account if not found
+    - Sets a predefined password
+
+    Returns the created or updated user object.
+    """
+    logger = logging.getLogger(__name__)
+
+    # Extract profile and preference fields
+    profile_data = {}
+    preference_data = {}
+
+    # Get profile fields
+    for field in ["first_name", "last_name", "avatar_url", "bio", "location"]:
+        if hasattr(user_in, field) and getattr(user_in, field) is not None:
+            profile_data[field] = getattr(user_in, field)
+
+    # Get preference fields
+    if hasattr(user_in, "beverage_preference") and user_in.beverage_preference is not None:
+        preference_data["beverage_preference"] = user_in.beverage_preference
+
+    # Check if this is a test account by email format
+    is_test_account = user_in.email and user_in.email.startswith("test+") and user_in.email.endswith("@test.com")
+
     if is_test_account:
-        # Устанавливаем стандартные значения для тестового аккаунта
-        email = "test@example.com"
-        username = "test"
+        logger.info(f"Processing test account: {user_in.email}")
+        # For test accounts, check if it already exists
+        existing_user = get_user_by_email(db, email=user_in.email)
 
-        # Проверяем, существует ли уже тестовый аккаунт
-        existing_test_user = get_user_by_email(db, email)
-        if existing_test_user:
-            # Обновляем данные тестового пользователя
-            existing_test_user.hashed_password = get_password_hash(user_data.password)
-            existing_test_user.first_name = user_data.first_name or "Test"
-            existing_test_user.last_name = user_data.last_name or "User"
-            existing_test_user.lang = user_data.lang or "en"
-            existing_test_user.is_active = True
+        if existing_user:
+            logger.info(f"Updating existing test account: {existing_user.email} (ID: {existing_user.id})")
 
-            # Сохраняем изменения
+            # Update core user fields
+            for field in ["username", "email", "lang"]:
+                if hasattr(user_in, field) and getattr(user_in, field) is not None:
+                    setattr(existing_user, field, getattr(user_in, field))
+
+            # Update profile
+            if not existing_user.profile:
+                existing_user.profile = UserProfileModel(**profile_data)
+            else:
+                for field, value in profile_data.items():
+                    setattr(existing_user.profile, field, value)
+
+            # Update preferences
+            if not existing_user.preferences:
+                existing_user.preferences = UserPreferencesModel(**preference_data)
+            else:
+                for field, value in preference_data.items():
+                    setattr(existing_user.preferences, field, value)
+
+            # Always set test account password to a known value
+            existing_user.hashed_password = get_password_hash("test_password")
             db.commit()
-            db.refresh(existing_test_user)
-            return existing_test_user
+            db.refresh(existing_user)
+            return existing_user
+        else:
+            logger.info(f"Creating new test account: {user_in.email}")
 
-        # Если тестовый пользователь не существует, создаем нового
-        hashed_password = get_password_hash(user_data.password)
-        db_user = UserModel(
-            id=uuid.uuid4(),
-            email=email,
-            username=username,
-            hashed_password=hashed_password,
-            first_name=user_data.first_name or "Test",
-            last_name=user_data.last_name or "User",
-            lang=user_data.lang or "en",
-            is_active=True
-        )
+            # Create core user data
+            user_dict = user_in.model_dump(
+                exclude={"password", "first_name", "last_name", "avatar_url", "bio", "location", "beverage_preference"}
+            )
+            user = UserModel(**user_dict)
+            user.hashed_password = get_password_hash("test_password")
 
-        db.add(db_user)
-        db.commit()
-        db.refresh(db_user)
-        return db_user
+            # Create profile
+            user.profile = UserProfileModel(**profile_data)
 
-    # Для обычных пользователей - стандартная логика
-    # Check if user with this email already exists
-    if get_user_by_email(db, user_data.email):
+            # Create preferences with beverage preference
+            user.preferences = UserPreferencesModel(**preference_data)
+            if "beverage_preference" not in preference_data:
+                user.preferences.beverage_preference = BeveragePreference.COFFEE
+
+            # Create ratings
+            user.ratings = UserRatingModel()
+
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+            return user
+
+    # Normal user creation flow for non-test accounts
+    if get_user_by_email(db, email=user_in.email):
+        logger.error(f"User with email {user_in.email} already exists")
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered"
+            status_code=400,
+            detail="The user with this email already exists in the system",
         )
+
+    # Create normal user - core data only
+    user_dict = user_in.model_dump(
+        exclude={"password", "first_name", "last_name", "avatar_url", "bio", "location", "beverage_preference"}
+    )
+    user = UserModel(**user_dict)
+    user.hashed_password = get_password_hash(user_in.password)
 
     # Generate username if not provided
-    username = user_data.username
-    if not username:
-        username = generate_username(user_data.email, db)
-    elif get_user_by_username(db, username):
-        # If provided username is taken
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username already taken"
-        )
+    if not user.username:
+        user.username = generate_username(user_in.email, db)
 
-    # Create user
-    hashed_password = get_password_hash(user_data.password)
-    db_user = UserModel(
-        id=uuid.uuid4(),
-        email=user_data.email,
-        username=username,
-        hashed_password=hashed_password,
-        first_name=user_data.first_name or "",
-        last_name=user_data.last_name or "",
-        lang=user_data.lang or "en"
-    )
+    # Create related models
+    user.profile = UserProfileModel(**profile_data)
+    user.preferences = UserPreferencesModel(**preference_data)
+    user.ratings = UserRatingModel()
 
-    db.add(db_user)
+    db.add(user)
     db.commit()
-    db.refresh(db_user)
-
-    return db_user
+    db.refresh(user)
+    logger.info(f"Created new regular user: {user.email} (ID: {user.id})")
+    return user
 
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> UserModel:

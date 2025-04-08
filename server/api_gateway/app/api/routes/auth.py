@@ -28,30 +28,47 @@ async def check_auth_service_health():
         return _auth_service_healthy
 
     auth_service_url = settings.AUTH_SERVICE_URL
+
+    # Убираем трейлинг слеш, если он есть
+    if auth_service_url.endswith("/"):
+        auth_service_url = auth_service_url[:-1]
+
     try:
-        async with httpx.AsyncClient(timeout=2.0) as client:
-            # Пробуем самый вероятный вариант
-            try:
-                response = await client.get(f"{auth_service_url}/health", timeout=1.0)
-                if response.status_code == 200:
-                    _auth_service_healthy = True
-                    _last_health_check = current_time
-                    return True
-            except Exception:
-                pass
+        # Добавляем базовые заголовки для проверки здоровья
+        headers = {
+            "User-Agent": "API-Gateway-HealthCheck",
+            "Accept": "application/json"
+        }
 
-            # Если первый не сработал, пробуем второй вариант
-            try:
-                response = await client.get(f"{auth_service_url}/api/v1/health", timeout=1.0)
-                if response.status_code == 200:
-                    _auth_service_healthy = True
-                    _last_health_check = current_time
-                    return True
-            except Exception:
-                pass
+        # Список URL для проверки здоровья (в порядке приоритета)
+        health_endpoints = [
+            f"{auth_service_url}/health",
+            f"{auth_service_url}/api/v1/health",
+            f"{auth_service_url}/api/health"
+        ]
 
-            # Сервис недоступен
-            logger.warning(f"Auth service health check failed")
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            # Пробуем все эндпоинты по очереди
+            for endpoint in health_endpoints:
+                try:
+                    logger.debug(f"Checking health endpoint: {endpoint}")
+                    response = await client.get(
+                        endpoint,
+                        timeout=1.5,
+                        headers=headers
+                    )
+
+                    if response.status_code == 200:
+                        logger.info(f"Auth service is healthy via {endpoint}")
+                        _auth_service_healthy = True
+                        _last_health_check = current_time
+                        return True
+                except Exception as e:
+                    logger.debug(f"Health check failed for {endpoint}: {str(e)}")
+                    continue
+
+            # Если ни один эндпоинт не ответил успешно
+            logger.warning(f"All auth service health checks failed")
             _auth_service_healthy = False
             _last_health_check = current_time
 
@@ -59,6 +76,7 @@ async def check_auth_service_health():
                 status_code=503,
                 detail="Сервис авторизации недоступен. Пожалуйста, повторите попытку позже."
             )
+
     except httpx.RequestError as exc:
         logger.error(f"Auth service connection error: {str(exc)}")
         _auth_service_healthy = False
@@ -81,7 +99,7 @@ async def proxy_request_to_auth(path: str, request: Request) -> Response:
 
     auth_service_url = settings.AUTH_SERVICE_URL
 
-    # Исправлено: Проверяем наличие трейлинг слеша в auth_service_url
+    # Проверяем наличие трейлинг слеша в auth_service_url
     if auth_service_url.endswith("/"):
         auth_service_url = auth_service_url[:-1]
 
@@ -90,7 +108,13 @@ async def proxy_request_to_auth(path: str, request: Request) -> Response:
 
     # Получаем тело и заголовки запроса с минимальными логами
     body = await request.body()
-    headers = dict(request.headers)
+
+    # Безопасно получаем заголовки - используем метод .items()
+    headers = {}
+    for name, value in request.headers.items():
+        headers[name] = value
+
+    # Удаляем заголовок host, так как он будет установлен клиентом автоматически
     headers.pop("host", None)
 
     try:
@@ -107,11 +131,16 @@ async def proxy_request_to_auth(path: str, request: Request) -> Response:
         if auth_response.status_code >= 400:
             logger.warning(f"Auth service error: {auth_response.status_code} for {full_url}")
 
+        # Получаем заголовки ответа
+        response_headers = {}
+        for name, value in auth_response.headers.items():
+            response_headers[name] = value
+
         # Возвращаем ответ клиенту
         return Response(
             content=auth_response.content,
             status_code=auth_response.status_code,
-            headers=dict(auth_response.headers)
+            headers=response_headers
         )
     except httpx.RequestError as exc:
         logger.error(f"Error proxying to auth service: {str(exc)}")
