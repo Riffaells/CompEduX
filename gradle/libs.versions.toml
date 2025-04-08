@@ -59,6 +59,10 @@ kotlinx-browser = "0.8.0"
 
 
 typesafeConventions = "0.4.1"
+kotest = "5.6.2"
+mockk = "1.13.7"
+turbine = "1.0.0"
+
 [libraries]
 androidx-core = { module = "androidx.core:core-ktx", version.ref = "androidx-core" }
 androidx-activityCompose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activityCompose" }
@@ -85,6 +89,7 @@ kodein-compose = { module = "org.kodein.di:kodein-di-framework-compose", version
 decompose = { module = "com.arkivanov.decompose:decompose", version.ref = "decompose" }
 decompose-compose = { module = "com.arkivanov.decompose:extensions-compose", version.ref = "decompose" }
 essenty-lifecycle = { module = "com.arkivanov.essenty:lifecycle", version.ref = "essenty" }
+essenty-lifecycle-coroutines = { module = "com.arkivanov.essenty:lifecycle-coroutines", version.ref = "essenty" }
 essenty-statekeeper = { module = "com.arkivanov.essenty:state-keeper", version.ref = "essenty" }
 essenty-instancekeeper = { module = "com.arkivanov.essenty:instance-keeper", version.ref = "essenty" }
 essenty-backhandler = { module = "com.arkivanov.essenty:back-handler", version.ref = "essenty" }
@@ -119,6 +124,15 @@ slf4j-simple = { module = "org.slf4j:slf4j-simple", version.ref = "slf4j" }
 
 skiko = { module = "org.jetbrains.skiko:skiko", version.ref = "skiko" }
 haze = { group = "dev.chrisbanes.haze",  name="haze",version.ref = "haze" }
+
+# Тестовые библиотеки
+kotest-assertions = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
+kotest-framework = { module = "io.kotest:kotest-framework-engine", version.ref = "kotest" }
+kotest-property = { module = "io.kotest:kotest-property", version.ref = "kotest" }
+mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
+turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
+ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
 
 [plugins]
 

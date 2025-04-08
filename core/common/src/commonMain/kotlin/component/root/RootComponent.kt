@@ -5,6 +5,7 @@ import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.router.stack.webhistory.WebHistoryController
 import com.arkivanov.decompose.value.Value
+import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
@@ -22,6 +23,8 @@ import component.root.store.RootStore
 import component.root.store.RootStoreFactory
 import di.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.Serializable
 import org.kodein.di.DI
@@ -30,6 +33,8 @@ import org.kodein.di.factory
 import org.kodein.di.instance
 import settings.AppearanceSettings
 import settings.MultiplatformSettings
+import utils.NavigationExecutor
+import utils.rDispatchers
 
 
 /**
@@ -77,9 +82,22 @@ class DefaultRootComponent(
     override val di: DI
 ) : RootComponent, DIAware, ComponentContext by componentContext {
 
+    // Создаем scope, связанный с жизненным циклом компонента
+    // Использование coroutineScope из Essenty гарантирует автоматическую отмену
+    // корутин при уничтожении компонента
+    private val scope = coroutineScope(rDispatchers.main)
+
     // Получаем фабрики компонентов
 
     private val navigation = StackNavigation<Config>()
+
+    // Создаем навигационный executor, используя scope, связанный с жизненным циклом
+    private val navigationExecutor = NavigationExecutor(
+        navigation = navigation,
+        scope = scope,
+        mainDispatcher = rDispatchers.main,
+        logger = { message -> println("Root Navigation: $message") }
+    )
 
     private var drawerHandler: (() -> Unit)? = null
 
@@ -156,7 +174,7 @@ class DefaultRootComponent(
     private fun settingsComponent(componentContext: ComponentContext): DefaultSettingsComponent {
         return DefaultSettingsComponent(
             componentContext = componentContext,
-            onBack = navigation::pop,
+            onBack = { navigationExecutor.pop() },
             di = di
         )
     }
@@ -166,7 +184,7 @@ class DefaultRootComponent(
         return skikoComponentFactory(
             SkikoComponentParams(
                 componentContext = componentContext,
-                onBack = navigation::pop
+                onBack = { navigationExecutor.pop() }
             )
         )
     }
@@ -176,7 +194,7 @@ class DefaultRootComponent(
         return authComponentFactory(
             AuthComponentParams(
                 componentContext = componentContext,
-                onBack = navigation::pop
+                onBack = { navigationExecutor.pop() }
             )
         )
     }
@@ -186,29 +204,29 @@ class DefaultRootComponent(
         return roomComponentFactory(
             RoomComponentParams(
                 componentContext = componentContext,
-                onBack = navigation::pop
+                onBack = { navigationExecutor.pop() }
             )
         )
     }
 
     override fun onMainClicked() {
-        navigation.bringToFront(Config.Main)
+        navigationExecutor.navigateTo(Config.Main)
     }
 
     override fun onSettingsClicked() {
-        navigation.bringToFront(Config.Settings)
+        navigationExecutor.navigateTo(Config.Settings)
     }
 
     override fun onDevelopmentMapClicked() {
-        navigation.bringToFront(Config.Skiko)
+        navigationExecutor.navigateTo(Config.Skiko)
     }
 
     override fun onAuthClicked() {
-        navigation.bringToFront(Config.Auth)
+        navigationExecutor.navigateTo(Config.Auth)
     }
 
     override fun onRoomClicked() {
-        navigation.bringToFront(Config.Room)
+        navigationExecutor.navigateTo(Config.Room)
     }
 
     private companion object {

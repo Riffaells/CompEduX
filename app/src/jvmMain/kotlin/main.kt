@@ -33,6 +33,10 @@ fun main() {
     // Отключаем проверку главного потока для JVM-платформы
     System.setProperty("mvikotlin.enableThreadAssertions", "false")
 
+    // Отключаем проверку главного потока для Decompose
+    System.setProperty("decompose.mainThreadChecker.enabled", "false")
+
+
     // Устанавливаем обработчик необработанных исключений, чтобы приложение не падало
     Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
         logger.e("Uncaught exception in thread $thread: ${throwable.message}", throwable)

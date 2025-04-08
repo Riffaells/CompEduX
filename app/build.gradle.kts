@@ -51,8 +51,10 @@ kotlin {
             implementation(projects.core.design)
         }
 
-
-
+        jvmMain.dependencies {
+            // Добавим зависимость для Swing Dispatchers
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:${libs.versions.coroutines.get()}")
+        }
     }
 }
 

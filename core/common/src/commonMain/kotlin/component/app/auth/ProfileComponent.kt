@@ -1,16 +1,17 @@
 package component.app.auth
 
 import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import component.app.auth.store.ProfileStore
 import component.app.auth.store.ProfileStoreFactory
 import model.User
@@ -51,10 +52,11 @@ class DefaultProfileComponent(
     private val onBackClicked: () -> Unit
 ) : ProfileComponent, DIAware, ComponentContext by componentContext {
 
-    private val authRepository: AuthUseCases by instance()
+    private val authUseCases: AuthUseCases by instance()
     private val storeFactory: StoreFactory by instance()
 
-    private val scope = CoroutineScope(rDispatchers.main + SupervisorJob())
+    // Используем coroutineScope из Essenty вместо CoroutineScope
+    private val scope = coroutineScope(rDispatchers.main + SupervisorJob())
 
     private val profileStore = instanceKeeper.getStore {
         ProfileStoreFactory(storeFactory = storeFactory).create()
@@ -62,10 +64,22 @@ class DefaultProfileComponent(
 
     // Initialize user data
     init {
+        // Launch on the main dispatcher to avoid thread issues
         scope.launch {
-            val currentUser = authRepository.getCurrentUser()
-            if (currentUser != null) {
-                profileStore.accept(ProfileStore.Intent.UpdateUsername(currentUser.username))
+            try {
+                // If background work is needed for getCurrentUser, use withContext
+                val currentUser = withContext(rDispatchers.io) {
+                    authUseCases.getCurrentUser()
+                }
+
+                if (currentUser != null) {
+                    // This will be executed on the main thread
+                    profileStore.accept(ProfileStore.Intent.UpdateUsername(currentUser.username))
+                }
+            } catch (e: Exception) {
+                // Ошибка при загрузке данных пользователя
+                println("Error loading user data: ${e.message}")
+                e.printStackTrace()
             }
         }
     }
@@ -91,22 +105,36 @@ class DefaultProfileComponent(
 
     override fun onUpdateProfile() {
         val currentUsername = profileStore.state.username
+        // Make sure we're on the main thread for UI updates
         scope.launch {
             try {
                 profileStore.accept(ProfileStore.Intent.SaveProfile)
-                val result = authRepository.updateProfile(currentUsername)
+                // Run the actual network operation on IO dispatcher
+                val result = withContext(rDispatchers.io) {
+                    authUseCases.updateProfile(currentUsername)
+                }
                 // Handle result if needed
             } catch (e: Exception) {
                 // Handle error if needed
+                println("Error updating profile: ${e.message}")
             }
         }
     }
 
     override fun onLogout() {
+        // Make sure we're on the main thread
         scope.launch {
             profileStore.accept(ProfileStore.Intent.Logout)
-            authRepository.logout()
-            onLogout()
+            // Run the actual logout operation on IO dispatcher
+            try {
+                withContext(rDispatchers.io) {
+                    authUseCases.logout()
+                }
+                // This callback will also run on the main thread
+                onLogout()
+            } catch (e: Exception) {
+                println("Error during logout: ${e.message}")
+            }
         }
     }
 

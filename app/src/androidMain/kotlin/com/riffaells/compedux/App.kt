@@ -35,6 +35,9 @@ class App : Application(), DIAware {
         // Отключаем проверку главного потока для Android
         System.setProperty("mvikotlin.enableThreadAssertions", "false")
 
+        // Отключаем проверку главного потока для Decompose
+        System.setProperty("decompose.mainThreadChecker.enabled", "false")
+
         // Устанавливаем обработчик необработанных исключений
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
             Napier.e("Uncaught exception in thread $thread", throwable)

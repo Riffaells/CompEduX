@@ -36,6 +36,12 @@ class CompEduXNetworkingPlugin : Plugin<Project> {
                 sourceSets.wasmJsMain.dependencies {
                     implementation(libs.ktor.client.js)
                 }
+
+                // Тестовые зависимости - только самое необходимое для API тестирования
+                sourceSets.commonTest.dependencies {
+                    implementation(libs.kotlinx.coroutines.test)
+                    implementation(libs.ktor.client.mock)
+                }
             }
         }
     }

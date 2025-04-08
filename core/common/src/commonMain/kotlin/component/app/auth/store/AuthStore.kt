@@ -4,6 +4,7 @@ import com.arkivanov.mvikotlin.core.store.*
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import model.AppError
 import model.AuthResult
 import model.ErrorCode
@@ -22,6 +23,7 @@ interface AuthStore : Store<AuthStore.Intent, AuthStore.State, Nothing> {
         data class Register(val email: String, val password: String, val username: String) : Intent
         data object Logout : Intent
         data class UpdateProfile(val username: String) : Intent
+        data class SetAuthenticated(val authenticated: Boolean) : Intent
     }
 
     data class State(
@@ -65,6 +67,7 @@ class AuthStoreFactory(
         data class SetError(val error: String, val details: String? = null) : Msg
         data object ClearUser : Msg
         data object ClearError : Msg
+        data object SetAuthenticated : Msg
     }
 
 
@@ -89,12 +92,16 @@ class AuthStoreFactory(
             try {
                 when (intent) {
                     is AuthStore.Intent.Login -> {
+                        // Используем scope из CoroutineExecutor
                         scope.launch {
                             safeDispatch(Msg.StartLoading)
                             safeDispatch(Msg.ClearError)
 
                             try {
-                                val result = authUseCases.login(intent.email, intent.password)
+                                // Выполнение тяжелой операции в IO-потоке
+                                val result = withContext(rDispatchers.io) {
+                                    authUseCases.login(intent.email, intent.password)
+                                }
                                 handleAuthResult<model.auth.AuthResponseData>(result)
                             } catch (e: Exception) {
                                 // Обрабатываем неожиданные ошибки
@@ -109,16 +116,20 @@ class AuthStoreFactory(
                         }
                     }
                     is AuthStore.Intent.Register -> {
+                        // Используем scope из CoroutineExecutor
                         scope.launch {
                             safeDispatch(Msg.StartLoading)
                             safeDispatch(Msg.ClearError)
 
                             try {
-                                val result = authUseCases.register(
-                                    email = intent.email,
-                                    password = intent.password,
-                                    username = intent.username
-                                )
+                                // Выполнение тяжелой операции в IO-потоке
+                                val result = withContext(rDispatchers.io) {
+                                    authUseCases.register(
+                                        email = intent.email,
+                                        password = intent.password,
+                                        username = intent.username
+                                    )
+                                }
                                 handleAuthResult<model.auth.AuthResponseData>(result)
                             } catch (e: Exception) {
                                 // Обрабатываем неожиданные ошибки
@@ -133,12 +144,16 @@ class AuthStoreFactory(
                         }
                     }
                     is AuthStore.Intent.Logout -> {
+                        // Используем scope из CoroutineExecutor
                         scope.launch {
                             safeDispatch(Msg.StartLoading)
                             safeDispatch(Msg.ClearError)
 
                             try {
-                                val result = authUseCases.logout()
+                                // Выполнение тяжелой операции в IO-потоке
+                                val result = withContext(rDispatchers.io) {
+                                    authUseCases.logout()
+                                }
                                 // Исправляем smart cast ошибку
                                 when (result) {
                                     is AuthResult.Success<Unit> -> {
@@ -159,12 +174,16 @@ class AuthStoreFactory(
                         }
                     }
                     is AuthStore.Intent.UpdateProfile -> {
+                        // Используем scope из CoroutineExecutor
                         scope.launch {
                             safeDispatch(Msg.StartLoading)
                             safeDispatch(Msg.ClearError)
 
                             try {
-                                val result = authUseCases.updateProfile(intent.username)
+                                // Выполнение тяжелой операции в IO-потоке
+                                val result = withContext(rDispatchers.io) {
+                                    authUseCases.updateProfile(intent.username)
+                                }
                                 handleAuthResult<User>(result)
                             } catch (e: Exception) {
                                 // Обрабатываем неожиданные ошибки
@@ -176,6 +195,14 @@ class AuthStoreFactory(
                                 safeDispatch(Msg.SetError(error.message, error.details))
                                 safeDispatch(Msg.StopLoading)
                             }
+                        }
+                    }
+                    is AuthStore.Intent.SetAuthenticated -> {
+                        // Просто обновляем состояние
+                        if (intent.authenticated) {
+                            safeDispatch(Msg.SetAuthenticated)
+                        } else {
+                            safeDispatch(Msg.ClearUser)
                         }
                     }
                 }
@@ -225,6 +252,9 @@ class AuthStoreFactory(
                 is Msg.ClearError -> copy(
                     error = null,
                     errorDetails = null
+                )
+                is Msg.SetAuthenticated -> copy(
+                    isAuthenticated = true
                 )
             }
     }

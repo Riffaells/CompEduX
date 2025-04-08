@@ -18,6 +18,7 @@ class CompEduXDecomposePlugin : Plugin<Project> {
                     implementation(libs.decompose.compose)
 
                     implementation(libs.essenty.lifecycle)
+                    implementation(libs.essenty.lifecycle.coroutines)
                     implementation(libs.essenty.statekeeper)
                     implementation(libs.essenty.instancekeeper)
                     implementation(libs.essenty.backhandler)

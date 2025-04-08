@@ -1,9 +1,11 @@
 package component.app.auth
 
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.ExperimentalDecomposeApi
-import com.arkivanov.decompose.router.stack.*
+import com.arkivanov.decompose.router.stack.ChildStack
+import com.arkivanov.decompose.router.stack.StackNavigation
+import com.arkivanov.decompose.router.stack.childStack
 import com.arkivanov.decompose.value.Value
+import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
@@ -13,16 +15,18 @@ import component.app.auth.register.DefaultRegisterComponent
 import component.app.auth.register.RegisterComponent
 import component.app.auth.store.AuthStore
 import component.app.auth.store.AuthStoreFactory
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
-import model.User
-import org.kodein.di.*
+import org.kodein.di.DI
+import org.kodein.di.DIAware
+import org.kodein.di.factory
 import usecase.auth.AuthUseCases
+import utils.NavigationExecutor
 import utils.rDispatchers
 
 /**
@@ -72,6 +76,11 @@ interface AuthComponent {
         class ProfileChild(val component: ProfileComponent) : Child()
     }
 
+    // Методы навигации
+    fun navigateToLogin()
+    fun navigateToRegister()
+    fun navigateToProfile()
+    fun navigateBack()
     fun onBackClicked()
 }
 
@@ -86,14 +95,25 @@ class DefaultAuthComponent(
 
     private val navigation = StackNavigation<Config>()
 
+    // Создаем scope, связанный с жизненным циклом компонента
+    // Использование coroutineScope из Essenty гарантирует автоматическую отмену
+    // корутин при уничтожении компонента
+    private val scope = coroutineScope(rDispatchers.main)
+
+    // Создаем навигационный executor, используя scope, связанный с жизненным циклом
+    private val navigationExecutor = NavigationExecutor(
+        navigation = navigation,
+        scope = scope,
+        mainDispatcher = rDispatchers.main,
+        logger = { message -> println("Navigation: $message") }
+    )
+
     private val _store = instanceKeeper.getStore {
         AuthStoreFactory(
             storeFactory = storeFactory,
             di = di
         ).create()
     }
-
-    private val scope = CoroutineScope(rDispatchers.main)
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private val _childStack = childStack(
@@ -103,26 +123,39 @@ class DefaultAuthComponent(
             // Проверяем авторизован ли пользователь
             var initialConfiguration = Config.Login
 
-            // If user is already authenticated, go to profile
-            scope.launch {
-                if (authUseCases.isAuthenticated()) {
-                    navigation.bringToFront(Config.Profile)
-                }
-            }
-
-            // Monitor auth state changes
-            scope.launch {
-                _store.stateFlow.map { it.isAuthenticated }.collect { isAuth ->
-                    if (isAuth) {
-                        navigation.bringToFront(Config.Profile)
-                    }
-                }
-            }
+            // Возвращаем начальный стек навигации
             listOf(initialConfiguration)
         },
         handleBackButton = true,
         childFactory = ::child
     )
+
+    // Подписываемся на изменения состояния в init блоке
+    init {
+        // Асинхронно проверяем авторизацию при создании компонента
+        scope.launch {
+            val isAuthenticated = withContext(rDispatchers.io) {
+                authUseCases.isAuthenticated()
+            }
+            if (isAuthenticated) {
+                // Устанавливаем флаг авторизации
+                _store.accept(AuthStore.Intent.SetAuthenticated(true))
+            }
+        }
+
+        // Подписка на изменение состояния isAuthenticated
+        // Эта подписка будет работать все время жизни компонента
+        scope.launch {
+            _store.stateFlow
+                .map { it.isAuthenticated }
+                .collect { isAuth ->
+                    if (isAuth) {
+                        // Вызываем навигацию в главном потоке
+                        navigationExecutor.navigateTo(Config.Profile)
+                    }
+                }
+        }
+    }
 
     override val childStack: Value<ChildStack<*, AuthComponent.Child>> = _childStack
 
@@ -130,6 +163,22 @@ class DefaultAuthComponent(
 
     override fun onBackClicked() {
         onBack()
+    }
+
+    override fun navigateToLogin() {
+        navigationExecutor.navigateTo(Config.Login)
+    }
+
+    override fun navigateToRegister() {
+        navigationExecutor.push(Config.Register)
+    }
+
+    override fun navigateToProfile() {
+        navigationExecutor.navigateTo(Config.Profile)
+    }
+
+    override fun navigateBack() {
+        navigationExecutor.pop()
     }
 
     private fun child(config: Config, componentContext: ComponentContext): AuthComponent.Child =
@@ -145,11 +194,10 @@ class DefaultAuthComponent(
             LoginComponentParams(
                 componentContext = componentContext,
                 onBack = onBack,
-                onRegister = {
-                    navigation.push(Config.Register)
-                },
+                onRegister = ::navigateToRegister,
                 onLoginSuccess = {
-                    navigation.bringToFront(Config.Profile)
+                    // Вместо вызова навигации, обновляем состояние
+                    _store.accept(AuthStore.Intent.SetAuthenticated(true))
                 }
             )
         )
@@ -160,14 +208,11 @@ class DefaultAuthComponent(
         return registerComponentFactory(
             RegisterComponentParams(
                 componentContext = componentContext,
-                onBack = {
-                    navigation.pop()
-                },
-                onLogin = {
-                    navigation.pop()
-                },
+                onBack = ::navigateBack,
+                onLogin = ::navigateBack,
                 onRegisterSuccess = {
-                    navigation.bringToFront(Config.Profile)
+                    // Вместо вызова навигации, обновляем состояние
+                    _store.accept(AuthStore.Intent.SetAuthenticated(true))
                 }
             )
         )
@@ -181,7 +226,8 @@ class DefaultAuthComponent(
                 onLogout = {
                     // Handle logout in the auth store
                     _store.accept(AuthStore.Intent.Logout)
-                    navigation.bringToFront(Config.Login)
+                    // Вместо вызова навигации через MainThreadWorker, используем navigationExecutor
+                    navigationExecutor.navigateTo(Config.Login)
                 },
                 onBackClicked = onBack
             )
