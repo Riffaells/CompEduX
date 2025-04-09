@@ -1,42 +1,46 @@
-package component.settings
+package component.settings.section
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 
 /**
- * Компонент для отображения секции настроек с анимацией
+ * Animated settings section with fade-in and expand animations.
  *
- * @param title Заголовок секции
- * @param showContent Флаг, указывающий, нужно ли показывать содержимое
- * @param animationDelay Задержка перед началом анимации (в миллисекундах)
- * @param showTopDivider Показывать ли разделитель сверху секции
- * @param showBottomDivider Показывать ли разделитель снизу секции
- * @param content Содержимое секции
+ * This component provides an animated container for settings that appear
+ * with a smooth animation. Useful for progressive disclosure or delayed loading.
+ *
+ * @param title The text to display as section title
+ * @param showContent Flag indicating whether to show the content
+ * @param animationDelay Delay before starting the animation (in milliseconds)
+ * @param showTopDivider Whether to show a divider above the section
+ * @param showBottomDivider Whether to show a divider below the section
+ * @param content The settings content to display inside the section
+ *
+ * Example usage:
+ * ```
+ * AnimatedSettingsSection(
+ *     title = "Advanced Settings",
+ *     showContent = showAdvancedSettings,
+ *     animationDelay = 300
+ * ) {
+ *     // Advanced settings content
+ * }
+ * ```
  */
 @Composable
-fun SettingSection(
+fun AnimatedSettingsSection(
     title: String,
     showContent: Boolean,
-    animationDelay: Int,
+    animationDelay: Int = 0,
     showTopDivider: Boolean = true,
     showBottomDivider: Boolean = true,
     content: @Composable () -> Unit
@@ -47,6 +51,8 @@ fun SettingSection(
         if (showContent) {
             delay(animationDelay.toLong())
             visible = true
+        } else {
+            visible = false
         }
     }
 
@@ -60,7 +66,7 @@ fun SettingSection(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Верхний разделитель (если нужен)
+            // Top divider (if needed)
             if (showTopDivider) {
                 HorizontalDivider(
                     modifier = Modifier.padding(vertical = 8.dp),
@@ -68,17 +74,17 @@ fun SettingSection(
                 )
             }
 
-            // Заголовок секции
+            // Section title
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary
             )
 
-            // Содержимое секции
+            // Section content
             content()
 
-            // Нижний разделитель (если нужен)
+            // Bottom divider (if needed)
             if (showBottomDivider) {
                 HorizontalDivider(
                     modifier = Modifier.padding(vertical = 8.dp),

@@ -15,12 +15,12 @@ import androidx.compose.ui.unit.dp
 import compedux.core.ui.generated.resources.Res
 import compedux.core.ui.generated.resources.*
 import component.app.settings.store.SettingsStore
-import component.settings.CategoryBlock
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.resources.stringResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.FlowRow
+import component.settings.section.CategoryBlock
 import ui.icon.RIcons
 
 @OptIn(ExperimentalResourceApi::class, ExperimentalMaterial3Api::class,

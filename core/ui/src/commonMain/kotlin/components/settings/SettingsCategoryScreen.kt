@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.dp
 import compedux.core.ui.generated.resources.*
 import component.app.settings.SettingsComponent
 import component.app.settings.store.SettingsStore
-import component.settings.CategoryBlock
+import component.settings.section.CategoryBlock
 import components.settings.appearance.AppearanceSettingsContent
 import components.settings.experimental.ExperimentalSettingsContent
 import components.settings.language.LanguageSettingsContent
@@ -105,10 +105,7 @@ fun SettingsCategoryScreen(
                         modifier = Modifier.fillMaxSize()
                     )
 
-                    SettingsComponent.SettingsCategory.NETWORK -> NetworkSettingsContent(
-                        settings = component.settings,
-                        modifier = Modifier.fillMaxSize()
-                    )
+                    SettingsComponent.SettingsCategory.NETWORK -> TODO()
 
                     SettingsComponent.SettingsCategory.SECURITY -> SecuritySettingsContent(
                         state = state,

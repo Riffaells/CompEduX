@@ -28,6 +28,21 @@ interface NetworkSettings {
     val bandwidthLimitKbpsFlow: StateFlow<Int>
 
     /**
+     * Использование пользовательских тайм-аутов
+     */
+    val useCustomTimeoutsFlow: StateFlow<Boolean>
+
+    /**
+     * Тайм-аут соединения (в секундах)
+     */
+    val connectionTimeoutSecondsFlow: StateFlow<Int>
+
+    /**
+     * Тайм-аут чтения (в секундах)
+     */
+    val readTimeoutSecondsFlow: StateFlow<Int>
+
+    /**
      * Сохраняет URL сервера
      */
     fun saveServerUrl(value: String)
@@ -46,6 +61,21 @@ interface NetworkSettings {
      * Сохраняет ограничение пропускной способности в Кбит/с
      */
     fun saveBandwidthLimitKbps(value: Int)
+
+    /**
+     * Сохраняет настройку использования пользовательских тайм-аутов
+     */
+    fun saveUseCustomTimeouts(value: Boolean)
+
+    /**
+     * Сохраняет тайм-аут соединения в секундах
+     */
+    fun saveConnectionTimeoutSeconds(value: Int)
+
+    /**
+     * Сохраняет тайм-аут чтения в секундах
+     */
+    fun saveReadTimeoutSeconds(value: Int)
 }
 
 /**
@@ -73,6 +103,21 @@ internal class NetworkSettingsImpl(settings: Settings) : BaseSettings(settings),
         defaultValue = 5000 // 5 Мбит/с по умолчанию
     )
 
+    private val useCustomTimeouts = createBooleanSetting(
+        key = "USE_CUSTOM_TIMEOUTS",
+        defaultValue = false
+    )
+
+    private val connectionTimeoutSeconds = createIntSetting(
+        key = "CONNECTION_TIMEOUT_SECONDS",
+        defaultValue = 30 // 30 секунд по умолчанию
+    )
+
+    private val readTimeoutSeconds = createIntSetting(
+        key = "READ_TIMEOUT_SECONDS",
+        defaultValue = 60 // 60 секунд по умолчанию
+    )
+
     override val serverUrlFlow: StateFlow<String> get() = serverUrl.flow
     override fun saveServerUrl(value: String) = serverUrl.save(value)
 
@@ -84,4 +129,13 @@ internal class NetworkSettingsImpl(settings: Settings) : BaseSettings(settings),
 
     override val bandwidthLimitKbpsFlow: StateFlow<Int> get() = bandwidthLimitKbps.flow
     override fun saveBandwidthLimitKbps(value: Int) = bandwidthLimitKbps.save(value)
+
+    override val useCustomTimeoutsFlow: StateFlow<Boolean> get() = useCustomTimeouts.flow
+    override fun saveUseCustomTimeouts(value: Boolean) = useCustomTimeouts.save(value)
+
+    override val connectionTimeoutSecondsFlow: StateFlow<Int> get() = connectionTimeoutSeconds.flow
+    override fun saveConnectionTimeoutSeconds(value: Int) = connectionTimeoutSeconds.save(value)
+
+    override val readTimeoutSecondsFlow: StateFlow<Int> get() = readTimeoutSeconds.flow
+    override fun saveReadTimeoutSeconds(value: Int) = readTimeoutSeconds.save(value)
 }

@@ -221,8 +221,6 @@ class VersionedAPIRoute(APIRouter):
         async def custom_route_handler(request: Request):
             response = await original_route_handler(request)
             # Добавляем версию API в заголовок ответа
-            if isinstance(response, Response):
-                response.headers["X-API-Version"] = self.version
             return response
 
         return custom_route_handler

@@ -15,15 +15,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import compedux.core.ui.generated.resources.Res
 import compedux.core.ui.generated.resources.*
 import component.app.settings.store.SettingsStore
-import component.settings.SettingTextField
+import component.settings.input.SettingTextField
 import components.settings.profile.components.ProfileSwitchItem
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.ExperimentalResourceApi

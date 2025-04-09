@@ -1,4 +1,4 @@
-package components.settings.appearance.components
+package component.settings.input
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
@@ -12,7 +12,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 /**
- * Карточка настроек внешнего вида с переключателем
+ * Карточка настроек с переключателем
  *
  * @param title Заголовок настройки
  * @param description Описание настройки
@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.dp
  * @param modifier Модификатор для настройки внешнего вида
  */
 @Composable
-fun AppearanceToggleCard(
+fun ToggleCard(
     title: String,
     description: String,
     icon: ImageVector,
@@ -47,7 +47,7 @@ fun AppearanceToggleCard(
             containerColor = backgroundColor
         ),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = 0.dp
+            defaultElevation = if (checked && enabled) 4.dp else 0.dp
         )
     ) {
         Row(

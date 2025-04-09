@@ -65,6 +65,7 @@
 
     <!-- Настройки сети -->
     <string name="network_settings_title">Настройки сети</string>
+    <string name="network_settings_description">Настройки подключения к серверу</string>
     <string name="network_server_settings">Настройки сервера</string>
     <string name="network_server_url">URL сервера</string>
     <string name="network_server_url_desc">Введите адрес сервера для подключения</string>
@@ -77,6 +78,17 @@
     <string name="network_read_timeout">Тайм-аут чтения</string>
     <string name="network_read_timeout_desc">Время ожидания ответа от сервера</string>
     <string name="network_seconds_format">%d сек.</string>
+    <string name="planned_features">Планируемые функции</string>
+    <string name="connection_type">Тип подключения</string>
+    <string name="connection_type_description">Настройте предпочтительный тип подключения для работы приложения</string>
+    <string name="connection_type_tooltip">Выберите тип сетевого подключения</string>
+    <string name="new_feature">Новая функция</string>
+    <string name="protocol_description">Выберите протокол подключения к серверу</string>
+    <string name="protocol_selection">Выбор протокола</string>
+    <string name="development_status">Статус разработки</string>
+    <string name="development_status_tooltip">Текущий прогресс разработки</string>
+    <string name="in_development">В разработке</string>
+    <string name="network_protocols">Сетевые протоколы</string>
 
     <!-- Настройки безопасности -->
     <string name="security_settings_title">Настройки безопасности</string>
