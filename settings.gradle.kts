@@ -25,6 +25,7 @@ dependencyResolutionManagement {
 // Включаем все модули проекта
 include(
     "app",
+    ":core:utils",
     ":core:common",
     ":core:data",
     ":core:domain",

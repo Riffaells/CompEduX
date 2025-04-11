@@ -188,24 +188,6 @@ async def combined_middleware(request: Request, call_next):
 # Создадим зависимость для обработки версии API через заголовки
 T = TypeVar('T')
 
-def version_header(
-    x_api_version: Optional[str] = Header(None, description="API Version Header")
-) -> str:
-    """
-    Определяет версию API на основе заголовка X-API-Version.
-    Если заголовок отсутствует, возвращает последнюю версию.
-    """
-    # Список поддерживаемых версий
-    supported_versions = ["v1"]
-    latest_version = "v1"
-
-    # Если версия указана и поддерживается, используем её
-    if x_api_version and x_api_version in supported_versions:
-        return x_api_version
-
-    # Если версия не указана или не поддерживается, используем последнюю
-    return latest_version
-
 # Создадим класс для добавления версии API в заголовок ответа
 class VersionedAPIRoute(APIRouter):
     """
