@@ -1,19 +1,18 @@
 package usecase.auth
 
-import model.AuthResult
-import model.auth.ServerStatusResponse
-import repository.auth.AuthRepository
+import model.DomainResult
+import model.auth.ServerStatusDomain
+import repository.AuthRepository
 
 /**
- * UseCase для проверки статуса сервера
+ * Use Case для проверки статуса сервера
  */
 class CheckServerStatusUseCase(private val authRepository: AuthRepository) {
     /**
      * Выполнение проверки статуса сервера
-     *
-     * @return Результат операции проверки статуса
+     * @return результат операции с данными о статусе сервера
      */
-    suspend operator fun invoke(): AuthResult<ServerStatusResponse> {
+    suspend operator fun invoke(): DomainResult<ServerStatusDomain> {
         return authRepository.checkServerStatus()
     }
 }

@@ -1,22 +1,25 @@
 package di
 
-import api.auth.AuthApi
-import api.auth.AuthApiImpl
+import api.NetworkAuthApi
+import api.NetworkAuthApiImpl
 import client.HttpClientFactory
 import client.InMemoryTokenStorage
 import client.TokenStorage
-import config.NetworkConfig
 import io.ktor.client.*
 import kotlinx.serialization.json.Json
-import org.kodein.di.*
-import repository.mapper.ErrorMapper
+import logging.LoggingProvider
+import logging.logger
+import org.kodein.di.DI
+import org.kodein.di.bind
+import org.kodein.di.instance
+import org.kodein.di.singleton
 
 /**
- * Модуль зависимостей для сетевых компонентов
+ * DI-модуль для network-слоя
  */
 val networkModule = DI.Module("networkModule") {
     // JSON сериализатор
-    bindSingleton<Json> {
+    bind<Json>() with singleton {
         Json {
             isLenient = true
             ignoreUnknownKeys = true
@@ -26,30 +29,31 @@ val networkModule = DI.Module("networkModule") {
     }
 
     // Хранилище токенов
-    bindSingleton<TokenStorage> {
+    bind<TokenStorage>() with singleton {
         InMemoryTokenStorage()
     }
 
-    // Фабрика HTTP клиента использует зависимости, импортированные из других модулей
-    // Примечание: NetworkConfig и ErrorMapper должны быть предоставлены другими модулями
-    bindSingleton<HttpClientFactory> {
+    // Фабрика HTTP-клиента
+    bind<HttpClientFactory>() with singleton {
         HttpClientFactory(
             json = instance(),
-            errorMapper = instance<ErrorMapper>(),
-            networkConfig = instance<NetworkConfig>()
+            tokenStorage = instance(),
+            networkConfig = instance(),
+            logger = instance<LoggingProvider>().withTag("HttpClient")
         )
     }
 
-    // HTTP клиент
-    bindSingleton<HttpClient> {
+    // HTTP-клиент
+    bind<HttpClient>() with singleton {
         instance<HttpClientFactory>().create()
     }
 
-    // API аутентификации
-    bindSingleton<AuthApi> {
-        AuthApiImpl(
+    // API для аутентификации
+    bind<NetworkAuthApi>() with singleton {
+        NetworkAuthApiImpl(
             client = instance(),
-            networkConfig = instance()
+            networkConfig = instance(),
+            logger = instance<LoggingProvider>().withTag("NetworkAuthApi")
         )
     }
 }

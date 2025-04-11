@@ -1,18 +1,17 @@
 package usecase.auth
 
-import model.AuthResult
-import repository.auth.AuthRepository
+import model.DomainResult
+import repository.AuthRepository
 
 /**
- * UseCase для выхода из системы
+ * Use Case для выхода из системы
  */
 class LogoutUseCase(private val authRepository: AuthRepository) {
     /**
      * Выполнение выхода из системы
-     *
-     * @return Результат операции выхода
+     * @return результат операции
      */
-    suspend operator fun invoke(): AuthResult<Unit> {
+    suspend operator fun invoke(): DomainResult<Unit> {
         return authRepository.logout()
     }
 }

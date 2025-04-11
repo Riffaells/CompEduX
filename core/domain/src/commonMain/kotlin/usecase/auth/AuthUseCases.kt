@@ -1,8 +1,8 @@
 package usecase.auth
 
 /**
- * Контейнер для всех use cases, связанных с аутентификацией.
- * Объединяет все use cases в один класс для удобства использования.
+ * Контейнер для всех Use Cases, связанных с аутентификацией
+ * Позволяет получать доступ ко всем Use Cases через один объект
  */
 data class AuthUseCases(
     val login: LoginUseCase,
@@ -10,6 +10,5 @@ data class AuthUseCases(
     val logout: LogoutUseCase,
     val getCurrentUser: GetCurrentUserUseCase,
     val isAuthenticated: IsAuthenticatedUseCase,
-    val updateProfile: UpdateProfileUseCase,
     val checkServerStatus: CheckServerStatusUseCase
 )

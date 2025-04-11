@@ -2,99 +2,134 @@ package client
 
 import config.NetworkConfig
 import io.ktor.client.*
+import io.ktor.client.engine.*
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.auth.*
 import io.ktor.client.plugins.auth.providers.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.plugins.logging.*
 import io.ktor.client.request.*
-import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import io.ktor.util.*
 import kotlinx.serialization.json.Json
-import model.auth.NetworkAuthResponse
-import model.auth.NetworkRefreshTokenRequest
-import repository.mapper.ErrorMapper
+import logging.Logger
+import platform.PlatformInfo
+import com.riffaells.compedux.BuildConfig
 
 /**
  * Фабрика для создания HTTP клиента
  */
 class HttpClientFactory(
     private val json: Json,
-    private val errorMapper: ErrorMapper,
-    private val networkConfig: NetworkConfig
+    private val tokenStorage: TokenStorage,
+    private val networkConfig: NetworkConfig,
+    private val logger: Logger
 ) {
     /**
      * Создает HTTP клиент с настроенными плагинами
      */
     fun create(): HttpClient {
         return HttpClient {
-            // Конфигурация логирования
-            install(Logging) {
-                level = LogLevel.ALL
-            }
-
-            // Конфигурация таймаутов
+            // Устанавливаем таймауты
             install(HttpTimeout) {
-                requestTimeoutMillis = 30000 // 30 секунд на запрос
                 connectTimeoutMillis = 15000 // 15 секунд на соединение
+                requestTimeoutMillis = 30000 // 30 секунд на запрос
                 socketTimeoutMillis = 15000 // 15 секунд на сокет
             }
 
-            // Конфигурация сериализации JSON
+            // Настройка логирования
+            install(Logging) {
+                logger = object : io.ktor.client.plugins.logging.Logger {
+                    override fun log(message: String) {
+                        this@HttpClientFactory.logger.d(message)
+                    }
+                }
+                level = LogLevel.HEADERS
+            }
+
+            // Настройка сериализации/десериализации JSON
             install(ContentNegotiation) {
                 json(json)
             }
 
-            // Настройка базового URL для всех запросов
-            defaultRequest {
-                // Будет установлен базовый URL
-                url {
-                    // URL будет получен из NetworkConfig
+            // Настройка аутентификации Bearer
+            install(Auth) {
+                bearer {
+                    loadTokens {
+                        val accessToken = tokenStorage.getAccessToken()
+                        val refreshToken = tokenStorage.getRefreshToken()
+
+                        if (accessToken != null && refreshToken != null) {
+                            BearerTokens(
+                                accessToken = accessToken,
+                                refreshToken = refreshToken
+                            )
+                        } else {
+                            null
+                        }
+                    }
+
+                    refreshTokens {
+                        val refreshToken = tokenStorage.getRefreshToken() ?: return@refreshTokens null
+
+                        try {
+                            // В реальном приложении здесь должен быть запрос к API для обновления токена
+                            // Это лишь заглушка
+                            BearerTokens(
+                                accessToken = "refreshed_access_token",
+                                refreshToken = refreshToken
+                            )
+                        } catch (e: Exception) {
+                            logger.e("Failed to refresh token", e)
+                            null
+                        }
+                    }
                 }
-
-                // Настройка заголовков по умолчанию
-                header(HttpHeaders.ContentType, ContentType.Application.Json)
-                header(HttpHeaders.Accept, ContentType.Application.Json)
             }
 
-            // Настройка перехвата ошибок и повторных попыток запросов
-            install(HttpRequestRetry) {
-                retryOnServerErrors(maxRetries = 3)
-                exponentialDelay()
-            }
-
-            // Обработка ошибок HTTP
+            // Обработка ошибок
             HttpResponseValidator {
                 validateResponse { response ->
                     val statusCode = response.status.value
 
                     if (statusCode >= 400) {
                         when (statusCode) {
-                            401 -> throw ClientRequestException(response, "Неавторизованный доступ")
-                            403 -> throw ClientRequestException(response, "Доступ запрещен")
-                            404 -> throw ClientRequestException(response, "Ресурс не найден")
-                            in 500..599 -> throw ClientRequestException(response, "Ошибка сервера")
-                            else -> throw ClientRequestException(response, "Ошибка клиента")
+                            401 -> throw ClientRequestException(response, "Unauthorized")
+                            403 -> throw ClientRequestException(response, "Forbidden")
+                            404 -> throw ClientRequestException(response, "Not Found")
+                            in 500..599 -> throw ServerResponseException(response, "Server Error")
+                            else -> throw ResponseException(response, "HTTP Error $statusCode")
                         }
                     }
                 }
             }
 
-            // В будущем здесь можно добавить:
-            // - Поддержку Bearer токенов через Auth плагин
-            // - Обработку JWT и refresh токенов
-            // - Дополнительные механизмы безопасности
+            // Установка базового URL и заголовков для всех запросов
+            defaultRequest {
+                contentType(ContentType.Application.Json)
+                accept(ContentType.Application.Json)
+
+                // Добавляем заголовки с информацией о приложении
+                header("X-Client-Platform", getPlatformName())
+                header("X-Client-App", BuildConfig.APP_NAME)
+                header("X-Client-Version", BuildConfig.APP_VERSION)
+                header("X-Client-Build", BuildConfig.BUILD_TIMESTAMP.toString())
+            }
         }
     }
 
     /**
-     * Вспомогательные функции для определения типа ошибки
+     * Gets platform name for request headers
+     * Uses the Platform utility from utils module
+     * @return String representing current platform
      */
-    companion object {
-        fun isUnauthorized(response: HttpResponse): Boolean = response.status.value == 401
-        fun isForbidden(response: HttpResponse): Boolean = response.status.value == 403
-        fun isNotFound(response: HttpResponse): Boolean = response.status.value == 404
-        fun isServerError(response: HttpResponse): Boolean = response.status.value in 500..599
+    private fun getPlatformName(): String {
+        return try {
+            platform.PlatformInfo.createUserAgent(BuildConfig.APP_NAME, BuildConfig.APP_VERSION.toString())
+        } catch (e: Exception) {
+            logger.e("Failed to get platform information", e)
+            "${BuildConfig.APP_NAME}-${BuildConfig.APP_VERSION}"
+        }
     }
 }

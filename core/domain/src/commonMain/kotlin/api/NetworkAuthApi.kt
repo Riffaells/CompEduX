@@ -1,63 +1,64 @@
 package api
 
+import model.DomainResult
+import model.UserDomain
 import model.auth.AuthResponseDomain
-import model.auth.LoginRequest
-import model.auth.RefreshTokenRequest
-import model.auth.RegisterRequest
-import model.auth.ServerStatusResponse
-import model.User
+import model.auth.LoginRequestDomain
+import model.auth.RefreshTokenRequestDomain
+import model.auth.RegisterRequestDomain
+import model.auth.ServerStatusDomain
 
 /**
- * Интерфейс для работы с API аутентификации из домена
+ * Интерфейс для работы с API аутентификации из доменного слоя
  * Определяет контракт для взаимодействия с сетевым API
  */
 interface NetworkAuthApi {
     /**
      * Регистрация нового пользователя
-     * @param request Данные для регистрации
-     * @return Результат операции с данными аутентификации
+     * @param request данные для регистрации
+     * @return результат операции с данными аутентификации
      */
-    suspend fun register(request: RegisterRequest): api.model.AuthResult<AuthResponseDomain>
+    suspend fun register(request: RegisterRequestDomain): DomainResult<AuthResponseDomain>
 
     /**
-     * Авторизация пользователя
-     * @param request Данные для авторизации
-     * @return Результат операции с данными аутентификации
+     * Вход в систему
+     * @param request данные для входа
+     * @return результат операции с данными аутентификации
      */
-    suspend fun login(request: LoginRequest): api.model.AuthResult<AuthResponseDomain>
+    suspend fun login(request: LoginRequestDomain): DomainResult<AuthResponseDomain>
 
     /**
      * Обновление токена доступа
-     * @param request Запрос на обновление токена
-     * @return Результат операции с новыми данными аутентификации
+     * @param request запрос на обновление токена
+     * @return результат операции с новыми данными аутентификации
      */
-    suspend fun refreshToken(request: RefreshTokenRequest): api.model.AuthResult<AuthResponseDomain>
+    suspend fun refreshToken(request: RefreshTokenRequestDomain): DomainResult<AuthResponseDomain>
 
     /**
      * Получение информации о текущем пользователе
-     * @param token Токен доступа
-     * @return Результат операции с данными пользователя
+     * @param token токен доступа
+     * @return результат операции с данными пользователя
      */
-    suspend fun getCurrentUser(token: String): api.model.AuthResult<User>
+    suspend fun getCurrentUser(token: String): DomainResult<UserDomain>
 
     /**
-     * Выход из системы (инвалидация токена)
-     * @param token Токен доступа
-     * @return Результат операции
+     * Выход из системы
+     * @param token токен доступа
+     * @return результат операции
      */
-    suspend fun logout(token: String): api.model.AuthResult<Unit>
+    suspend fun logout(token: String): DomainResult<Unit>
 
     /**
      * Проверка статуса сервера
-     * @return Результат операции с данными о статусе сервера
+     * @return результат операции с данными о статусе сервера
      */
-    suspend fun checkServerStatus(): api.model.AuthResult<ServerStatusResponse>
+    suspend fun checkServerStatus(): DomainResult<ServerStatusDomain>
 
     /**
      * Обновление профиля пользователя
-     * @param token Токен доступа
-     * @param username Новое имя пользователя
-     * @return Результат операции с данными пользователя
+     * @param token токен доступа
+     * @param username новое имя пользователя
+     * @return результат операции с данными пользователя
      */
-    suspend fun updateProfile(token: String, username: String): api.model.AuthResult<User>
+    suspend fun updateProfile(token: String, username: String): DomainResult<UserDomain>
 }

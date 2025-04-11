@@ -1,84 +1,65 @@
 package client
 
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-
 /**
  * Интерфейс для хранения токенов аутентификации
  */
 interface TokenStorage {
     /**
-     * Токен доступа
+     * Сохранение токена доступа
+     * @param token токен доступа
      */
-    val accessToken: StateFlow<String?>
+    fun saveAccessToken(token: String)
 
     /**
-     * Токен обновления
+     * Получение токена доступа
+     * @return токен доступа или null, если токен не найден
      */
-    val refreshToken: StateFlow<String?>
+    fun getAccessToken(): String?
 
     /**
-     * Тип токена
+     * Сохранение токена обновления
+     * @param token токен обновления
      */
-    val tokenType: StateFlow<String?>
+    fun saveRefreshToken(token: String)
 
     /**
-     * Проверка, авторизован ли пользователь
+     * Получение токена обновления
+     * @return токен обновления или null, если токен не найден
      */
-    val isAuthorized: StateFlow<Boolean>
+    fun getRefreshToken(): String?
 
     /**
-     * Сохранение токенов
-     */
-    fun saveTokens(accessToken: String, refreshToken: String, tokenType: String)
-
-    /**
-     * Очистка токенов при выходе
+     * Очистка всех токенов
      */
     fun clearTokens()
-
-    /**
-     * Получение авторизационного заголовка для запросов
-     */
-    fun getAuthorizationHeader(): String?
 }
 
 /**
- * Реализация хранилища токенов в памяти
- * Для продакшн кода рекомендуется использовать более безопасное хранилище
+ * Простая реализация хранилища токенов в памяти
+ * Для продакшена следует использовать безопасное хранилище
  */
 class InMemoryTokenStorage : TokenStorage {
+    private var accessToken: String? = null
+    private var refreshToken: String? = null
 
-    private val _accessToken = MutableStateFlow<String?>(null)
-    override val accessToken = _accessToken.asStateFlow()
+    override fun saveAccessToken(token: String) {
+        accessToken = token
+    }
 
-    private val _refreshToken = MutableStateFlow<String?>(null)
-    override val refreshToken = _refreshToken.asStateFlow()
+    override fun getAccessToken(): String? {
+        return accessToken
+    }
 
-    private val _tokenType = MutableStateFlow<String?>("Bearer")
-    override val tokenType = _tokenType.asStateFlow()
+    override fun saveRefreshToken(token: String) {
+        refreshToken = token
+    }
 
-    private val _isAuthorized = MutableStateFlow(false)
-    override val isAuthorized = _isAuthorized.asStateFlow()
-
-    override fun saveTokens(accessToken: String, refreshToken: String, tokenType: String) {
-        _accessToken.value = accessToken
-        _refreshToken.value = refreshToken
-        _tokenType.value = tokenType
-        _isAuthorized.value = true
+    override fun getRefreshToken(): String? {
+        return refreshToken
     }
 
     override fun clearTokens() {
-        _accessToken.value = null
-        _refreshToken.value = null
-        _isAuthorized.value = false
-    }
-
-    override fun getAuthorizationHeader(): String? {
-        val accessToken = _accessToken.value ?: return null
-        val tokenType = _tokenType.value ?: "Bearer"
-
-        return "$tokenType $accessToken"
+        accessToken = null
+        refreshToken = null
     }
 }

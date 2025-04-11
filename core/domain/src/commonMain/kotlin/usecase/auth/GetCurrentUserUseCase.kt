@@ -1,18 +1,18 @@
 package usecase.auth
 
-import model.User
-import repository.auth.AuthRepository
+import model.DomainResult
+import model.UserDomain
+import repository.AuthRepository
 
 /**
- * UseCase для получения информации о текущем пользователе
+ * Use Case для получения текущего пользователя
  */
 class GetCurrentUserUseCase(private val authRepository: AuthRepository) {
     /**
-     * Получение информации о текущем пользователе
-     *
-     * @return Текущий пользователь или null, если пользователь не авторизован
+     * Выполнение получения текущего пользователя
+     * @return результат операции с данными пользователя
      */
-    suspend operator fun invoke(): User? {
+    suspend operator fun invoke(): DomainResult<UserDomain> {
         return authRepository.getCurrentUser()
     }
 }

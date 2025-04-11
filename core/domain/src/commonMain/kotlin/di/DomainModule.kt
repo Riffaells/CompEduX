@@ -7,37 +7,17 @@ import org.kodein.di.singleton
 import usecase.auth.*
 
 /**
- * Модуль для доменного слоя
+ * DI-модуль для домена
+ * Содержит все Use Cases и другие компоненты доменного слоя
  */
 val domainModule = DI.Module("domainModule") {
-    // Use cases для аутентификации
-    bind<LoginUseCase>() with singleton {
-        LoginUseCase(instance())
-    }
-
-    bind<RegisterUseCase>() with singleton {
-        RegisterUseCase(instance())
-    }
-
-    bind<LogoutUseCase>() with singleton {
-        LogoutUseCase(instance())
-    }
-
-    bind<GetCurrentUserUseCase>() with singleton {
-        GetCurrentUserUseCase(instance())
-    }
-
-    bind<IsAuthenticatedUseCase>() with singleton {
-        IsAuthenticatedUseCase(instance())
-    }
-
-    bind<UpdateProfileUseCase>() with singleton {
-        UpdateProfileUseCase(instance())
-    }
-
-    bind<CheckServerStatusUseCase>() with singleton {
-        CheckServerStatusUseCase(instance())
-    }
+    // Auth Use Cases
+    bind<LoginUseCase>() with singleton { LoginUseCase(instance()) }
+    bind<RegisterUseCase>() with singleton { RegisterUseCase(instance()) }
+    bind<GetCurrentUserUseCase>() with singleton { GetCurrentUserUseCase(instance()) }
+    bind<LogoutUseCase>() with singleton { LogoutUseCase(instance()) }
+    bind<CheckServerStatusUseCase>() with singleton { CheckServerStatusUseCase(instance()) }
+    bind<IsAuthenticatedUseCase>() with singleton { IsAuthenticatedUseCase(instance()) }
 
     // Контейнер для всех use cases аутентификации
     bind<AuthUseCases>() with singleton {
@@ -47,7 +27,6 @@ val domainModule = DI.Module("domainModule") {
             logout = instance(),
             getCurrentUser = instance(),
             isAuthenticated = instance(),
-            updateProfile = instance(),
             checkServerStatus = instance()
         )
     }
