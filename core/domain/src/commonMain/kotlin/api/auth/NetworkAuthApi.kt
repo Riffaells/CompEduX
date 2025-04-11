@@ -1,4 +1,4 @@
-package api
+package api.auth
 
 import model.DomainResult
 import model.UserDomain
@@ -6,7 +6,7 @@ import model.auth.AuthResponseDomain
 import model.auth.LoginRequestDomain
 import model.auth.RefreshTokenRequestDomain
 import model.auth.RegisterRequestDomain
-import model.auth.ServerStatusDomain
+import model.auth.ServerStatusResponseDomain
 
 /**
  * Интерфейс для работы с API аутентификации из доменного слоя
@@ -52,7 +52,7 @@ interface NetworkAuthApi {
      * Проверка статуса сервера
      * @return результат операции с данными о статусе сервера
      */
-    suspend fun checkServerStatus(): DomainResult<ServerStatusDomain>
+    suspend fun checkServerStatus(): DomainResult<ServerStatusResponseDomain>
 
     /**
      * Обновление профиля пользователя

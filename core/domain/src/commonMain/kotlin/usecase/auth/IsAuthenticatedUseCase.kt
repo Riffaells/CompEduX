@@ -1,6 +1,6 @@
 package usecase.auth
 
-import repository.AuthRepository
+import repository.auth.AuthRepository
 
 /**
  * Use Case для проверки аутентификации пользователя

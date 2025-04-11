@@ -2,7 +2,7 @@ package usecase.auth
 
 import model.DomainResult
 import model.auth.AuthResponseDomain
-import repository.AuthRepository
+import repository.auth.AuthRepository
 
 /**
  * Use Case для регистрации пользователя

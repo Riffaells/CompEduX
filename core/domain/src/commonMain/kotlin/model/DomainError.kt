@@ -11,6 +11,19 @@ data class DomainError(
     val message: String,
     val details: String? = null
 ) {
+    /**
+     * Checks if the error is related to authentication issues
+     * Returns true if the error is one of: UNAUTHORIZED, FORBIDDEN, TOKEN_EXPIRED, INVALID_TOKEN
+     * This method is used to determine if token refresh should be attempted
+     * @return true if the error is authentication-related
+     */
+    fun isAuthError(): Boolean {
+        return code == ErrorCode.UNAUTHORIZED ||
+               code == ErrorCode.FORBIDDEN ||
+               code == ErrorCode.TOKEN_EXPIRED ||
+               code == ErrorCode.INVALID_TOKEN
+    }
+
     companion object {
         /**
          * Create a network error

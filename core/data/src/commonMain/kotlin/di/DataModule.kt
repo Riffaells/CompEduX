@@ -1,31 +1,42 @@
 package di
 
-import api.adapter.AuthApiAdapter
+import api.auth.AuthApi
+import api.auth.DataAuthApiAdapter
+import api.auth.NetworkAuthApi
+import logging.LoggingProvider
 import org.kodein.di.DI
 import org.kodein.di.bind
 import org.kodein.di.instance
 import org.kodein.di.singleton
-import repository.mapper.DataAuthMapper
-import repository.mapper.DataErrorMapper
-import repository.mapper.ErrorMapper
-import api.AuthApi as DomainAuthApi
+import repository.auth.AuthRepository
+import repository.auth.AuthRepositoryImpl
+import repository.auth.TokenRepository
+import repository.auth.TokenRepositoryImpl
+import settings.MultiplatformSettings
 
 /**
- * Модуль для слоя данных
+ * DI-модуль для data-слоя
+ * Содержит репозитории и адаптеры для работы с данными
  */
 val dataModule = DI.Module("dataModule") {
-    // Импортируем репозитории
-    import(repositoryModule)
-
-    // API адаптер для преобразования между доменным API и NetworkAuthApi
-    bind<DomainAuthApi>() with singleton {
-        AuthApiAdapter(
-            networkAuthApi = instance(),
-            settings = instance()
-        )
+    // Репозитории и адаптеры для аутентификации
+    bind<TokenRepository>() with singleton {
+        val multiplatformSettings = instance<MultiplatformSettings>()
+        val logger = instance<LoggingProvider>().getLogger("TokenRepository")
+        TokenRepositoryImpl(multiplatformSettings.security, logger)
     }
 
-    // Мапперы
-    bind<ErrorMapper>() with singleton { DataErrorMapper() }
-    bind<DataAuthMapper>() with singleton { DataAuthMapper }
+    bind<AuthRepository>() with singleton {
+        val networkAuthApi = instance<NetworkAuthApi>()
+        val tokenRepository = instance<TokenRepository>()
+        val logger = instance<LoggingProvider>().getLogger("AuthRepository")
+        AuthRepositoryImpl(networkAuthApi, tokenRepository, logger)
+    }
+
+    bind<AuthApi>() with singleton {
+        val networkAuthApi = instance<NetworkAuthApi>()
+        val tokenRepository = instance<TokenRepository>()
+        val logger = instance<LoggingProvider>().getLogger("AuthApi")
+        DataAuthApiAdapter(networkAuthApi, tokenRepository, logger)
+    }
 }

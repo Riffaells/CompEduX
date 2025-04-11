@@ -1,6 +1,6 @@
 package di
 
-import api.NetworkAuthApi
+import api.auth.NetworkAuthApi
 import api.NetworkAuthApiImpl
 import client.HttpClientFactory
 import client.InMemoryTokenStorage
@@ -8,7 +8,6 @@ import client.TokenStorage
 import io.ktor.client.*
 import kotlinx.serialization.json.Json
 import logging.LoggingProvider
-import logging.logger
 import org.kodein.di.DI
 import org.kodein.di.bind
 import org.kodein.di.instance

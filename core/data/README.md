@@ -1,138 +1,220 @@
 # Data Module
 
-Модуль отвечает за работу с данными приложения, реализуя интерфейсы репозиториев из модуля domain и взаимодействуя с network и persistence слоями.
+The data module is responsible for the application's data operations, implementing repository interfaces from the domain module and interacting with network and persistence layers.
 
-## Структура
+## Structure
 
 ```
 core/data/
 ├── src/
 │   └── commonMain/
 │       └── kotlin/
-│           ├── model/             # Модели данных
-│           │   └── auth/          # Модели для аутентификации
-│           │       └── DataAuthModels.kt  # Модели запросов/ответов для аутентификации
+│           ├── api/               # API adapters
+│           │   └── auth/          # Authentication API adapters
+│           │       └── DataAuthApiAdapter.kt  # Adapter for authentication API
 │           │
-│           ├── repository/        # Реализации репозиториев
-│           │   ├── auth/          # Репозитории для аутентификации
-│           │   │   └── AuthRepositoryImpl.kt  # Реализация репозитория аутентификации
+│           ├── model/             # Data models
+│           │   └── auth/          # Authentication models
+│           │       └── DataAuthModels.kt  # Request/response models for authentication
+│           │
+│           ├── repository/        # Repository implementations
+│           │   ├── auth/          # Authentication repositories
+│           │   │   ├── AuthRepositoryImpl.kt  # Authentication repository implementation
+│           │   │   └── TokenRepositoryImpl.kt # Token management implementation
 │           │   │
-│           │   └── mapper/        # Мапперы для преобразования между слоями
-│           │       └── AuthMapper.kt # Маппер для аутентификации
+│           │   └── mapper/        # Mappers for transforming between layers
+│           │       └── AuthMapper.kt # Mapper for authentication
 │           │
-│           ├── datasource/        # Источники данных
-│           │   ├── local/         # Локальные источники данных
+│           ├── datasource/        # Data sources
+│           │   ├── local/         # Local data sources
 │           │   │   └── UserLocalDataSource.kt
 │           │   │
-│           │   └── remote/        # Удаленные источники данных
+│           │   └── remote/        # Remote data sources
 │           │       └── UserRemoteDataSource.kt
 │           │
-│           └── di/                # Зависимости и инъекции
-│               └── DataModule.kt  # Модуль для предоставления зависимостей
+│           └── di/                # Dependencies and injections
+│               └── DataModule.kt  # Module for providing dependencies
 ```
 
-## Основные компоненты
+## Core Components
 
-### Реализации репозиториев (repository/)
+### Repository Implementations (repository/)
 
-Реализации интерфейсов из domain слоя:
+Implementations of interfaces from the domain layer:
 
 ```kotlin
 // repository/auth/AuthRepositoryImpl.kt
 class AuthRepositoryImpl(
-    private val authApi: AuthApi,
-    private val settings: MultiplatformSettings
+    private val networkAuthApi: NetworkAuthApi,
+    private val tokenRepository: TokenRepository,
+    private val logger: Logger
 ) : AuthRepository {
 
-    private var currentUser: User? = null
-    private val _authState = MutableStateFlow<AuthState>(AuthState.Unauthenticated)
-    override val authState: StateFlow<AuthState> = _authState
+    // Authentication state management
+    private val _authState = MutableStateFlow<AuthStateDomain>(AuthStateDomain.Unauthenticated)
+    override val authState: StateFlow<AuthStateDomain> = _authState.asStateFlow()
 
-    override suspend fun login(email: String, password: String): AuthResult<AuthResponseData> {
-        // Реализация логина
+    override suspend fun login(
+        email: String,
+        password: String
+    ): DomainResult<AuthResponseDomain> {
+        // Login implementation
+        val request = LoginRequestDomain(email, password)
+        val result = networkAuthApi.login(request)
+
+        // Process result
+        if (result is DomainResult.Success) {
+            saveTokens(result.data)
+            getCurrentUser()
+        }
+
+        return result
     }
 
-    override suspend fun register(email: String, password: String, username: String): AuthResult<AuthResponseData> {
-        // Реализация регистрации
+    override suspend fun refreshTokenIfNeeded(): Boolean {
+        // Token refresh logic with error handling
+        val refreshToken = tokenRepository.getRefreshToken() ?: return false
+
+        val result = networkAuthApi.refreshToken(RefreshTokenRequestDomain(refreshToken))
+        return when (result) {
+            is DomainResult.Success -> {
+                saveTokens(result.data)
+                true
+            }
+            else -> false
+        }
     }
 
-    // Другие методы...
+    // Other methods...
 }
 ```
 
-### Мапперы (repository/mapper/)
+### API Adapters (api/auth/)
 
-Классы для преобразования данных между слоями:
+Classes that adapt between domain interfaces and network API:
 
 ```kotlin
-// repository/mapper/AuthMapper.kt
-object AuthMapper {
+// api/auth/DataAuthApiAdapter.kt
+class DataAuthApiAdapter(
+    private val networkAuthApi: NetworkAuthApi,
+    private val tokenRepository: TokenRepository,
+    private val logger: Logger
+) : AuthApi {
 
-    fun mapDataUserToDomainUser(user: User): User {
-        // Преобразование пользователя
+    override suspend fun login(
+        email: String,
+        password: String
+    ): DomainResult<AuthResponseDomain> = withContext(Dispatchers.Default) {
+        logger.d("DataAuthApiAdapter: login($email, ***)")
+
+        val request = LoginRequestDomain(email, password)
+        networkAuthApi.login(request)
     }
 
-    fun <T> createErrorResult(error: AppError): AuthResult<T> {
-        return AuthResult.Error(error)
+    override suspend fun getCurrentUser(): DomainResult<UserDomain> = withContext(Dispatchers.Default) {
+        val token = tokenRepository.getAccessToken() ?: return@withContext
+            DomainResult.Error(DomainError.authError("No access token found"))
+
+        networkAuthApi.getCurrentUser(token)
     }
 
-    fun <T> transformLoading(): AuthResult<T> {
-        @Suppress("UNCHECKED_CAST")
-        return AuthResult.Loading as AuthResult<T>
-    }
-
-    // Другие методы маппинга...
+    // Other methods...
 }
 ```
 
-### Модели данных (model/)
+### Error Handling
 
-Модели для сериализации/десериализации и запросов к API:
+The data layer uses `DomainResult` from the domain layer for consistent error handling:
 
 ```kotlin
-// model/auth/DataAuthModels.kt
-@Serializable
-data class RegisterRequest(
-    val username: String,
-    val email: String,
-    val password: String,
-    @SerialName("first_name") val firstName: String? = null,
-    @SerialName("last_name") val lastName: String? = null
-)
+// Error handling in repositories
+override suspend fun getCurrentUser(): DomainResult<UserDomain> {
+    // Get the access token
+    val accessToken = tokenRepository.getAccessToken()
 
-@Serializable
-data class LoginRequest(
-    val email: String,
-    val password: String
-)
+    if (accessToken == null) {
+        logger.w("Cannot get user: No access token")
+        _authState.value = AuthStateDomain.Unauthenticated
+        return DomainResult.Error(DomainError.authError("Not authorized"))
+    }
 
-// Другие модели...
+    // Make the request
+    val result = networkAuthApi.getCurrentUser(accessToken)
+
+    // Update the authentication state based on the result
+    when (result) {
+        is DomainResult.Success -> {
+            _authState.value = AuthStateDomain.Authenticated(result.data)
+        }
+        is DomainResult.Error -> {
+            // If the error is authentication-related, try to refresh the token
+            if (result.error.isAuthError() && refreshTokenIfNeeded()) {
+                return getCurrentUser()
+            } else {
+                _authState.value = AuthStateDomain.Unauthenticated
+            }
+        }
+        is DomainResult.Loading -> {
+            // Do nothing during loading
+        }
+    }
+
+    return result
+}
 ```
 
-### Источники данных (datasource/)
+### Dependency Injection (di/)
 
-Классы для работы с разными источниками данных:
+The data module defines a Kodein DI module for providing dependencies:
 
 ```kotlin
-// datasource/remote/UserRemoteDataSource.kt
-class UserRemoteDataSource(
-    private val authApi: AuthApi
-) {
-    suspend fun getUser(): User? {
-        // Получение пользователя из API
+// di/DataModule.kt
+val dataModule = DI.Module("dataModule") {
+    // Repositories and adapters for authentication
+    bind<TokenRepository>() with singleton {
+        val multiplatformSettings = instance<MultiplatformSettings>()
+        val logger = instance<LoggingProvider>().getLogger("TokenRepository")
+        TokenRepositoryImpl(multiplatformSettings.security, logger)
     }
 
-    // Другие методы...
-}
-
-// datasource/local/UserLocalDataSource.kt
-class UserLocalDataSource(
-    private val settings: MultiplatformSettings
-) {
-    fun saveUser(user: User) {
-        // Сохранение пользователя локально
+    bind<AuthRepository>() with singleton {
+        val networkAuthApi = instance<NetworkAuthApi>()
+        val tokenRepository = instance<TokenRepository>()
+        val logger = instance<LoggingProvider>().getLogger("AuthRepository")
+        AuthRepositoryImpl(networkAuthApi, tokenRepository, logger)
     }
 
-    // Другие методы...
+    bind<AuthApi>() with singleton {
+        val networkAuthApi = instance<NetworkAuthApi>()
+        val tokenRepository = instance<TokenRepository>()
+        val logger = instance<LoggingProvider>().getLogger("AuthApi")
+        DataAuthApiAdapter(networkAuthApi, tokenRepository, logger)
+    }
+
+    // Module initialization logging
+    val dataLogger = instance<LoggingProvider>().getLogger("DataModule")
+    dataLogger.i("Data module initialized")
 }
 ```
+
+## API Layer Abstraction
+
+The data module provides two important implementations:
+
+1. **AuthRepositoryImpl**: Implements the domain's `AuthRepository` interface, using `NetworkAuthApi` for API calls and handling token management internally
+2. **DataAuthApiAdapter**: Implements the domain's `AuthApi` interface, providing a higher-level API abstraction on top of `NetworkAuthApi`
+
+This structure allows domain layer components to work with different abstraction levels according to their needs.
+
+## Cross-Platform Compatibility
+
+The data module ensures cross-platform compatibility by:
+
+- Using Kotlin Multiplatform for all code
+- Relying on `Dispatchers.Default` instead of platform-specific dispatchers
+- Using platform-independent error handling via `DomainResult`
+- Abstracting platform-specific storage through `MultiplatformSettings`
+
+## Conclusion
+
+The data module serves as a bridge between the domain layer and the external data sources, implementing the business rules defined in the domain while handling the technical details of data retrieval and storage.

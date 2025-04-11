@@ -2,8 +2,7 @@ package usecase.auth
 
 import model.DomainResult
 import model.auth.AuthResponseDomain
-import model.auth.LoginRequestDomain
-import repository.AuthRepository
+import repository.auth.AuthRepository
 
 /**
  * Use Case для авторизации пользователя

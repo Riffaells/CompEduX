@@ -1,5 +1,7 @@
 package api
 
+import api.auth.NetworkAuthApi
+import com.riffaells.compedux.BuildConfig
 import config.NetworkConfig
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -16,6 +18,7 @@ import model.auth.NetworkRefreshTokenRequest
 import model.auth.NetworkRegisterRequest
 import model.auth.NetworkServerStatusResponse
 import model.user.NetworkUserResponse
+import platform.Platform
 
 /**
  * Implementation of NetworkAuthApi that uses Ktor HttpClient
@@ -57,6 +60,11 @@ class NetworkAuthApiImpl(
             val response = client.post("$apiUrl/auth/register") {
                 contentType(ContentType.Application.Json)
                 setBody(networkRequest)
+                headers {
+                    append("X-App-Version", BuildConfig.APP_VERSION.toString())
+                    append("X-App-Name", BuildConfig.APP_NAME)
+                    append("User-Agent", Platform.userAgent(BuildConfig.APP_NAME, BuildConfig.APP_VERSION.toString()))
+                }
             }
 
             if (response.status.isSuccess()) {
@@ -103,6 +111,11 @@ class NetworkAuthApiImpl(
             val response = client.post("$apiUrl/auth/login") {
                 contentType(ContentType.Application.Json)
                 setBody(networkRequest)
+                headers {
+                    append("X-App-Version", BuildConfig.APP_VERSION.toString())
+                    append("X-App-Name", BuildConfig.APP_NAME)
+                    append("User-Agent", Platform.userAgent(BuildConfig.APP_NAME, BuildConfig.APP_VERSION.toString()))
+                }
             }
 
             if (response.status.isSuccess()) {
@@ -148,6 +161,11 @@ class NetworkAuthApiImpl(
             val response = client.post("$apiUrl/auth/refresh") {
                 contentType(ContentType.Application.Json)
                 setBody(networkRequest)
+                headers {
+                    append("X-App-Version", BuildConfig.APP_VERSION.toString())
+                    append("X-App-Name", BuildConfig.APP_NAME)
+                    append("User-Agent", Platform.userAgent(BuildConfig.APP_NAME, BuildConfig.APP_VERSION.toString()))
+                }
             }
 
             if (response.status.isSuccess()) {
@@ -188,6 +206,11 @@ class NetworkAuthApiImpl(
             val response = client.get("$apiUrl/auth/me") {
                 contentType(ContentType.Application.Json)
                 header(HttpHeaders.Authorization, "Bearer $token")
+                headers {
+                    append("X-App-Version", BuildConfig.APP_VERSION.toString())
+                    append("X-App-Name", BuildConfig.APP_NAME)
+                    append("User-Agent", Platform.userAgent(BuildConfig.APP_NAME, BuildConfig.APP_VERSION.toString()))
+                }
             }
 
             if (response.status.isSuccess()) {
@@ -228,6 +251,11 @@ class NetworkAuthApiImpl(
             val response = client.post("$apiUrl/auth/logout") {
                 contentType(ContentType.Application.Json)
                 header(HttpHeaders.Authorization, "Bearer $token")
+                headers {
+                    append("X-App-Version", BuildConfig.APP_VERSION.toString())
+                    append("X-App-Name", BuildConfig.APP_NAME)
+                    append("User-Agent", Platform.userAgent(BuildConfig.APP_NAME, BuildConfig.APP_VERSION.toString()))
+                }
             }
 
             if (response.status.isSuccess()) {
@@ -256,13 +284,19 @@ class NetworkAuthApiImpl(
      *
      * @return DomainResult with server status information or error details on failure
      */
-    override suspend fun checkServerStatus(): DomainResult<ServerStatusDomain> {
+    override suspend fun checkServerStatus(): DomainResult<ServerStatusResponseDomain> {
         return try {
             val apiUrl = getApiUrl()
 
             // Выполнение запроса
             logger.d("Checking server status")
-            val response = client.get("$apiUrl/status")
+            val response = client.get("$apiUrl/status") {
+                headers {
+                    append("X-App-Version", BuildConfig.APP_VERSION.toString())
+                    append("X-App-Name", BuildConfig.APP_NAME)
+                    append("User-Agent", Platform.userAgent(BuildConfig.APP_NAME, BuildConfig.APP_VERSION.toString()))
+                }
+            }
 
             if (response.status.isSuccess()) {
                 // Парсинг успешного ответа
@@ -307,6 +341,11 @@ class NetworkAuthApiImpl(
                 contentType(ContentType.Application.Json)
                 header(HttpHeaders.Authorization, "Bearer $token")
                 setBody(requestBody)
+                headers {
+                    append("X-App-Version", BuildConfig.APP_VERSION.toString())
+                    append("X-App-Name", BuildConfig.APP_NAME)
+                    append("User-Agent", Platform.userAgent(BuildConfig.APP_NAME, BuildConfig.APP_VERSION.toString()))
+                }
             }
 
             if (response.status.isSuccess()) {
@@ -339,7 +378,7 @@ class NetworkAuthApiImpl(
      * @return A domain error model representing the exception
      */
     private fun handleException(e: Exception): DomainError {
-        logger.e("API Error: ${e.message}")
+        logger.e("API Error in ${BuildConfig.APP_NAME} v${BuildConfig.APP_VERSION}: ${e.message}")
 
         return when (e) {
             is io.ktor.client.plugins.ClientRequestException -> {

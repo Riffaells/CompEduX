@@ -37,7 +37,7 @@ data class AuthResponseDomain(
 /**
  * Доменная модель ответа о статусе сервера
  */
-data class ServerStatusDomain(
+data class ServerStatusResponseDomain(
     val status: String,
     val version: String,
     val uptime: Long,

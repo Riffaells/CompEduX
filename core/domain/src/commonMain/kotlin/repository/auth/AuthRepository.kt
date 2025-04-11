@@ -1,11 +1,11 @@
-package repository
+package repository.auth
 
 import kotlinx.coroutines.flow.StateFlow
 import model.DomainResult
 import model.UserDomain
 import model.auth.AuthResponseDomain
 import model.auth.AuthStateDomain
-import model.auth.ServerStatusDomain
+import model.auth.ServerStatusResponseDomain
 
 /**
  * Interface for authentication repository
@@ -69,7 +69,7 @@ interface AuthRepository {
      * Check server status
      * @return operation result with server status data
      */
-    suspend fun checkServerStatus(): DomainResult<ServerStatusDomain>
+    suspend fun checkServerStatus(): DomainResult<ServerStatusResponseDomain>
 
     /**
      * Refresh token if needed

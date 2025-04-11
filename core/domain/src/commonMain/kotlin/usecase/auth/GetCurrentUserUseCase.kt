@@ -2,7 +2,7 @@ package usecase.auth
 
 import model.DomainResult
 import model.UserDomain
-import repository.AuthRepository
+import repository.auth.AuthRepository
 
 /**
  * Use Case для получения текущего пользователя

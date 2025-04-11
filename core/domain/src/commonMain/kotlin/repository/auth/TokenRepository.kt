@@ -1,4 +1,4 @@
-package repository
+package repository.auth
 
 /**
  * Interface for managing authentication tokens

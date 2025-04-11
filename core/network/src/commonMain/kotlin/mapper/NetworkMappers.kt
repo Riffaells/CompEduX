@@ -6,7 +6,7 @@ import model.UserPreferencesDomain
 import model.UserProfileDomain
 import model.UserRatingsDomain
 import model.auth.AuthResponseDomain
-import model.auth.ServerStatusDomain
+import model.auth.ServerStatusResponseDomain
 import model.auth.NetworkAuthResponse
 import model.auth.NetworkServerStatusResponse
 import model.user.NetworkOAuthProvider
@@ -109,8 +109,8 @@ fun NetworkAuthResponse.toDomain(): AuthResponseDomain {
  * Преобразует сетевую модель ответа о статусе сервера в доменную
  * @return доменная модель ответа о статусе сервера
  */
-fun NetworkServerStatusResponse.toDomain(): ServerStatusDomain {
-    return ServerStatusDomain(
+fun NetworkServerStatusResponse.toDomain(): ServerStatusResponseDomain {
+    return ServerStatusResponseDomain(
         status = status,
         version = version,
         uptime = uptime,

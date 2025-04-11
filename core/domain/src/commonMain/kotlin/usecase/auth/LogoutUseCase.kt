@@ -1,7 +1,7 @@
 package usecase.auth
 
 import model.DomainResult
-import repository.AuthRepository
+import repository.auth.AuthRepository
 
 /**
  * Use Case для выхода из системы

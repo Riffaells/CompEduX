@@ -1,254 +1,226 @@
 package repository.auth
 
-import api.AuthApi
+import api.auth.NetworkAuthApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import model.AppError
-import model.AuthResult
-import model.ErrorCode
-import model.User
-import model.auth.AuthResponseData
-import model.auth.ServerStatusResponse
-import model.auth.RefreshTokenRequest
-import settings.MultiplatformSettings
-import model.auth.AuthResponseDomain
+import kotlinx.coroutines.flow.asStateFlow
+import logging.Logger
+import model.DomainResult
+import model.UserDomain
+import model.auth.*
 
 /**
- * Реализация репозитория для работы с аутентификацией
- * Использует AuthApi из домена для взаимодействия с API
+ * Реализация репозитория аутентификации
+ * Обеспечивает взаимодействие между доменным слоем и сетевым API
  */
 class AuthRepositoryImpl(
-    private val authApi: AuthApi,
-    private val settings: MultiplatformSettings
+    private val networkAuthApi: NetworkAuthApi,
+    private val tokenRepository: TokenRepository,
+    private val logger: Logger
 ) : AuthRepository {
 
-    private var currentUser: User? = null
-    private val _authState = MutableStateFlow<AuthState>(AuthState.Unauthenticated)
-    override val authState: StateFlow<AuthState> = _authState
+    // Текущее состояние аутентификации
+    private val _authState = MutableStateFlow<AuthStateDomain>(AuthStateDomain.Unauthenticated)
+    override val authState: StateFlow<AuthStateDomain> = _authState.asStateFlow()
 
     override suspend fun register(
+        username: String,
         email: String,
-        password: String,
-        username: String
-    ): AuthResult<AuthResponseDomain> {
-        try {
-            // Базовая валидация входных параметров
-            if (email.isBlank() || password.isBlank() || username.isBlank()) {
-                return AuthResult.Error(
-                    AppError(
-                        code = ErrorCode.VALIDATION_ERROR,
-                        message = "Все поля должны быть заполнены",
-                        details = "Проверьте заполнение всех полей формы"
-                    )
-                )
-            }
+        password: String
+    ): DomainResult<AuthResponseDomain> {
+        logger.d("Register attempt for $email")
 
-            // Делегируем выполнение API
-            val result = authApi.register(username, email, password)
+        // Создаем запрос для API
+        val request = RegisterRequestDomain(
+            username = username,
+            email = email,
+            password = password
+        )
 
-            // Обрабатываем результат
-            when (result) {
-                is AuthResult.Success -> {
-                    // После успешной регистрации нужно получить пользователя отдельным запросом
-                    getCurrentUser()
-                }
-                is AuthResult.Error -> {
-                    // Ничего не делаем, просто возвращаем ошибку
-                }
-                is AuthResult.Loading -> {
-                    // Ничего не делаем, просто возвращаем состояние загрузки
-                }
-            }
+        // Выполняем запрос через API
+        val result = networkAuthApi.register(request)
 
-            return result
-        } catch (e: Exception) {
-            return AuthResult.Error(
-                AppError(
-                    code = ErrorCode.NETWORK_ERROR,
-                    message = "Ошибка при регистрации",
-                    details = e.message
-                )
-            )
+        // Обрабатываем результат
+        if (result is DomainResult.Success) {
+            // Сохраняем токены в TokenRepository
+            saveTokens(result.data)
+
+            // Запрашиваем данные пользователя
+            getCurrentUser()
         }
+
+        return result
     }
 
-    override suspend fun login(email: String, password: String): AuthResult<AuthResponseDomain> {
-        try {
-            // Базовая валидация входных параметров
-            if (email.isBlank() || password.isBlank()) {
-                return AuthResult.Error(
-                    AppError(
-                        code = ErrorCode.VALIDATION_ERROR,
-                        message = "Логин и пароль должны быть заполнены",
-                        details = "Проверьте заполнение всех полей формы"
-                    )
-                )
-            }
+    override suspend fun login(
+        email: String,
+        password: String
+    ): DomainResult<AuthResponseDomain> {
+        logger.d("Login attempt for $email")
 
-            // Делегируем выполнение API
-            val result = authApi.login(email, password)
+        // Создаем запрос для API
+        val request = LoginRequestDomain(
+            email = email,
+            password = password
+        )
 
-            // Обрабатываем результат
-            when (result) {
-                is AuthResult.Success -> {
-                    // После успешной авторизации нужно получить пользователя отдельным запросом
-                    getCurrentUser()
-                }
-                is AuthResult.Error -> {
-                    // Ничего не делаем, просто возвращаем ошибку
-                }
-                is AuthResult.Loading -> {
-                    // Ничего не делаем, просто возвращаем состояние загрузки
-                }
-            }
+        // Выполняем запрос через API
+        val result = networkAuthApi.login(request)
 
-            return result
-        } catch (e: Exception) {
-            return AuthResult.Error(
-                AppError(
-                    code = ErrorCode.NETWORK_ERROR,
-                    message = "Ошибка при авторизации",
-                    details = e.message
-                )
-            )
+        // Обрабатываем результат
+        if (result is DomainResult.Success) {
+            // Сохраняем токены в TokenRepository
+            saveTokens(result.data)
+
+            // Запрашиваем данные пользователя
+            getCurrentUser()
         }
+
+        return result
     }
 
-    override suspend fun logout(): AuthResult<Unit> {
-        try {
-            // Делегируем выполнение API
-            val result = authApi.logout()
+    override suspend fun logout(): DomainResult<Unit> {
+        logger.d("Logout attempt")
 
-            // Очищаем кэш при выходе
-            currentUser = null
-            _authState.value = AuthState.Unauthenticated
+        // Получаем токен для запроса
+        val accessToken = tokenRepository.getAccessToken()
 
-            // Очистка токенов происходит в AuthApiAdapter
-
-            return result
-        } catch (e: Exception) {
-            // Очищаем кэш при ошибке тоже
-            currentUser = null
-            _authState.value = AuthState.Unauthenticated
-
-            // Очистка токенов происходит в AuthApiAdapter
-
-            return AuthResult.Error(
-                AppError(
-                    code = ErrorCode.NETWORK_ERROR,
-                    message = "Ошибка при выходе из системы",
-                    details = e.message
-                )
-            )
+        if (accessToken == null) {
+            logger.w("Cannot logout: No access token")
+            _authState.value = AuthStateDomain.Unauthenticated
+            return DomainResult.Success(Unit)
         }
+
+        // Выполняем запрос на logout
+        val result = networkAuthApi.logout(accessToken)
+
+        // В любом случае очищаем токены локально
+        tokenRepository.clearTokens()
+        _authState.value = AuthStateDomain.Unauthenticated
+
+        return result
     }
 
-    override suspend fun getCurrentUser(): User? {
-        // Если есть кэшированный пользователь, возвращаем его
-        if (currentUser != null) {
-            return currentUser
+    override suspend fun getCurrentUser(): DomainResult<UserDomain> {
+        logger.d("Getting current user")
+
+        // Получаем токен доступа
+        val accessToken = tokenRepository.getAccessToken()
+
+        if (accessToken == null) {
+            logger.w("Cannot get user: No access token")
+            _authState.value = AuthStateDomain.Unauthenticated
+            return DomainResult.Error(model.DomainError.authError("Не авторизован"))
         }
 
-        try {
-            // Проверяем, авторизован ли пользователь
-            if (!isAuthenticated()) {
-                return null
+        // Выполняем запрос
+        val result = networkAuthApi.getCurrentUser(accessToken)
+
+        // Обновляем состояние аутентификации
+        when (result) {
+            is DomainResult.Success -> {
+                _authState.value = AuthStateDomain.Authenticated(result.data)
             }
 
-            // Получаем пользователя через API
-            val result = authApi.getCurrentUser()
-
-            // Если успешно, обновляем кэш и возвращаем пользователя
-            if (result is AuthResult.Success) {
-                val user = result.data
-                currentUser = user
-                _authState.value = AuthState.Authenticated(user)
-                return user
+            is DomainResult.Error -> {
+                // Если ошибка связана с токеном, пробуем обновить его
+                if (result.error.isAuthError() && refreshTokenIfNeeded()) {
+                    // Если токен успешно обновлен, пробуем снова получить пользователя
+                    return getCurrentUser()
+                } else {
+                    _authState.value = AuthStateDomain.Unauthenticated
+                }
             }
 
-            return null
-        } catch (e: Exception) {
-            return null
+            is DomainResult.Loading -> {
+                // Не меняем состояние при загрузке
+            }
         }
+
+        return result
     }
 
     override suspend fun isAuthenticated(): Boolean {
-        return settings.security.hasAuthToken()
+        // Проверяем наличие access token
+        if (!tokenRepository.hasAccessToken()) {
+            return false
+        }
+
+        // Пытаемся получить пользователя, если токен есть
+        val userResult = getCurrentUser()
+        return userResult is DomainResult.Success
     }
 
-    override suspend fun updateProfile(username: String): AuthResult<User> {
-        try {
-            // Базовая валидация входных параметров
-            if (username.isBlank()) {
-                return AuthResult.Error(
-                    AppError(
-                        code = ErrorCode.VALIDATION_ERROR,
-                        message = "Имя пользователя не может быть пустым",
-                        details = "Введите имя пользователя"
-                    )
-                )
-            }
+    override suspend fun updateProfile(username: String): DomainResult<UserDomain> {
+        logger.d("Updating profile: $username")
 
-            // Делегируем выполнение API
-            val result = authApi.updateProfile(username)
-
-            // Обрабатываем результат
-            when (result) {
-                is AuthResult.Success -> {
-                    // Обновляем кэшированного пользователя
-                    val user = result.data
-                    currentUser = user
-                    if (user != null) {
-                        _authState.value = AuthState.Authenticated(user)
-                    }
-                }
-                is AuthResult.Error -> {
-                    // Ничего не делаем, просто возвращаем ошибку
-                }
-                is AuthResult.Loading -> {
-                    // Ничего не делаем, просто возвращаем состояние загрузки
-                }
-            }
-
-            return result
-        } catch (e: Exception) {
-            return AuthResult.Error(
-                AppError(
-                    code = ErrorCode.NETWORK_ERROR,
-                    message = "Ошибка при обновлении профиля",
-                    details = e.message
-                )
-            )
+        // Получаем токен доступа
+        val accessToken = tokenRepository.getAccessToken() ?: run {
+            logger.w("Cannot update profile: No access token")
+            return DomainResult.Error(model.DomainError.authError("Не авторизован"))
         }
+
+        // Выполняем запрос
+        val result = networkAuthApi.updateProfile(accessToken, username)
+
+        // Обновляем состояние аутентификации при успехе
+        if (result is DomainResult.Success) {
+            _authState.value = AuthStateDomain.Authenticated(result.data)
+        }
+
+        return result
     }
 
-    override suspend fun checkServerStatus(): AuthResult<ServerStatusResponse> {
-        return try {
-            // Делегируем выполнение API
-            authApi.checkServerStatus()
-        } catch (e: Exception) {
-            AuthResult.Error(
-                AppError(
-                    code = ErrorCode.NETWORK_ERROR,
-                    message = "Ошибка при проверке статуса сервера",
-                    details = e.message
-                )
-            )
-        }
+    override suspend fun checkServerStatus(): DomainResult<ServerStatusResponseDomain> {
+        logger.d("Checking server status")
+        return networkAuthApi.checkServerStatus()
     }
 
     override suspend fun refreshTokenIfNeeded(): Boolean {
-        try {
-            val refreshToken = settings.security.getRefreshToken()
-            if (refreshToken == null) {
-                return false
-            }
-
-            val request = RefreshTokenRequest(refreshToken)
-            val result = authApi.refreshToken(request)
-            return result is AuthResult.Success
-        } catch (e: Exception) {
+        // Проверяем наличие refresh token
+        val refreshToken = tokenRepository.getRefreshToken() ?: run {
+            logger.w("Cannot refresh token: No refresh token")
             return false
         }
+
+        logger.d("Attempting to refresh token")
+
+        // Создаем запрос на обновление токена
+        val request = RefreshTokenRequestDomain(refreshToken)
+
+        // Выполняем запрос
+        val result = networkAuthApi.refreshToken(request)
+
+        return when (result) {
+            is DomainResult.Success -> {
+                // Сохраняем новые токены
+                saveTokens(result.data)
+                logger.i("Token refreshed successfully")
+                true
+            }
+
+            is DomainResult.Error -> {
+                logger.e("Token refresh failed: ${result.error.message}")
+                // Если не удалось обновить токен, очищаем все токены
+                tokenRepository.clearTokens()
+                _authState.value = AuthStateDomain.Unauthenticated
+                false
+            }
+
+            is DomainResult.Loading -> {
+                // При загрузке возвращаем false, так как токен еще не обновлен
+                false
+            }
+        }
+    }
+
+    /**
+     * Сохраняет токены в хранилище
+     */
+    private suspend fun saveTokens(authResponse: AuthResponseDomain) {
+        logger.d("Saving auth tokens")
+        tokenRepository.saveAccessToken(authResponse.accessToken)
+        tokenRepository.saveRefreshToken(authResponse.refreshToken)
+        tokenRepository.saveTokenType(authResponse.tokenType)
     }
 }
