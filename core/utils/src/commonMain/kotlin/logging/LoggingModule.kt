@@ -17,5 +17,5 @@ val loggingModule = DI.Module("loggingModule") {
     bind<LoggingProvider>() with singleton { LoggingProvider(instance()) }
 
     // Bind default logger (without tag) for convenience
-    bind<Logger>() with singleton { instance<LoggingProvider>().getLogger() }
+    bind<Logger>() with singleton { instance<LoggingProvider>().withTag() }
 }

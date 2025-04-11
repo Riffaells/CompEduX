@@ -16,6 +16,16 @@ class LoggingProvider(private val antilog: Antilog) {
     fun getLogger(tag: String? = null): Logger {
         return NapierLogger(antilog, tag)
     }
+
+    /**
+     * Gets a logger with the specified tag
+     * Alternative to getLogger with more expressive name
+     * @param tag tag for the logger
+     * @return a logger instance with the tag
+     */
+    fun withTag(tag: String = ""): Logger {
+        return getLogger(tag)
+    }
 }
 
 /**

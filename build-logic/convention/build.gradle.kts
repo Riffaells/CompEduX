@@ -2,17 +2,18 @@ plugins {
     `kotlin-dsl`
 }
 
-kotlin {
-    jvmToolchain(17)
-}
-
 dependencies {
-    compileOnly(libs.android.gradlePlugin)
     compileOnly(libs.kotlin.gradlePlugin)
+    compileOnly(libs.android.gradlePlugin)
     compileOnly(libs.compose.gradlePlugin)
+
+    // Добавляем зависимость на BuildConfig плагин
+    implementation(libs.buildConfig.plugin)
 }
 
-
+kotlin {
+    jvmToolchain(libs.versions.jvm.get().toInt())
+}
 
 gradlePlugin {
     plugins {

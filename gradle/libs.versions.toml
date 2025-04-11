@@ -133,6 +133,7 @@ mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
+buildConfig-plugin = { module = "com.github.gmazzo.buildconfig:plugin", version.ref = "buildConfig" }
 
 [plugins]
 
