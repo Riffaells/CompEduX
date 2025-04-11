@@ -1,9 +1,9 @@
 package di
 
-import adapter.NetworkConfigImpl
 import com.russhwolf.settings.Settings
-import config.NetworkConfig
-import org.kodein.di.*
+import org.kodein.di.DI
+import org.kodein.di.bindSingleton
+import org.kodein.di.instance
 import settings.*
 
 
@@ -13,9 +13,7 @@ val settingsModule = DI.Module("settingsModule") {
         Settings()
     }
 
-    bindSingleton<NetworkConfig>() {
-        NetworkConfigImpl(instance())
-    }
+
 
     bindSingleton<AppearanceSettings> {
         AppearanceSettingsImpl(instance())
