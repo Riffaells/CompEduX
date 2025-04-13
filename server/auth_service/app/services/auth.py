@@ -74,19 +74,52 @@ def create_refresh_token(user_id: UUID, db: Session) -> str:
     if existing_token:
         return existing_token.token
 
-    # Generate token
-    token_data = {"sub": str(user_id), "type": "refresh"}
+    # Generate token with unique jti (JWT ID) to ensure uniqueness
+    jti = str(uuid.uuid4())
+    token_data = {
+        "sub": str(user_id),
+        "type": "refresh",
+        "jti": jti,                  # Добавляем уникальный идентификатор токена
+        "iat": datetime.now(UTC).timestamp()  # Добавляем время создания
+    }
     token = jwt.encode(token_data, settings.AUTH_SECRET_KEY, algorithm=ALGORITHM)
 
+    # Проверка, не существует ли уже такого токена
+    existing_token_value = db.query(RefreshTokenModel).filter(
+        RefreshTokenModel.token == token
+    ).first()
+
+    if existing_token_value:
+        # Если такой токен уже существует, генерируем новый с другим jti
+        token_data["jti"] = str(uuid.uuid4())
+        token = jwt.encode(token_data, settings.AUTH_SECRET_KEY, algorithm=ALGORITHM)
+
     # Save to database
-    db_token = RefreshTokenModel(
-        token=token,
-        expires_at=expires_at,
-        user_id=user_id
-    )
-    db.add(db_token)
-    db.commit()
-    db.refresh(db_token)
+    try:
+        db_token = RefreshTokenModel(
+            token=token,
+            expires_at=expires_at,
+            user_id=user_id
+        )
+        db.add(db_token)
+        db.commit()
+        db.refresh(db_token)
+    except Exception as e:
+        db.rollback()
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error creating refresh token: {str(e)}")
+        # Повторная попытка с новым уникальным token
+        token_data["jti"] = str(uuid.uuid4())
+        token = jwt.encode(token_data, settings.AUTH_SECRET_KEY, algorithm=ALGORITHM)
+
+        db_token = RefreshTokenModel(
+            token=token,
+            expires_at=expires_at,
+            user_id=user_id
+        )
+        db.add(db_token)
+        db.commit()
+        db.refresh(db_token)
 
     return token
 
@@ -369,6 +402,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
 def refresh_access_token(refresh_token_data: TokenRefreshSchema, db: Session) -> Dict[str, str]:
     """Refresh access token using refresh token"""
+    logger = logging.getLogger(__name__)
     try:
         # Verify refresh token
         payload = jwt.decode(
@@ -381,6 +415,7 @@ def refresh_access_token(refresh_token_data: TokenRefreshSchema, db: Session) ->
         token_type: str = payload.get("type")
 
         if user_id is None or token_type != "refresh":
+            logger.warning(f"Invalid refresh token: missing sub or incorrect type")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid refresh token",
@@ -395,6 +430,7 @@ def refresh_access_token(refresh_token_data: TokenRefreshSchema, db: Session) ->
         ).first()
 
         if not db_token:
+            logger.warning(f"Refresh token not found in database or expired/revoked: {user_id}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Refresh token expired or revoked",
@@ -405,6 +441,7 @@ def refresh_access_token(refresh_token_data: TokenRefreshSchema, db: Session) ->
         try:
             user = get_user_by_id(db, UUID(user_id))
         except ValueError:
+            logger.error(f"Invalid user ID in token: {user_id}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid user ID in token",
@@ -412,6 +449,7 @@ def refresh_access_token(refresh_token_data: TokenRefreshSchema, db: Session) ->
             )
 
         if not user or not user.is_active:
+            logger.warning(f"User not found or inactive: {user_id}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="User not found or inactive",
@@ -440,13 +478,15 @@ def refresh_access_token(refresh_token_data: TokenRefreshSchema, db: Session) ->
         except Exception as e:
             # Откат транзакции в случае ошибки при обновлении токенов
             db.rollback()
+            logger.error(f"Error refreshing token: {str(e)}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Error refreshing token: {str(e)}",
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-    except JWTError:
+    except JWTError as e:
+        logger.error(f"JWT error when decoding refresh token: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid refresh token",
