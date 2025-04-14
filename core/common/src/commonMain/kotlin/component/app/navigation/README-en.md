@@ -107,7 +107,7 @@ fun <T> execute(navigation: Navigation<T>, operation: Navigation<T>.() -> Unit) 
         try {
             navigation.operation()
         } catch (e: Exception) {
-            println("Navigation operation failed: ${e.message}")
+            Logger("Navigation").e("Navigation operation failed: ${e.message}")
         }
     }
 }

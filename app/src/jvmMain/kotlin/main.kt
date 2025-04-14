@@ -14,7 +14,7 @@ import compedux.app.generated.resources.app_name
 import component.root.DefaultRootComponent
 import component.root.RootComponentParams
 import components.root.RootContent
-import di.Logger
+import logging.Logger
 import org.jetbrains.compose.resources.stringResource
 import org.kodein.di.compose.withDI
 import org.kodein.di.direct

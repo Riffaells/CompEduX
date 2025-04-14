@@ -67,10 +67,10 @@ data class NetworkUserPreferences(
  */
 @Serializable
 data class NetworkUserRatings(
-    @SerialName("contribution_rating") val contributionRating: Int = 0,
-    @SerialName("bot_score") val botScore: Int = 0,
-    @SerialName("expertise_rating") val expertiseRating: Int = 0,
-    @SerialName("competition_rating") val competitionRating: Int = 0,
+    @SerialName("contribution_rating") val contributionRating: Float = 0f,
+    @SerialName("bot_score") val botScore: Float = 0f,
+    @SerialName("expertise_rating") val expertiseRating: Float = 0f,
+    @SerialName("competition_rating") val competitionRating: Float = 0f,
     @SerialName("additional_ratings") val additionalRatings: Map<String, String> = emptyMap(),
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null

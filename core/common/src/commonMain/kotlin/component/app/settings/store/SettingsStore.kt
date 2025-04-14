@@ -40,6 +40,17 @@ interface SettingsStore : Store<SettingsStore.Intent, SettingsStore.State, Setti
         data class UpdateProfilePublic(val isPublic: Boolean) : Intent
         data class UpdateProfileNotifications(val enabled: Boolean) : Intent
         data object ClearProfileData : Intent
+
+        // Network settings
+        data class UpdateUseExperimentalApi(val enabled: Boolean) : Intent
+        data class UpdateEnableBandwidthLimit(val enabled: Boolean) : Intent
+        data class UpdateBandwidthLimitKbps(val kbps: Int) : Intent
+        data class UpdateUseCustomTimeouts(val enabled: Boolean) : Intent
+        data class UpdateConnectionTimeoutSeconds(val seconds: Int) : Intent
+        data class UpdateReadTimeoutSeconds(val seconds: Int) : Intent
+
+        // Common actions
+        data object ResetToDefaults : Intent
     }
 
     sealed interface Label {
@@ -73,7 +84,15 @@ interface SettingsStore : Store<SettingsStore.Intent, SettingsStore.State, Setti
         val isProfileComplete: Boolean = false,
 
         val loading: Boolean = false,
-        val settingsApplied: Boolean = false
+        val settingsApplied: Boolean = false,
+
+        // Network settings
+        val useExperimentalApi: Boolean = false,
+        val enableBandwidthLimit: Boolean = false,
+        val bandwidthLimitKbps: Int = 5000,
+        val useCustomTimeouts: Boolean = false,
+        val connectionTimeoutSeconds: Int = 30,
+        val readTimeoutSeconds: Int = 60
     )
 }
 
@@ -117,6 +136,14 @@ internal class SettingsStoreFactory(
         data class UpdateProfilePublic(val isPublic: Boolean) : Msg
         data class UpdateProfileNotifications(val enabled: Boolean) : Msg
         data class UpdateProfileComplete(val isComplete: Boolean) : Msg
+
+        // Новые сообщения для сетевых настроек
+        data class UpdateUseExperimentalApi(val enabled: Boolean) : Msg
+        data class UpdateEnableBandwidthLimit(val enabled: Boolean) : Msg
+        data class UpdateBandwidthLimitKbps(val kbps: Int) : Msg
+        data class UpdateUseCustomTimeouts(val enabled: Boolean) : Msg
+        data class UpdateConnectionTimeoutSeconds(val seconds: Int) : Msg
+        data class UpdateReadTimeoutSeconds(val seconds: Int) : Msg
     }
 
     private inner class ExecutorImpl :
@@ -417,6 +444,56 @@ internal class SettingsStoreFactory(
                         loadProfileSettings()
                     }
                 }
+
+                // Network settings
+                is SettingsStore.Intent.UpdateUseExperimentalApi -> {
+                    scope.launch {
+                        networkSettings.saveUseExperimentalApi(intent.enabled)
+                        dispatch(Msg.UpdateUseExperimentalApi(intent.enabled))
+                    }
+                }
+                is SettingsStore.Intent.UpdateEnableBandwidthLimit -> {
+                    scope.launch {
+                        networkSettings.saveEnableBandwidthLimit(intent.enabled)
+                        dispatch(Msg.UpdateEnableBandwidthLimit(intent.enabled))
+                    }
+                }
+                is SettingsStore.Intent.UpdateBandwidthLimitKbps -> {
+                    scope.launch {
+                        networkSettings.saveBandwidthLimitKbps(intent.kbps)
+                        dispatch(Msg.UpdateBandwidthLimitKbps(intent.kbps))
+                    }
+                }
+                is SettingsStore.Intent.UpdateUseCustomTimeouts -> {
+                    scope.launch {
+                        networkSettings.saveUseCustomTimeouts(intent.enabled)
+                        dispatch(Msg.UpdateUseCustomTimeouts(intent.enabled))
+                    }
+                }
+                is SettingsStore.Intent.UpdateConnectionTimeoutSeconds -> {
+                    scope.launch {
+                        networkSettings.saveConnectionTimeoutSeconds(intent.seconds)
+                        dispatch(Msg.UpdateConnectionTimeoutSeconds(intent.seconds))
+                    }
+                }
+                is SettingsStore.Intent.UpdateReadTimeoutSeconds -> {
+                    scope.launch {
+                        networkSettings.saveReadTimeoutSeconds(intent.seconds)
+                        dispatch(Msg.UpdateReadTimeoutSeconds(intent.seconds))
+                    }
+                }
+
+                // Common actions
+                is SettingsStore.Intent.ResetToDefaults -> {
+                    scope.launch {
+//                        appearanceSettings.resetToDefaults()
+//                        networkSettings.resetToDefaults()
+//                        securitySettings.resetToDefaults()
+//                        profileSettings.resetToDefaults()
+                        loadAllSettings()
+                    }
+                }
+
                 else -> {
                     // Обработка других интентов
                 }
@@ -446,6 +523,15 @@ internal class SettingsStoreFactory(
                 is Msg.UpdateProfilePublic -> copy(isProfilePublic = msg.isPublic)
                 is Msg.UpdateProfileNotifications -> copy(enableProfileNotifications = msg.enabled)
                 is Msg.UpdateProfileComplete -> copy(isProfileComplete = msg.isComplete)
+
+                // Network settings
+                is Msg.UpdateUseExperimentalApi -> copy(useExperimentalApi = msg.enabled)
+                is Msg.UpdateEnableBandwidthLimit -> copy(enableBandwidthLimit = msg.enabled)
+                is Msg.UpdateBandwidthLimitKbps -> copy(bandwidthLimitKbps = msg.kbps)
+                is Msg.UpdateUseCustomTimeouts -> copy(useCustomTimeouts = msg.enabled)
+                is Msg.UpdateConnectionTimeoutSeconds -> copy(connectionTimeoutSeconds = msg.seconds)
+                is Msg.UpdateReadTimeoutSeconds -> copy(readTimeoutSeconds = msg.seconds)
+
                 else -> this
             }
     }

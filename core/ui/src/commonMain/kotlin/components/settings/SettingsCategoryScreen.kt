@@ -27,11 +27,13 @@ import component.settings.section.CategoryBlock
 import components.settings.appearance.AppearanceSettingsContent
 import components.settings.experimental.ExperimentalSettingsContent
 import components.settings.language.LanguageSettingsContent
+import components.settings.network.NetworkSettingsContent
 import components.settings.notifications.NotificationsSettingsContent
 import components.settings.profile.ProfileSettingsContent
 import components.settings.security.SecuritySettingsContent
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.resources.stringResource
+import settings.NetworkSettings
 import ui.icon.RIcons
 
 /**
@@ -105,7 +107,11 @@ fun SettingsCategoryScreen(
                         modifier = Modifier.fillMaxSize()
                     )
 
-                    SettingsComponent.SettingsCategory.NETWORK -> TODO()
+                    SettingsComponent.SettingsCategory.NETWORK -> NetworkSettingsContent(
+                        state =  state,
+                        onAction = component::onAction,
+                        modifier = Modifier.fillMaxSize()
+                    )
 
                     SettingsComponent.SettingsCategory.SECURITY -> SecuritySettingsContent(
                         state = state,

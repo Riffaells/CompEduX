@@ -7,8 +7,10 @@ import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import logging.Logger
 import org.kodein.di.DI
 import org.kodein.di.DIAware
+import org.kodein.di.instance
 import utils.rDispatchers
 
 interface SkikoStore : Store<SkikoStore.Intent, SkikoStore.State, Nothing> {
@@ -29,6 +31,8 @@ internal class SkikoStoreFactory(
     private val storeFactory: StoreFactory,
     override val di: DI
 ) : DIAware {
+
+    private val logger by instance<Logger>("SkikoStore")
 
     fun create(): SkikoStore =
         object : SkikoStore, Store<SkikoStore.Intent, SkikoStore.State, Nothing> by storeFactory.create(
@@ -54,7 +58,7 @@ internal class SkikoStoreFactory(
             try {
                 dispatch(Msg.LoadData)
             } catch (e: Exception) {
-                println("Error in executeAction: ${e.message}")
+                logger.e("Error in executeAction: ${e.message}")
             }
         }
 
@@ -63,7 +67,7 @@ internal class SkikoStoreFactory(
             try {
                 dispatch(msg)
             } catch (e: Exception) {
-                println("Error in dispatch: ${e.message}")
+                logger.e("Error in dispatch: ${e.message}")
             }
         }
 
@@ -78,7 +82,7 @@ internal class SkikoStoreFactory(
                     }
                 }
             } catch (e: Exception) {
-                println("Error in executeIntent: ${e.message}")
+                logger.e("Error in executeIntent: ${e.message}")
             }
     }
 

@@ -14,7 +14,6 @@ import component.app.auth.login.LoginComponent
 import component.app.auth.register.DefaultRegisterComponent
 import component.app.auth.register.RegisterComponent
 import component.app.auth.store.AuthStore
-import component.app.auth.store.AuthStoreFactory
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.StateFlow
@@ -22,9 +21,11 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
+import logging.Logger
 import org.kodein.di.DI
 import org.kodein.di.DIAware
 import org.kodein.di.factory
+import org.kodein.di.instance
 import usecase.auth.AuthUseCases
 import utils.NavigationExecutor
 import utils.rDispatchers
@@ -151,9 +152,7 @@ interface AuthComponent {
 class DefaultAuthComponent(
     override val di: DI,
     componentContext: ComponentContext,
-    private val onBack: () -> Unit,
-    private val storeFactory: StoreFactory,
-    private val authUseCases: AuthUseCases
+    private val onBack: () -> Unit
 ) : AuthComponent, DIAware, ComponentContext by componentContext {
 
     /**
@@ -167,6 +166,10 @@ class DefaultAuthComponent(
      */
     private val scope = coroutineScope(rDispatchers.main)
 
+
+    private val logger by instance<Logger>()
+
+
     /**
      * Safe navigation handler that ensures navigation operations
      * are executed on the main thread.
@@ -175,18 +178,13 @@ class DefaultAuthComponent(
         navigation = navigation,
         scope = scope,
         mainDispatcher = rDispatchers.main,
-        logger = { message -> println("Auth Navigation: $message") }
+        logger = logger.withTag("Auth NavigationExecutor")
     )
 
     /**
-     * Authentication state store.
+     * Authentication state store, полученный из DI-контейнера.
      */
-    private val _store = instanceKeeper.getStore {
-        AuthStoreFactory(
-            storeFactory = storeFactory,
-            di = di
-        ).create()
-    }
+    private val _store by instance<AuthStore>()
 
     /**
      * Stack of child components (Login, Register, Profile).
@@ -207,15 +205,8 @@ class DefaultAuthComponent(
      * Component initialization: authentication check and subscribing to state changes.
      */
     init {
-        // Asynchronously check the current authentication state
-        scope.launch {
-            val isAuthenticated = withContext(rDispatchers.io) {
-                authUseCases.isAuthenticated()
-            }
-            if (isAuthenticated) {
-                _store.accept(AuthStore.Intent.SetAuthenticated(true))
-            }
-        }
+        // Проверяем статус аутентификации при создании компонента
+        _store.accept(AuthStore.Intent.CheckAuthStatus)
 
         // Subscribe to authentication state changes for automatic navigation
         scope.launch {

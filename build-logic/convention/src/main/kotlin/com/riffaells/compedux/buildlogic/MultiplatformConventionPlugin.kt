@@ -29,7 +29,7 @@ class MultiplatformConventionPlugin : Plugin<Project> {
                     implementation(libs.kotlinx.datetime)
                     implementation(libs.kotlin.stdlib)
                     implementation(libs.napier)
-                    implementation(libs.slf4j.api)
+//                    implementation(libs.slf4j.api)
 
                     // Kodein DI
                     implementation(libs.kodein)
@@ -47,13 +47,14 @@ class MultiplatformConventionPlugin : Plugin<Project> {
                     implementation(libs.androidx.core)
 
                     // Добавляем SLF4J для Android
-                    implementation(libs.slf4j.android)
+//                    implementation(libs.slf4j.android)
                 }
 
                 // JVM-специфические зависимости
                 jvmMain.dependencies {
                     // Добавляем SLF4J для JVM (Desktop)
-                    implementation(libs.slf4j.simple)
+//                    implementation(libs.slf4j.simple)
+                    implementation(libs.coroutines.swing)
                 }
 
                 // WASM-специфические зависимости

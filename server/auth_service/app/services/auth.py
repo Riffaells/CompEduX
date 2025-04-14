@@ -492,3 +492,38 @@ def refresh_access_token(refresh_token_data: TokenRefreshSchema, db: Session) ->
             detail="Invalid refresh token",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+
+def revoke_refresh_token(refresh_token: str, db: Session) -> bool:
+    """
+    Revoke refresh token (logout)
+
+    Args:
+        refresh_token: Token to revoke
+        db: Database session
+
+    Returns:
+        True if token was successfully revoked, False otherwise
+    """
+    logger = logging.getLogger(__name__)
+
+    # Find token in database
+    db_token = db.query(RefreshTokenModel).filter(
+        RefreshTokenModel.token == refresh_token,
+        RefreshTokenModel.revoked == False
+    ).first()
+
+    if not db_token:
+        logger.warning(f"Attempted to revoke non-existent token or already revoked token")
+        return False
+
+    try:
+        # Mark token as revoked
+        db_token.revoked = True
+        db.commit()
+        logger.info(f"Successfully revoked token for user {db_token.user_id}")
+        return True
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error revoking token: {str(e)}")
+        return False

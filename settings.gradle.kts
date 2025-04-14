@@ -7,6 +7,7 @@ pluginManagement {
         mavenCentral()
         gradlePluginPortal()
         maven("https://s01.oss.sonatype.org/content/repositories/releases/")
+
     }
 }
 

@@ -10,12 +10,35 @@ import kotlinx.datetime.toLocalDateTime
  * Custom Antilog implementation with colored console output
  */
 class CompEduXAntilog : Antilog() {
+
+    // Кэш последних сообщений для предотвращения дублирования
+    private val recentLogs = mutableListOf<String>()
+    private val maxCacheSize = 50
+
     override fun performLog(
         priority: LogLevel,
         tag: String?,
         throwable: Throwable?,
         message: String?
     ) {
+        // Создаем уникальный идентификатор для этого лога
+        val logId = "${priority.name}|${tag ?: ""}|${message?.hashCode() ?: 0}"
+
+        // Проверяем, не было ли такого же сообщения недавно
+        // Используем synchronized блок для потокобезопасности
+        synchronized(recentLogs) {
+            if (recentLogs.contains(logId)) {
+                // Если точно такой же лог уже был - пропускаем
+                return
+            }
+
+            // Добавляем ID в кэш и удаляем старые если нужно
+            recentLogs.add(logId)
+            if (recentLogs.size > maxCacheSize) {
+                recentLogs.removeAt(0)
+            }
+        }
+
         // Get log level color
         val color = when (priority) {
             LogLevel.VERBOSE -> ConsoleColors.CYAN

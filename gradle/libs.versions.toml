@@ -28,6 +28,7 @@ ktor = "3.1.1"
 napier = "2.7.1"
 slf4j = "1.7.36"
 
+
 android-compileSdk = "35"
 android-minSdk = "24"
 android-targetSdk = "35"
@@ -55,9 +56,6 @@ compose-hot-reload = "1.0.0-dev.34.1"
 skiko = "0.8.18"
 haze = "1.5.0"
 
-kotlinx-browser = "0.8.0"
-
-
 typesafeConventions = "0.4.1"
 kotest = "5.6.2"
 mockk = "1.13.7"
@@ -77,10 +75,11 @@ android-gradlePlugin = { module = "com.android.tools.build:gradle", version.ref 
 compose-gradlePlugin = { module = "org.jetbrains.compose:compose-gradle-plugin", version.ref = "compose" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx_serialization_json" }
 
-#kotlinx-browser = { module = "org.jetbrains.kotlinx:kotlinx-browser", version.ref = "kotlinx-browser" }
 
 coroutines = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
 coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
+coroutines-swing = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-swing", version.ref = "coroutines" }
+
 
 kodein = { module = "org.kodein.di:kodein-di", version.ref = "kodein" }
 kodein-compose = { module = "org.kodein.di:kodein-di-framework-compose", version.ref = "kodein" }

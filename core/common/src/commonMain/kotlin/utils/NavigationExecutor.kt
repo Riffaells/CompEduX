@@ -5,6 +5,7 @@ import com.arkivanov.decompose.router.stack.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import logging.Logger
 
 /**
  * Class for safe execution of navigation operations in Decompose.
@@ -23,14 +24,16 @@ import kotlinx.coroutines.withContext
  * @property navigation StackNavigation instance for executing navigation operations
  * @property scope CoroutineScope bound to the component's lifecycle
  * @property mainDispatcher Dispatcher for executing operations on the main thread
- * @property logger Function for logging operations and errors
+ * @property logger Logger instance for logging operations and errors
+ * @property tag Optional tag for log messages, defaults to "Navigation"
  */
 @OptIn(DelicateDecomposeApi::class)
 class NavigationExecutor<C : Any>(
     private val navigation: StackNavigation<C>,
     private val scope: CoroutineScope,
     private val mainDispatcher: kotlinx.coroutines.CoroutineDispatcher,
-    private val logger: (String) -> Unit = { println(it) }
+    private val logger: Logger,
+    private val tag: String = "Navigation"
 ) {
     /**
      * Navigate to the specified configuration (equivalent to bringToFront).
@@ -41,9 +44,10 @@ class NavigationExecutor<C : Any>(
      */
     fun navigateTo(config: C) {
         try {
+            logger.d("Navigating to $config", tag = tag)
             navigation.bringToFront(config)
         } catch (e: Exception) {
-            logger("Error navigating to $config: ${e.message}")
+            logger.e("Error navigating to $config: ${e.message}", e, tag)
         }
     }
 
@@ -56,9 +60,10 @@ class NavigationExecutor<C : Any>(
      */
     fun push(config: C) {
         try {
+            logger.d("Pushing $config to stack", tag = tag)
             navigation.push(config)
         } catch (e: Exception) {
-            logger("Error pushing $config: ${e.message}")
+            logger.e("Error pushing $config: ${e.message}", e, tag)
         }
     }
 
@@ -69,9 +74,10 @@ class NavigationExecutor<C : Any>(
      */
     fun pop() {
         try {
+            logger.d("Navigating back (pop)", tag = tag)
             navigation.pop()
         } catch (e: Exception) {
-            logger("Error navigating back: ${e.message}")
+            logger.e("Error navigating back: ${e.message}", e, tag)
         }
     }
 
@@ -84,9 +90,10 @@ class NavigationExecutor<C : Any>(
      */
     fun replace(config: C) {
         try {
+            logger.d("Replacing current with $config", tag = tag)
             navigation.replaceCurrent(config)
         } catch (e: Exception) {
-            logger("Error replacing with $config: ${e.message}")
+            logger.e("Error replacing with $config: ${e.message}", e, tag)
         }
     }
 
@@ -99,9 +106,10 @@ class NavigationExecutor<C : Any>(
      */
     fun execute(block: StackNavigation<C>.() -> Unit) {
         try {
+            logger.d("Executing custom navigation operation", tag = tag)
             navigation.block()
         } catch (e: Exception) {
-            logger("Error executing navigation: ${e.message}")
+            logger.e("Error executing navigation: ${e.message}", e, tag)
         }
     }
 
@@ -119,10 +127,13 @@ class NavigationExecutor<C : Any>(
     fun <T> executeAsync(
         backgroundOperation: suspend () -> T,
         onSuccess: (T) -> Unit,
-        onError: (Exception) -> Unit = { logger("Error executing async operation: ${it.message}") }
+        onError: (Exception) -> Unit = {
+            logger.e("Error executing async operation: ${it.message}", it, tag)
+        }
     ) {
         scope.launch {
             try {
+                logger.d("Starting async operation", tag = tag)
                 // Execute the background operation in the IO dispatcher
                 val result = withContext(rDispatchers.io) {
                     backgroundOperation()
@@ -130,6 +141,7 @@ class NavigationExecutor<C : Any>(
 
                 // Switch to the main thread for navigation
                 withContext(mainDispatcher) {
+                    logger.d("Async operation completed successfully", tag = tag)
                     onSuccess(result)
                 }
             } catch (e: Exception) {

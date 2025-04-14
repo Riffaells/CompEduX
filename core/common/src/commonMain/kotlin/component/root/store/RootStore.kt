@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
+import logging.Logger
 import org.kodein.di.DI
 import org.kodein.di.DIAware
 import org.kodein.di.instance
@@ -38,7 +39,8 @@ internal class RootStoreFactory(
     override val di: DI,
 ) : DIAware {
 
-    // Получаем настройки через DI
+    // Get tagged logger directly
+    private val logger by instance<Logger>()
     private val settings by instance<MultiplatformSettings>()
 
     // Флаг для отслеживания, загружены ли настройки
@@ -50,7 +52,7 @@ internal class RootStoreFactory(
                 name = "RootStore",
                 initialState = RootStore.State(),
                 bootstrapper = SimpleBootstrapper(Unit),
-                executorFactory = ::ExecutorImpl,
+                executorFactory = { ExecutorImpl(logger.withTag("RootStore")) },
                 reducer = ReducerImpl
             ) {}
 
@@ -62,10 +64,11 @@ internal class RootStoreFactory(
         data class UpdateLanguage(val language: String) : Msg
     }
 
-    private inner class ExecutorImpl :
-        CoroutineExecutor<RootStore.Intent, Unit, RootStore.State, Msg, Nothing>(
-            rDispatchers.main
-        ) {
+    private inner class ExecutorImpl(
+        private val logger: Logger
+    ) : CoroutineExecutor<RootStore.Intent, Unit, RootStore.State, Msg, Nothing>(
+        rDispatchers.main
+    ) {
 
         // Флаг для предотвращения повторной инициализации
         private var isInitializing = false
@@ -76,7 +79,7 @@ internal class RootStoreFactory(
 
             scope.launch {
                 settings.appearance.themeFlow.collect { theme ->
-                    println("Theme $theme is $theme")
+                    logger.d("Theme $theme is $theme")
                 }
             }
         }
@@ -92,8 +95,8 @@ internal class RootStoreFactory(
                     settingsLoaded = true
                 }
             } catch (e: Exception) {
-                println("Error loading initial settings: ${e.message}")
-                e.printStackTrace()
+                logger.e("Error loading initial settings: ${e.message}")
+
             }
         }
 
@@ -102,8 +105,8 @@ internal class RootStoreFactory(
             try {
                 dispatch(msg)
             } catch (e: Exception) {
-                println("Error in dispatch: ${e.message}")
-                e.printStackTrace()
+                logger.e("Error in dispatch: ${e.message}")
+
             }
         }
 
@@ -150,8 +153,8 @@ internal class RootStoreFactory(
                             // Обновление UI
                             safeDispatch(Msg.UpdateLanguage(intent.language))
                         } catch (e: Exception) {
-                            println("Error updating language: ${e.message}")
-                            e.printStackTrace()
+                            logger.e("Error updating language: ${e.message}")
+
                         }
                     }
                     Unit
@@ -163,13 +166,12 @@ internal class RootStoreFactory(
                 try {
                     // Выполняем сохранение в фоновом потоке
                     withContext(Dispatchers.Default) {
-
                         settings.appearance.saveTheme(value)
                     }
                     safeDispatch(Msg.UpdateTheme(value))
                 } catch (e: Exception) {
-                    println("Error saving theme settings: ${e.message}")
-                    e.printStackTrace()
+                    logger.e("Error saving theme settings: ${e.message}")
+
                 }
             }
         }
@@ -179,13 +181,12 @@ internal class RootStoreFactory(
                 try {
                     // Читаем настройки в фоновом потоке
                     val theme = withContext(Dispatchers.Default) {
-
                         settings.appearance.themeFlow.first()
                     }
                     safeDispatch(Msg.UpdateTheme(theme))
                 } catch (e: Exception) {
-                    println("Error reading theme settings: ${e.message}")
-                    e.printStackTrace()
+                    logger.e("Error reading theme settings: ${e.message}")
+
                 }
             }
         }

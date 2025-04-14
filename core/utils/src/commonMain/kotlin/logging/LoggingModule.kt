@@ -1,6 +1,7 @@
 package logging
 
 import io.github.aakira.napier.Antilog
+import io.github.aakira.napier.Napier
 import org.kodein.di.DI
 import org.kodein.di.bind
 import org.kodein.di.instance
@@ -10,12 +11,15 @@ import org.kodein.di.singleton
  * Provides application logging components for DI container
  */
 val loggingModule = DI.Module("loggingModule") {
-    // Configure logging backend
-    bind<Antilog>() with singleton { CompEduXAntilog() }
+    // Инициализируем логирование через централизованную систему
+    initializeLogging()
 
-    // Bind logging provider
-    bind<LoggingProvider>() with singleton { LoggingProvider(instance()) }
+    // Привязываем глобальный экземпляр Antilog
+    bind<Antilog>() with singleton { LoggingInitializer.getLoggingProvider().antilog }
 
-    // Bind default logger (without tag) for convenience
-    bind<Logger>() with singleton { instance<LoggingProvider>().withTag() }
+    // Привязываем глобальный LoggingProvider
+    bind<LoggingProvider>() with singleton { LoggingInitializer.getLoggingProvider() }
+
+    // Привязываем дефолтный логгер без тега
+    bind<Logger>() with singleton { LoggingInitializer.getLogger() }
 }

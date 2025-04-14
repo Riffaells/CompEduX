@@ -14,6 +14,7 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.util.*
 import kotlinx.serialization.json.Json
 import logging.Logger
+import platform.Platform
 import platform.PlatformInfo
 import com.riffaells.compedux.BuildConfig
 
@@ -98,6 +99,7 @@ class HttpClientFactory(
                             401 -> throw ClientRequestException(response, "Unauthorized")
                             403 -> throw ClientRequestException(response, "Forbidden")
                             404 -> throw ClientRequestException(response, "Not Found")
+                            422 -> throw ClientRequestException(response, "Unprocessable Entity - Invalid request data")
                             in 500..599 -> throw ServerResponseException(response, "Server Error")
                             else -> throw ResponseException(response, "HTTP Error $statusCode")
                         }
@@ -107,8 +109,14 @@ class HttpClientFactory(
 
             // Установка базового URL и заголовков для всех запросов
             defaultRequest {
+                // Всегда устанавливаем правильный Content-Type для JSON
                 contentType(ContentType.Application.Json)
                 accept(ContentType.Application.Json)
+
+                // Добавляем общие заголовки, которые повторялись в каждом запросе
+                header("X-App-Version", BuildConfig.APP_VERSION.toString())
+                header("X-App-Name", BuildConfig.APP_NAME)
+                header("User-Agent", Platform.userAgent(BuildConfig.APP_NAME, BuildConfig.APP_VERSION.toString()))
 
                 // Добавляем заголовки с информацией о приложении
                 header("X-Client-Platform", getPlatformName())
@@ -126,7 +134,7 @@ class HttpClientFactory(
      */
     private fun getPlatformName(): String {
         return try {
-            platform.PlatformInfo.createUserAgent(BuildConfig.APP_NAME, BuildConfig.APP_VERSION.toString())
+            platform.Platform.name()
         } catch (e: Exception) {
             logger.e("Failed to get platform information", e)
             "${BuildConfig.APP_NAME}-${BuildConfig.APP_VERSION}"

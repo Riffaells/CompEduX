@@ -1,5 +1,6 @@
 package di
 
+import logging.loggingModule
 import org.kodein.di.DI
 
 /**
@@ -24,5 +25,6 @@ val allModules = DI.Module("allModules") {
     import(dataModule)
 
     // 5. Компоненты приложения
+    import(storeModule)
     import(componentModule)
 }

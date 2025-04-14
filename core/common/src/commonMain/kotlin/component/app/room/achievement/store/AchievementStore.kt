@@ -7,8 +7,10 @@ import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import logging.Logger
 import org.kodein.di.DI
 import org.kodein.di.DIAware
+import org.kodein.di.instance
 import utils.rDispatchers
 
 interface AchievementStore : Store<AchievementStore.Intent, AchievementStore.State, Nothing> {
@@ -41,6 +43,8 @@ internal class AchievementStoreFactory(
     private val storeFactory: StoreFactory,
     override val di: DI
 ) : DIAware {
+
+    private val logger by instance<Logger>("AchievementStore")
 
     fun create(): AchievementStore =
         object : AchievementStore, Store<AchievementStore.Intent, AchievementStore.State, Nothing> by storeFactory.create(
@@ -103,7 +107,7 @@ internal class AchievementStoreFactory(
             try {
                 dispatch(Msg.LoadData)
             } catch (e: Exception) {
-                println("Error in executeAction: ${e.message}")
+                logger.e("Error in executeAction: ${e.message}")
             }
         }
 
@@ -111,7 +115,7 @@ internal class AchievementStoreFactory(
             try {
                 dispatch(msg)
             } catch (e: Exception) {
-                println("Error in dispatch: ${e.message}")
+                logger.e("Error in dispatch: ${e.message}")
             }
         }
 
@@ -126,7 +130,7 @@ internal class AchievementStoreFactory(
                             try {
                                 safeDispatch(Msg.UnlockAchievement(intent.id))
                             } catch (e: Exception) {
-                                println("Error unlocking achievement: ${e.message}")
+                                logger.e("Error unlocking achievement: ${e.message}")
                             }
                         }
                         Unit
@@ -137,14 +141,14 @@ internal class AchievementStoreFactory(
                                 // In a real app, you would fetch achievements from a repository
                                 safeDispatch(Msg.UpdateAchievements(generateSampleAchievements()))
                             } catch (e: Exception) {
-                                println("Error refreshing achievements: ${e.message}")
+                                logger.e("Error refreshing achievements: ${e.message}")
                             }
                         }
                         Unit
                     }
                 }
             } catch (e: Exception) {
-                println("Error in executeIntent: ${e.message}")
+                logger.e("Error in executeIntent: ${e.message}")
             }
     }
 

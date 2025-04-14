@@ -50,10 +50,10 @@ data class UserPreferencesDomain(
  * Domain model for user ratings
  */
 data class UserRatingsDomain(
-    val contributionRating: Int = 0,
-    val botScore: Int = 0,
-    val expertiseRating: Int = 0,
-    val competitionRating: Int = 0
+    val contributionRating: Float = 0f,
+    val botScore: Float = 0f,
+    val expertiseRating: Float = 0f,
+    val competitionRating: Float = 0f
 )
 
 /**

@@ -9,10 +9,10 @@ plugins {
     alias(libs.plugins.compedux.multiplatform.compose)
     alias(libs.plugins.compedux.decompose)
     alias(libs.plugins.android.application)
-    alias(libs.plugins.buildConfig)
 }
 
 kotlin {
+
     jvmToolchain(libs.versions.jvm.get().toInt())
     androidTarget {
         //https://www.jetbrains.com/help/kotlin-multiplatform-dev/compose-test.html
@@ -41,8 +41,11 @@ kotlin {
         }
     }
 
+
     sourceSets {
         commonMain.dependencies {
+
+            implementation(projects.core.utils)
 
             // Module dependencies
             implementation(projects.core.common)
@@ -51,10 +54,6 @@ kotlin {
             implementation(projects.core.design)
         }
 
-        jvmMain.dependencies {
-            // Добавим зависимость для Swing Dispatchers
-            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:${libs.versions.coroutines.get()}")
-        }
     }
 }
 
@@ -73,14 +72,17 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
+
+    // Настройка тестов
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
+    }
 }
 
 
 
-buildConfig {
-
-    buildConfigField("APP_VERSION", libs.versions.app.project.get().toInt())
-}
 
 compose.desktop {
     application {
@@ -89,7 +91,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "CompEduX"
-            packageVersion = "1.0.0"
+            packageVersion = libs.versions.app.name.get()
 
             linux {
                 iconFile.set(project.file("desktopAppIcons/LinuxIcon.png"))

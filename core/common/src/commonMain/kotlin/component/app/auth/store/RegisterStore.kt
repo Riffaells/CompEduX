@@ -3,136 +3,155 @@ package component.app.auth.store
 import com.arkivanov.mvikotlin.core.store.Reducer
 import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
-import com.arkivanov.mvikotlin.core.store.create
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import model.AuthResult
+import logging.Logger
+import model.auth.AuthStateDomain
 import org.kodein.di.DI
 import org.kodein.di.DIAware
 import org.kodein.di.instance
-import repository.auth.AuthRepository
-import usecase.auth.AuthUseCases
-import usecase.auth.RegisterUseCase
 import utils.rDispatchers
 
+/**
+ * Интерфейс хранилища состояния для экрана регистрации
+ */
 interface RegisterStore : Store<RegisterStore.Intent, RegisterStore.State, Nothing> {
+
+    /**
+     * Возможные действия
+     */
     sealed interface Intent {
-        data class HandleRegisterClick(
+        data class RegisterClicked(
+            val username: String,
             val email: String,
-            val password: String,
-            val confirmPassword: String,
-            val username: String
+            val password: String
         ) : Intent
         data object NavigateToLogin : Intent
+        data object ErrorShown : Intent
     }
 
+    /**
+     * Состояние хранилища
+     */
     @Serializable
     data class State(
         val isLoading: Boolean = false,
         val error: String? = null,
-        val errorDetails: String? = null
+        val shouldNavigateToLogin: Boolean = false,
+        val isAuthenticated: Boolean = false
     )
-
-    sealed interface Message {
-        data object StartLoading : Message
-        data object StopLoading : Message
-        data class SetError(val error: String, val details: String? = null) : Message
-        data object ClearError : Message
-    }
 }
 
+
+/**
+ * Фабрика для создания RegisterStore
+ */
 class RegisterStoreFactory(
     private val storeFactory: StoreFactory,
     override val di: DI
-):DIAware {
+) : DIAware {
 
-    private val authUseCases by instance<AuthUseCases>()
-    fun create(): RegisterStore =
-        object : RegisterStore, Store<RegisterStore.Intent, RegisterStore.State, Nothing> by storeFactory.create(
+    private val authStore by instance<AuthStore>()
+    private val logger by instance<Logger>()
+
+    fun create(): RegisterStore {
+        return object : RegisterStore, Store<RegisterStore.Intent, RegisterStore.State, Nothing> by storeFactory.create(
             name = "RegisterStore",
             initialState = RegisterStore.State(),
-            bootstrapper = null,
-            executorFactory = ::ExecutorImpl,
+            executorFactory = { ExecutorImpl(authStore, logger.withTag("RegisterStore")) },
             reducer = ReducerImpl
         ) {}
-
-    private inner class ExecutorImpl : CoroutineExecutor<RegisterStore.Intent, Unit, RegisterStore.State, RegisterStore.Message, Nothing>(
-        rDispatchers.main
-    ) {
-        override fun executeAction(action: Unit) {
-            // Пустая реализация
-        }
-
-        // Безопасный вызов dispatch, который перехватывает исключения
-        private fun safeDispatch(msg: RegisterStore.Message) {
-            try {
-                dispatch(msg)
-            } catch (e: Exception) {
-                println("Error in dispatch: ${e.message}")
-            }
-        }
-
-        override fun executeIntent(intent: RegisterStore.Intent): Unit =
-            try {
-                when (intent) {
-                    is RegisterStore.Intent.HandleRegisterClick -> {
-                        scope.launch {
-                            // Проверка на совпадение паролей
-                            if (intent.password != intent.confirmPassword) {
-                                safeDispatch(RegisterStore.Message.SetError("Пароли не совпадают"))
-                                return@launch
-                            }
-
-                            safeDispatch(RegisterStore.Message.StartLoading)
-                            safeDispatch(RegisterStore.Message.ClearError)
-
-                            try {
-                                val result = authUseCases.register(intent.email, intent.password, intent.username)
-
-                                when (result) {
-                                    is AuthResult.Success<*> -> {
-                                        // Успех, очищаем ошибки
-                                        safeDispatch(RegisterStore.Message.ClearError)
-                                    }
-                                    is AuthResult.Error<*> -> {
-                                        safeDispatch(RegisterStore.Message.SetError(result.error.message, result.error.details))
-                                    }
-                                    is AuthResult.Loading -> {
-                                        // Состояние загрузки уже установлено
-                                    }
-                                }
-                                safeDispatch(RegisterStore.Message.StopLoading)
-                            } catch (e: Exception) {
-                                safeDispatch(RegisterStore.Message.SetError(e.message ?: "Ошибка сети"))
-                                safeDispatch(RegisterStore.Message.StopLoading)
-                            }
-                        }
-                    }
-                    is RegisterStore.Intent.NavigateToLogin -> {
-                        // В реальном коде здесь будет навигация
-                        println("Navigate to Login")
-                    }
-                }
-                Unit
-            } catch (e: Exception) {
-                println("Error in executeIntent: ${e.message}")
-            }
     }
 
-    private object ReducerImpl : Reducer<RegisterStore.State, RegisterStore.Message> {
-        override fun RegisterStore.State.reduce(msg: RegisterStore.Message): RegisterStore.State =
+    // Приватные сообщения для редуктора
+    private sealed interface Msg {
+        data object StartLoading : Msg
+        data object StopLoading : Msg
+        data class SetError(val error: String) : Msg
+        data object ClearError : Msg
+        data object NavigateToLogin : Msg
+        data object NavigationHandled : Msg
+        data object SetAuthenticated : Msg
+    }
+
+    private class ExecutorImpl(
+        private val authStore: AuthStore,
+        private val logger: Logger
+    ) : CoroutineExecutor<RegisterStore.Intent, Nothing, RegisterStore.State, Msg, Nothing>(
+        rDispatchers.main
+    ) {
+
+        init {
+            logger.d("RegisterStore: Initializing")
+            scope.launch {
+                // Отслеживаем состояние аутентификации из глобального стора
+                authStore.authState.collectLatest { authState ->
+                    when (authState) {
+                        is AuthStateDomain.Loading -> {
+                            logger.d("RegisterStore: Auth state changed to Loading")
+                            dispatch(Msg.StartLoading)
+                        }
+                        is AuthStateDomain.Authenticated -> {
+                            logger.i("RegisterStore: User authenticated")
+                            dispatch(Msg.StopLoading)
+                            dispatch(Msg.SetAuthenticated)
+                        }
+                        is AuthStateDomain.Unauthenticated -> {
+                            logger.d("RegisterStore: User unauthenticated")
+                            dispatch(Msg.StopLoading)
+                            // Если в authStore есть ошибка, отображаем её
+                            val error = authStore.state.error
+                            if (error != null) {
+                                logger.w("RegisterStore: Auth error: $error")
+                                dispatch(Msg.SetError(error))
+                            }
+                        }
+                        else -> {
+                            logger.w("RegisterStore: Unknown auth state: $authState")
+                        }
+                    }
+                }
+            }
+        }
+
+        override fun executeIntent(intent: RegisterStore.Intent) {
+            when (intent) {
+                is RegisterStore.Intent.RegisterClicked -> {
+                    logger.i("RegisterStore: Register clicked for username: ${intent.username}, email: ${intent.email}")
+                    dispatch(Msg.StartLoading)
+                    dispatch(Msg.ClearError)
+
+                    // Делегируем регистрацию глобальному AuthStore
+                    authStore.accept(AuthStore.Intent.Register(
+                        username = intent.username,
+                        email = intent.email,
+                        password = intent.password
+                    ))
+                }
+                is RegisterStore.Intent.NavigateToLogin -> {
+                    logger.d("RegisterStore: Navigate to login")
+                    dispatch(Msg.NavigateToLogin)
+                }
+                is RegisterStore.Intent.ErrorShown -> {
+                    logger.d("RegisterStore: Error shown")
+                    dispatch(Msg.ClearError)
+                }
+            }
+        }
+    }
+
+    private object ReducerImpl : Reducer<RegisterStore.State, Msg> {
+        override fun RegisterStore.State.reduce(msg: Msg): RegisterStore.State =
             when (msg) {
-                is RegisterStore.Message.StartLoading -> copy(isLoading = true)
-                is RegisterStore.Message.StopLoading -> copy(isLoading = false)
-                is RegisterStore.Message.SetError -> copy(
-                    error = msg.error,
-                    errorDetails = msg.details
-                )
-                is RegisterStore.Message.ClearError -> copy(
-                    error = null,
-                    errorDetails = null
-                )
+                is Msg.StartLoading -> copy(isLoading = true)
+                is Msg.StopLoading -> copy(isLoading = false)
+                is Msg.SetError -> copy(error = msg.error)
+                is Msg.ClearError -> copy(error = null)
+                is Msg.NavigateToLogin -> copy(shouldNavigateToLogin = true)
+                is Msg.NavigationHandled -> copy(shouldNavigateToLogin = false)
+                is Msg.SetAuthenticated -> copy(isAuthenticated = true)
             }
     }
 }

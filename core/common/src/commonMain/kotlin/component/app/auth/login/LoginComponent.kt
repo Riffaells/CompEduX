@@ -7,6 +7,7 @@ import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import component.app.auth.store.LoginStore
 import component.app.auth.store.LoginStoreFactory
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -24,6 +25,7 @@ interface LoginComponent {
     fun onRegisterClick()
 }
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class DefaultLoginComponent(
     override val di: DI,
     componentContext: ComponentContext,
@@ -47,7 +49,12 @@ class DefaultLoginComponent(
     override val state: StateFlow<LoginStore.State> = loginStore.stateFlow
 
     override fun onLoginClick(email: String, password: String) {
-        loginStore.accept(LoginStore.Intent.HandleLoginClick(email, password))
+        // Set username and password first
+        loginStore.accept(LoginStore.Intent.SetUsername(email))
+        loginStore.accept(LoginStore.Intent.SetPassword(password))
+        // Then trigger login
+        loginStore.accept(LoginStore.Intent.Login)
+
         // Monitor auth state changes to trigger navigation on success
         scope.launch {
             // This is simplified - in a real implementation, you would monitor

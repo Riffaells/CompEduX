@@ -7,6 +7,7 @@ import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import logging.Logger
 import org.kodein.di.DI
 import org.kodein.di.DIAware
 import org.kodein.di.instance
@@ -40,14 +41,15 @@ internal class RoomStoreFactory(
     override val di: DI
 ) : DIAware {
 
-    private val authUseCases: AuthUseCases by instance()
+    private val authUseCases by instance<AuthUseCases>()
+    private val logger by instance<Logger>()
 
     fun create(): RoomStore =
         object : RoomStore, Store<RoomStore.Intent, RoomStore.State, Nothing> by storeFactory.create(
             name = "RoomStore",
             initialState = RoomStore.State(),
             bootstrapper = SimpleBootstrapper(Unit),
-            executorFactory = ::ExecutorImpl,
+            executorFactory = { ExecutorImpl(logger.withTag("RoomStore")) },
             reducer = ReducerImpl
         ) {}
 
@@ -61,17 +63,18 @@ internal class RoomStoreFactory(
         data class UpdateAuthStatus(val isAuthenticated: Boolean) : Msg
     }
 
-    private inner class ExecutorImpl :
-        CoroutineExecutor<RoomStore.Intent, Unit, RoomStore.State, Msg, Nothing>(
-            rDispatchers.main
-        ) {
+    private inner class ExecutorImpl(
+        private val logger: Logger
+    ) : CoroutineExecutor<RoomStore.Intent, Unit, RoomStore.State, Msg, Nothing>(
+        rDispatchers.main
+    ) {
 
         override fun executeAction(action: Unit) {
             try {
                 dispatch(Msg.LoadData)
                 checkAuthStatus()
             } catch (e: Exception) {
-                println("Error in executeAction: ${e.message}")
+                logger.e("Error in executeAction: ${e.message}")
             }
         }
 
@@ -87,7 +90,7 @@ internal class RoomStoreFactory(
             try {
                 dispatch(msg)
             } catch (e: Exception) {
-                println("Error in dispatch: ${e.message}")
+                logger.e("Error in dispatch: ${e.message}")
             }
         }
 
@@ -104,7 +107,7 @@ internal class RoomStoreFactory(
                                 // Async operations if needed...
                                 safeDispatch(Msg.UpdateRoomName(intent.name))
                             } catch (e: Exception) {
-                                println("Error updating room name: ${e.message}")
+                                logger.e("Error updating room name: ${e.message}")
                             }
                         }
                         Unit
@@ -115,7 +118,7 @@ internal class RoomStoreFactory(
                                 // Async operations if needed...
                                 safeDispatch(Msg.UpdateRoomDescription(intent.description))
                             } catch (e: Exception) {
-                                println("Error updating room description: ${e.message}")
+                                logger.e("Error updating room description: ${e.message}")
                             }
                         }
                         Unit
@@ -130,7 +133,7 @@ internal class RoomStoreFactory(
                     }
                 }
             } catch (e: Exception) {
-                println("Error in executeIntent: ${e.message}")
+                logger.e("Error in executeIntent: ${e.message}")
             }
     }
 

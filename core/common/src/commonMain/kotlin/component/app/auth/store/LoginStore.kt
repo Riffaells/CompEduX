@@ -1,129 +1,162 @@
 package component.app.auth.store
 
 import com.arkivanov.mvikotlin.core.store.Reducer
+import com.arkivanov.mvikotlin.core.store.SimpleBootstrapper
 import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import kotlinx.coroutines.launch
-import kotlinx.serialization.Serializable
-import model.AuthResult
+import logging.Logger
+import model.auth.AuthStateDomain
 import org.kodein.di.DI
+import org.kodein.di.DIAware
 import org.kodein.di.instance
-import usecase.auth.AuthUseCases
-import usecase.auth.LoginUseCase
-import utils.rDispatchers
 
-interface LoginStore : Store<LoginStore.Intent, LoginStore.State, Nothing> {
+/**
+ * Store для экрана входа в систему
+ */
+interface LoginStore : Store<LoginStore.Intent, LoginStore.State, LoginStore.Label> {
+
+    /**
+     * Intent - действия, которые могут быть выполнены в этом Store
+     */
     sealed interface Intent {
-        data class HandleLoginClick(val email: String, val password: String) : Intent
+        data class SetUsername(val username: String) : Intent
+        data class SetPassword(val password: String) : Intent
+        data object Login : Intent
         data object NavigateToRegister : Intent
-        data object NavigateToForgotPassword : Intent
+        data class ValidationError(val message: String) : Intent
     }
 
-    @Serializable
+    /**
+     * State - состояние экрана входа
+     */
     data class State(
+        val username: String = "",
+        val password: String = "",
         val isLoading: Boolean = false,
         val error: String? = null,
-        val errorDetails: String? = null
+        val isNavigateToRegister: Boolean = false,
     )
 
-    sealed interface Message {
-        data object StartLoading : Message
-        data object StopLoading : Message
-        data class SetError(val error: String, val details: String? = null) : Message
-        data object ClearError : Message
+    sealed interface Label {
+        data object NavigateBack : Label
     }
 }
 
+/**
+ * Фабрика для создания LoginStore
+ */
 class LoginStoreFactory(
     private val storeFactory: StoreFactory,
-    val di: DI,
-) {
-    private val authUseCases by di.instance<AuthUseCases>()
+    override val di: DI
+) : DIAware {
+
+    private val logger by instance<Logger>()
+    private val authStore by instance<AuthStore>()
 
     fun create(): LoginStore =
-        object : LoginStore, Store<LoginStore.Intent, LoginStore.State, Nothing> by storeFactory.create(
+        object : LoginStore, Store<LoginStore.Intent, LoginStore.State, LoginStore.Label> by storeFactory.create(
             name = "LoginStore",
             initialState = LoginStore.State(),
-            bootstrapper = null,
-            executorFactory = ::ExecutorImpl,
+            bootstrapper = SimpleBootstrapper(Unit),
+            executorFactory = { ExecutorImpl(authStore, logger.withTag("LoginStore")) },
             reducer = ReducerImpl
         ) {}
 
-    private inner class ExecutorImpl : CoroutineExecutor<LoginStore.Intent, Unit, LoginStore.State, LoginStore.Message, Nothing>(
-        rDispatchers.main
-    ) {
-        override fun executeAction(action: Unit) {
-            // Пустая реализация
-        }
-
-        // Безопасный вызов dispatch, который перехватывает исключения
-        private fun safeDispatch(msg: LoginStore.Message) {
-            try {
-                dispatch(msg)
-            } catch (e: Exception) {
-                println("Error in dispatch: ${e.message}")
-            }
-        }
-
-        override fun executeIntent(intent: LoginStore.Intent): Unit =
-            try {
-                when (intent) {
-                    is LoginStore.Intent.HandleLoginClick -> {
-                        scope.launch {
-                            safeDispatch(LoginStore.Message.StartLoading)
-                            safeDispatch(LoginStore.Message.ClearError)
-
-                            try {
-                                val result = authUseCases.login(intent.email, intent.password)
-
-                                when (result) {
-                                    is AuthResult.Success<*> -> {
-                                        // Успех, очищаем ошибки
-                                        safeDispatch(LoginStore.Message.ClearError)
-                                    }
-                                    is AuthResult.Error<*> -> {
-                                        safeDispatch(LoginStore.Message.SetError(result.error.message, result.error.details))
-                                    }
-                                    is AuthResult.Loading -> {
-                                        // Состояние загрузки уже установлено
-                                    }
-                                }
-                                safeDispatch(LoginStore.Message.StopLoading)
-                            } catch (e: Exception) {
-                                safeDispatch(LoginStore.Message.SetError(e.message ?: "Ошибка сети"))
-                                safeDispatch(LoginStore.Message.StopLoading)
-                            }
-                        }
-                    }
-                    is LoginStore.Intent.NavigateToRegister -> {
-                        // В реальном коде здесь будет навигация
-                        println("Navigate to Register")
-                    }
-                    is LoginStore.Intent.NavigateToForgotPassword -> {
-                        // В реальном коде здесь будет навигация
-                        println("Navigate to Forgot Password")
-                    }
-                }
-                Unit
-            } catch (e: Exception) {
-                println("Error in executeIntent: ${e.message}")
-            }
+    // Приватные сообщения для редуктора
+    private sealed interface Msg {
+        data class SetUsername(val username: String) : Msg
+        data class SetPassword(val password: String) : Msg
+        data class SetLoading(val isLoading: Boolean) : Msg
+        data class SetError(val message: String?) : Msg
+        data class SetNavigateToRegister(val isNavigateToRegister: Boolean) : Msg
     }
 
-    private object ReducerImpl : Reducer<LoginStore.State, LoginStore.Message> {
-        override fun LoginStore.State.reduce(msg: LoginStore.Message): LoginStore.State =
+    private class ExecutorImpl(
+        private val authStore: AuthStore,
+        private val logger: Logger
+    ) : CoroutineExecutor<LoginStore.Intent, Unit, LoginStore.State, Msg, LoginStore.Label>() {
+
+        override fun executeAction(action: Unit) {
+            // Subscribe to auth store
+            scope.launch {
+                authStore.authState.collect { authState ->
+                    logger.d("Auth state changed: $authState")
+                    if (authState is AuthStateDomain.Authenticated) {
+                        // User authenticated, navigate back
+                        publish(LoginStore.Label.NavigateBack)
+                    }
+
+                    // Set loading state
+                    if (authState is AuthStateDomain.Loading) {
+                        dispatch(Msg.SetLoading(true))
+                    } else {
+                        // Clear loading
+                        dispatch(Msg.SetLoading(false))
+                    }
+
+                    // Set error
+                    if (authState is AuthStateDomain.Unauthenticated && authStore.state.error != null) {
+                        dispatch(Msg.SetError(authStore.state.error))
+                    }
+                }
+            }
+        }
+
+        var  d =0
+        override fun executeIntent(intent: LoginStore.Intent) {
+            when (intent) {
+                is LoginStore.Intent.SetUsername -> {
+                    dispatch(Msg.SetUsername(intent.username))
+                }
+
+                is LoginStore.Intent.SetPassword -> {
+                    dispatch(Msg.SetPassword(intent.password))
+                }
+
+                is LoginStore.Intent.Login -> {
+                    d += 1
+                    logger.d("Login intent with username: ${state().username} ${d++}")
+                    // Clear error
+                    dispatch(Msg.SetError(null))
+
+                    // Validate
+                    if (state().username.isEmpty()) {
+                        dispatch(Msg.SetError("Имя пользователя не может быть пустым"))
+                        return
+                    }
+
+                    if (state().password.isEmpty()) {
+                        dispatch(Msg.SetError("Пароль не может быть пустым"))
+                        return
+                    }
+
+                    // Call auth store
+                    authStore.accept(AuthStore.Intent.Login(state().username, state().password))
+                }
+
+                is LoginStore.Intent.NavigateToRegister -> {
+                    logger.d("NavigateToRegister intent")
+                    dispatch(Msg.SetNavigateToRegister(true))
+                }
+
+                is LoginStore.Intent.ValidationError -> {
+                    logger.w("Validation error: ${intent.message}")
+                    dispatch(Msg.SetError(intent.message))
+                }
+            }
+        }
+    }
+
+    private object ReducerImpl : Reducer<LoginStore.State, Msg> {
+        override fun LoginStore.State.reduce(msg: Msg): LoginStore.State =
             when (msg) {
-                is LoginStore.Message.StartLoading -> copy(isLoading = true)
-                is LoginStore.Message.StopLoading -> copy(isLoading = false)
-                is LoginStore.Message.SetError -> copy(
-                    error = msg.error,
-                    errorDetails = msg.details
-                )
-                is LoginStore.Message.ClearError -> copy(
-                    error = null,
-                    errorDetails = null
-                )
+                is Msg.SetUsername -> copy(username = msg.username)
+                is Msg.SetPassword -> copy(password = msg.password)
+                is Msg.SetLoading -> copy(isLoading = msg.isLoading)
+                is Msg.SetError -> copy(error = msg.message)
+                is Msg.SetNavigateToRegister -> copy(isNavigateToRegister = msg.isNavigateToRegister)
             }
     }
 }

@@ -31,11 +31,8 @@ class CompEduXDecomposePlugin : Plugin<Project> {
                     implementation(libs.mvikotlin.extensions.coroutines)
                 }
             }
+
+
         }
     }
-}
-
-// Extension function to make the code more readable
-private fun DependencyHandler.implementation(dependencyNotation: Any) {
-    add("implementation", dependencyNotation)
 }

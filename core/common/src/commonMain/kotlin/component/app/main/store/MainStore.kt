@@ -7,8 +7,10 @@ import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import logging.Logger
 import org.kodein.di.DI
 import org.kodein.di.DIAware
+import org.kodein.di.instance
 import utils.rDispatchers
 
 interface MainStore : Store<MainStore.Intent, MainStore.State, Nothing> {
@@ -30,6 +32,7 @@ internal class MainStoreFactory(
     private val storeFactory: StoreFactory,
     override val di: DI
 ) : DIAware {
+    private val logger: Logger by instance()
 
     fun create(): MainStore =
         object : MainStore, Store<MainStore.Intent, MainStore.State, Nothing> by storeFactory.create(
@@ -55,7 +58,7 @@ internal class MainStoreFactory(
             try {
                 dispatch(Msg.LoadData)
             } catch (e: Exception) {
-                println("Error in executeAction: ${e.message}")
+                logger.e("Error in executeAction: ${e.message}", e, "MainStore")
             }
         }
 
@@ -64,7 +67,7 @@ internal class MainStoreFactory(
             try {
                 dispatch(msg)
             } catch (e: Exception) {
-                println("Error in dispatch: ${e.message}")
+                logger.e("Error in dispatch: ${e.message}", e, "MainStore")
             }
         }
 
@@ -83,7 +86,7 @@ internal class MainStoreFactory(
                                 // Обновление UI
                                 safeDispatch(Msg.UpdateTitle(intent.title))
                             } catch (e: Exception) {
-                                println("Error updating title: ${e.message}")
+                                logger.e("Error updating title: ${e.message}", e, "MainStore")
                             }
                         }
                         Unit
@@ -93,7 +96,7 @@ internal class MainStoreFactory(
                     }
                 }
             } catch (e: Exception) {
-                println("Error in executeIntent: ${e.message}")
+                logger.e("Error in executeIntent: ${e.message}", e, "MainStore")
             }
     }
 

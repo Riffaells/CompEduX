@@ -47,10 +47,9 @@ class DefaultRegisterComponent(
     override val state: StateFlow<RegisterStore.State> = registerStore.stateFlow
 
     override fun onRegisterClick(email: String, password: String, confirmPassword: String, username: String) {
-        registerStore.accept(RegisterStore.Intent.HandleRegisterClick(
+        registerStore.accept(RegisterStore.Intent.RegisterClicked(
             email = email,
             password = password,
-            confirmPassword = confirmPassword,
             username = username
         ))
 

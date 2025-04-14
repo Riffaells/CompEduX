@@ -18,7 +18,7 @@ data class NetworkRegisterRequest(
  */
 @Serializable
 data class NetworkLoginRequest(
-    @SerialName("email") val email: String,
+    @SerialName("username") val email: String,
     @SerialName("password") val password: String
 )
 

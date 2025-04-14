@@ -16,6 +16,41 @@ class MultiplatformLibraryConventionPlugin : Plugin<Project> {
                 apply(libs.plugins.android.library.get().pluginId)
             }
 
+
+
+            extensions.configure<KotlinMultiplatformExtension> {
+                jvmToolchain(libs.versions.jvm.get().toInt())
+                androidTarget {
+
+                }
+
+                jvm()
+
+                @OptIn(ExperimentalWasmDsl::class)
+                wasmJs {
+                    browser()
+                    binaries.executable()
+                }
+
+                listOf(
+                    iosX64(),
+                    iosArm64(),
+                    iosSimulatorArm64()
+                ).forEach {
+                    it.binaries.framework {
+                        baseName = project.name
+                        isStatic = true
+                    }
+                }
+
+                // Configure source sets
+                val commonMain = sourceSets.commonMain
+
+                commonMain.dependencies {
+                    // Common dependencies are handled by the base plugin
+                }
+            }
+
             // Настройка Android
             extensions.configure<LibraryExtension> {
                 compileSdk = libs.versions.compileSdk.get().toInt()
@@ -51,43 +86,8 @@ class MultiplatformLibraryConventionPlugin : Plugin<Project> {
 
             }
 
-            extensions.configure<KotlinMultiplatformExtension> {
-                androidTarget {
-
-                }
-
-                jvm()
-
-                @OptIn(ExperimentalWasmDsl::class)
-                wasmJs {
-                    browser()
-                }
-
-                listOf(
-                    iosX64(),
-                    iosArm64(),
-                    iosSimulatorArm64()
-                ).forEach {
-                    it.binaries.framework {
-                        baseName = project.name
-                        isStatic = true
-                    }
-                }
-
-                // Configure source sets
-                val commonMain = sourceSets.commonMain
-
-                commonMain.dependencies {
-                    // Common dependencies are handled by the base plugin
-                }
-            }
 
 
         }
     }
-}
-
-// Extension function to make the code more readable
-private fun DependencyHandler.implementation(dependencyNotation: Any) {
-    add("implementation", dependencyNotation)
 }

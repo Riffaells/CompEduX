@@ -27,6 +27,7 @@ import component.app.skiko.SkikoComponentParams
 import component.root.DefaultRootComponent
 import component.root.RootComponentParams
 import component.root.store.RootStoreFactory
+import logging.Logger
 import repository.auth.AuthRepository
 import org.kodein.di.*
 
@@ -47,12 +48,6 @@ val componentModule = DI.Module("componentModule") {
     bindProvider { DiagramStoreFactory(storeFactory = instance(), di = di) }
     bindProvider { AchievementStoreFactory(storeFactory = instance(), di = di) }
 
-    // Navigation callbacks for auth flow
-    bindConstant(tag = "onLoginSuccess") { { println("Login success") } } // This will be overridden by actual implementation
-    bindConstant(tag = "onRegisterSuccess") { { println("Register success") } } // This will be overridden by actual implementation
-    bindConstant(tag = "onLogout") { { println("Logout") } } // This will be overridden by actual implementation
-    bindConstant(tag = "onRegister") { { println("Navigate to Register") } } // This will be overridden by actual implementation
-    bindConstant(tag = "onLogin") { { println("Navigate to Login") } } // This will be overridden by actual implementation
 
     // Фабрики компонентов с использованием data class для параметров
     bindFactory { params: MainComponentParams ->
@@ -120,8 +115,6 @@ val componentModule = DI.Module("componentModule") {
             di = di,
             componentContext = params.componentContext,
             onBack = params.onBack,
-            storeFactory = instance(),
-            authUseCases = instance()
         )
     }
 

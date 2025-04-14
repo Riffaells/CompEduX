@@ -60,11 +60,6 @@ class NetworkAuthApiImpl(
             val response = client.post("$apiUrl/auth/register") {
                 contentType(ContentType.Application.Json)
                 setBody(networkRequest)
-                headers {
-                    append("X-App-Version", BuildConfig.APP_VERSION.toString())
-                    append("X-App-Name", BuildConfig.APP_NAME)
-                    append("User-Agent", Platform.userAgent(BuildConfig.APP_NAME, BuildConfig.APP_VERSION.toString()))
-                }
             }
 
             if (response.status.isSuccess()) {
@@ -111,11 +106,6 @@ class NetworkAuthApiImpl(
             val response = client.post("$apiUrl/auth/login") {
                 contentType(ContentType.Application.Json)
                 setBody(networkRequest)
-                headers {
-                    append("X-App-Version", BuildConfig.APP_VERSION.toString())
-                    append("X-App-Name", BuildConfig.APP_NAME)
-                    append("User-Agent", Platform.userAgent(BuildConfig.APP_NAME, BuildConfig.APP_VERSION.toString()))
-                }
             }
 
             if (response.status.isSuccess()) {
@@ -161,11 +151,6 @@ class NetworkAuthApiImpl(
             val response = client.post("$apiUrl/auth/refresh") {
                 contentType(ContentType.Application.Json)
                 setBody(networkRequest)
-                headers {
-                    append("X-App-Version", BuildConfig.APP_VERSION.toString())
-                    append("X-App-Name", BuildConfig.APP_NAME)
-                    append("User-Agent", Platform.userAgent(BuildConfig.APP_NAME, BuildConfig.APP_VERSION.toString()))
-                }
             }
 
             if (response.status.isSuccess()) {
@@ -204,13 +189,7 @@ class NetworkAuthApiImpl(
             // Выполнение запроса
             logger.d("Getting current user info")
             val response = client.get("$apiUrl/auth/me") {
-                contentType(ContentType.Application.Json)
                 header(HttpHeaders.Authorization, "Bearer $token")
-                headers {
-                    append("X-App-Version", BuildConfig.APP_VERSION.toString())
-                    append("X-App-Name", BuildConfig.APP_NAME)
-                    append("User-Agent", Platform.userAgent(BuildConfig.APP_NAME, BuildConfig.APP_VERSION.toString()))
-                }
             }
 
             if (response.status.isSuccess()) {
@@ -249,16 +228,11 @@ class NetworkAuthApiImpl(
             // Выполнение запроса
             logger.d("Logging out user")
             val response = client.post("$apiUrl/auth/logout") {
-                contentType(ContentType.Application.Json)
                 header(HttpHeaders.Authorization, "Bearer $token")
-                headers {
-                    append("X-App-Version", BuildConfig.APP_VERSION.toString())
-                    append("X-App-Name", BuildConfig.APP_NAME)
-                    append("User-Agent", Platform.userAgent(BuildConfig.APP_NAME, BuildConfig.APP_VERSION.toString()))
-                }
             }
 
             if (response.status.isSuccess()) {
+                // Если HTTP-статус успешный, считаем операцию успешной
                 logger.i("User logged out successfully")
                 DomainResult.Success(Unit)
             } else {
@@ -290,13 +264,7 @@ class NetworkAuthApiImpl(
 
             // Выполнение запроса
             logger.d("Checking server status")
-            val response = client.get("$apiUrl/status") {
-                headers {
-                    append("X-App-Version", BuildConfig.APP_VERSION.toString())
-                    append("X-App-Name", BuildConfig.APP_NAME)
-                    append("User-Agent", Platform.userAgent(BuildConfig.APP_NAME, BuildConfig.APP_VERSION.toString()))
-                }
-            }
+            val response = client.get("$apiUrl/status")
 
             if (response.status.isSuccess()) {
                 // Парсинг успешного ответа
@@ -333,7 +301,9 @@ class NetworkAuthApiImpl(
             val apiUrl = getApiUrl()
 
             // Подготовка запроса в формате API
-            val requestBody = mapOf("username" to username)
+            // Важно: для предотвращения ошибки 422 используем data class вместо Map
+            data class UpdateProfileRequest(val username: String)
+            val requestBody = UpdateProfileRequest(username)
 
             // Выполнение запроса
             logger.d("Updating profile: $username")
@@ -341,11 +311,6 @@ class NetworkAuthApiImpl(
                 contentType(ContentType.Application.Json)
                 header(HttpHeaders.Authorization, "Bearer $token")
                 setBody(requestBody)
-                headers {
-                    append("X-App-Version", BuildConfig.APP_VERSION.toString())
-                    append("X-App-Name", BuildConfig.APP_NAME)
-                    append("User-Agent", Platform.userAgent(BuildConfig.APP_NAME, BuildConfig.APP_VERSION.toString()))
-                }
             }
 
             if (response.status.isSuccess()) {
@@ -390,6 +355,11 @@ class NetworkAuthApiImpl(
                         message = "Ресурс не найден",
                         details = e.message
                     )
+                    422 -> DomainError(
+                        code = model.ErrorCode.VALIDATION_ERROR,
+                        message = "Ошибка валидации данных",
+                        details = e.message
+                    )
                     else -> DomainError(
                         code = model.ErrorCode.UNKNOWN_ERROR,
                         message = "Ошибка запроса: ${e.message}",
@@ -414,11 +384,15 @@ class NetworkAuthApiImpl(
                     details = e.message
                 )
             }
-            is java.net.UnknownHostException -> {
-                DomainError.networkError("Не удается подключиться к серверу", e.message)
-            }
             else -> {
-                DomainError.unknownError("Неизвестная ошибка: ${e.message}", e.stackTraceToString())
+                // Check if it's a connectivity error by examining the exception message
+                if (e.message?.contains("host", ignoreCase = true) == true ||
+                    e.message?.contains("connect", ignoreCase = true) == true ||
+                    e.message?.contains("network", ignoreCase = true) == true) {
+                    DomainError.networkError("Не удается подключиться к серверу", e.message)
+                } else {
+                    DomainError.unknownError("Неизвестная ошибка: ${e.message}", e.stackTraceToString())
+                }
             }
         }
     }

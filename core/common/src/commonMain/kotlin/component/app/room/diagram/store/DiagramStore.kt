@@ -7,8 +7,10 @@ import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import logging.Logger
 import org.kodein.di.DI
 import org.kodein.di.DIAware
+import org.kodein.di.instance
 import utils.rDispatchers
 
 interface DiagramStore : Store<DiagramStore.Intent, DiagramStore.State, Nothing> {
@@ -45,6 +47,8 @@ internal class DiagramStoreFactory(
     private val storeFactory: StoreFactory,
     override val di: DI
 ) : DIAware {
+
+    private val logger by instance<Logger>("DiagramStore")
 
     fun create(): DiagramStore =
         object : DiagramStore, Store<DiagramStore.Intent, DiagramStore.State, Nothing> by storeFactory.create(
@@ -84,7 +88,7 @@ internal class DiagramStoreFactory(
             try {
                 dispatch(Msg.LoadData)
             } catch (e: Exception) {
-                println("Error in executeAction: ${e.message}")
+                logger.e("Error in executeAction: ${e.message}")
             }
         }
 
@@ -92,7 +96,7 @@ internal class DiagramStoreFactory(
             try {
                 dispatch(msg)
             } catch (e: Exception) {
-                println("Error in dispatch: ${e.message}")
+                logger.e("Error in dispatch: ${e.message}")
             }
         }
 
@@ -107,7 +111,7 @@ internal class DiagramStoreFactory(
                             try {
                                 safeDispatch(Msg.UpdateDiagramType(intent.type))
                             } catch (e: Exception) {
-                                println("Error updating diagram type: ${e.message}")
+                                logger.e("Error updating diagram type: ${e.message}")
                             }
                         }
                         Unit
@@ -117,14 +121,14 @@ internal class DiagramStoreFactory(
                             try {
                                 safeDispatch(Msg.UpdateDiagramData(intent.data))
                             } catch (e: Exception) {
-                                println("Error updating diagram data: ${e.message}")
+                                logger.e("Error updating diagram data: ${e.message}")
                             }
                         }
                         Unit
                     }
                 }
             } catch (e: Exception) {
-                println("Error in executeIntent: ${e.message}")
+                logger.e("Error in executeIntent: ${e.message}")
             }
     }
 

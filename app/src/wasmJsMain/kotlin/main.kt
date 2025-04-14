@@ -7,8 +7,8 @@ import com.riffaells.compedux.di.appDI
 import component.root.DefaultRootComponent
 import component.root.RootComponentParams
 import components.root.RootContent
-import di.Logger
 import kotlinx.browser.document
+import logging.Logger
 import org.kodein.di.compose.withDI
 import org.kodein.di.direct
 import org.kodein.di.factory
@@ -17,6 +17,9 @@ import org.kodein.di.instance
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalDecomposeApi::class)
 fun main() {
     // Получаем логгер из DI
+
+
+
     val logger = appDI.direct.instance<Logger>()
     logger.d("Запуск WASM-приложения")
 

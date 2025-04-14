@@ -23,6 +23,7 @@ from ...services.auth import (
     create_user,
     get_current_user,
     refresh_access_token,
+    revoke_refresh_token,
 )
 from ..utils import prepare_user_response
 
@@ -154,26 +155,49 @@ async def get_current_user_info(
     return prepare_user_response(current_user)
 
 
-@router.post("/logout")
+@router.post("/logout", status_code=status.HTTP_200_OK)
 async def logout(
-    token_data: TokenRefreshSchema,
+    request: Request,
+    response: Response,
+    token_data: TokenRefreshSchema = None,
     current_user: UserModel = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Logout (revoke refresh token)"""
-    # Find refresh token in database
-    db_token = db.query(RefreshTokenModel).filter(
-        RefreshTokenModel.token == token_data.refresh_token,
-        RefreshTokenModel.user_id == current_user.id,
-        RefreshTokenModel.revoked == False
-    ).first()
+    """
+    Logout - revoke refresh token.
 
-    if db_token:
-        # Mark token as revoked
-        db_token.revoked = True
-        db.commit()
+    Token can be provided either in the request body or in the Authorization header.
+    Returns 200 OK status on success.
+    """
+    logger.info(f"Logout request for user: {current_user.id}")
+    success = False
 
-    return {"message": "Successfully logged out"}
+    # Проверяем, есть ли тело запроса с refresh_token
+    if token_data and token_data.refresh_token:
+        success = revoke_refresh_token(token_data.refresh_token, db)
+    else:
+        # Если refresh токен не передан в теле, проверяем заголовок Authorization
+        auth_header = request.headers.get('Authorization')
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header.replace('Bearer ', '')
+            # Отзываем все активные токены пользователя
+            tokens = db.query(RefreshTokenModel).filter(
+                RefreshTokenModel.user_id == current_user.id,
+                RefreshTokenModel.revoked == False
+            ).all()
+
+            if tokens:
+                for token_obj in tokens:
+                    token_obj.revoked = True
+                db.commit()
+                success = True
+
+    if success:
+        logger.info(f"Successfully logged out user: {current_user.id}")
+        return {"message": "Successfully logged out"}
+    else:
+        logger.warning(f"No valid tokens found to revoke for user: {current_user.id}")
+        return {"message": "No active sessions to logout"}
 
 
 @router.post("/verify-token")

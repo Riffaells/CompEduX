@@ -5,6 +5,7 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
 import com.github.gmazzo.buildconfig.BuildConfigExtension
+import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import java.util.Date
 
 class CompEduXConfigPlugin : Plugin<Project> {
@@ -30,6 +31,10 @@ class CompEduXConfigPlugin : Plugin<Project> {
                 buildConfigField("String", "APP_PROJECT", "\"$appProject\"")
                 buildConfigField("String", "APP_PACKAGE", "\"$appPackage\"")
 
+                // Платформенные константы - определяются в Platform.kt runtime
+                buildConfigField("String", "PLATFORM_TYPE", "\"Multi\"")
+                buildConfigField("String", "BUILD_DATE", "\"${Date()}\"")
+
                 // Дополнительные полезные константы
                 buildConfigField("long", "BUILD_TIMESTAMP", "${System.currentTimeMillis()}L")
 
@@ -46,6 +51,18 @@ class CompEduXConfigPlugin : Plugin<Project> {
                     internalVisibility = false
                 }
             }
+            extensions.configure<KotlinMultiplatformExtension> {
+                // Configure source sets
+                val commonMain = sourceSets.commonMain
+                val commonTest = sourceSets.commonTest
+                val wasmJsMain = sourceSets.wasmJsMain
+                val desktopMain = sourceSets.jvmMain
+                val androidMain = sourceSets.androidMain
+
+
+
+            }
+
         }
     }
 }

@@ -11,8 +11,23 @@ class NapierLogger(
     private val antilog: Antilog,
     private val defaultTag: String? = null
 ) : Logger {
+    companion object {
+        // Флаг для отслеживания инициализации - гарантирует
+        // что Napier.base() будет вызван только один раз
+        private var isInitialized = false
+
+        @Synchronized
+        fun initialize(antilog: Antilog) {
+            if (!isInitialized) {
+                Napier.base(antilog)
+                isInitialized = true
+            }
+        }
+    }
+
     init {
-        Napier.base(antilog)
+        // Используем синхронизированную инициализацию вместо прямого вызова
+        initialize(antilog)
     }
 
     override fun d(message: String, throwable: Throwable?, tag: String?) {

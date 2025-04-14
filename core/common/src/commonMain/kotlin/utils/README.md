@@ -22,7 +22,7 @@ val navigationExecutor = NavigationExecutor(
     navigation = navigation,
     scope = coroutineScope(rDispatchers.main),
     mainDispatcher = rDispatchers.main,
-    logger = { message -> println("Navigation: $message") }
+    logger = { message -> Logger("Navigation").i(message) }
 )
 
 // Navigate to a screen

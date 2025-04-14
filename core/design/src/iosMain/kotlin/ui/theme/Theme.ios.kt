@@ -1,4 +1,4 @@
-package com.riffaells.compedux.theme
+package ui.theme
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect

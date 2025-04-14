@@ -3,6 +3,8 @@ package di
 import api.auth.AuthApi
 import api.auth.DataAuthApiAdapter
 import api.auth.NetworkAuthApi
+import config.DataNetworkConfig
+import config.NetworkConfig
 import logging.LoggingProvider
 import org.kodein.di.DI
 import org.kodein.di.bind
@@ -19,6 +21,11 @@ import settings.MultiplatformSettings
  * Содержит репозитории и адаптеры для работы с данными
  */
 val dataModule = DI.Module("dataModule") {
+    // Конфигурация сети
+    bind<NetworkConfig>() with singleton {
+        DataNetworkConfig(di)
+    }
+
     // Репозитории и адаптеры для аутентификации
     bind<TokenRepository>() with singleton {
         val multiplatformSettings = instance<MultiplatformSettings>()
