@@ -12,9 +12,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -39,55 +36,10 @@ fun LoginContent(component: LoginComponent) {
 
     // Анимированные цвета для градиента
     val infiniteTransition = rememberInfiniteTransition(label = "background")
-    val gradientAngle by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(20000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ), label = "Gradient rotation"
-    )
-
-    val primaryBackground = MaterialTheme.colorScheme.primaryContainer
-    val secondaryBackground = MaterialTheme.colorScheme.secondaryContainer
-    val tertiaryBackground = MaterialTheme.colorScheme.tertiaryContainer
 
     Box(
         modifier = Modifier
-            .fillMaxSize()
-            .drawBehind {
-                val radius = size.width * 1.5f
-                val angleInRadians = Math.toRadians(gradientAngle.toDouble()).toFloat()
-                val x = center.x + radius * kotlin.math.cos(angleInRadians)
-                val y = center.y + radius * kotlin.math.sin(angleInRadians)
-
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(primaryBackground.copy(alpha = 0.1f), Color.Transparent),
-                        center = Offset(x, y),
-                        radius = radius
-                    ),
-                    radius = radius
-                )
-
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(secondaryBackground.copy(alpha = 0.1f), Color.Transparent),
-                        center = Offset(x * 0.8f, y * 0.8f),
-                        radius = radius * 0.7f
-                    ),
-                    radius = radius * 0.7f
-                )
-
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(tertiaryBackground.copy(alpha = 0.1f), Color.Transparent),
-                        center = Offset(x * 1.2f, y * 1.2f),
-                        radius = radius * 0.5f
-                    ),
-                    radius = radius * 0.5f
-                )
-            },
+            .fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         // Декоративные элементы

@@ -16,7 +16,6 @@ class NapierLogger(
         // что Napier.base() будет вызван только один раз
         private var isInitialized = false
 
-        @Synchronized
         fun initialize(antilog: Antilog) {
             if (!isInitialized) {
                 Napier.base(antilog)

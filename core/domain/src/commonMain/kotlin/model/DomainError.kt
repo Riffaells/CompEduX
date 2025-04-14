@@ -28,7 +28,7 @@ data class DomainError(
         /**
          * Create a network error
          */
-        fun networkError(message: String = "Network error", details: String? = null): DomainError {
+        fun networkError(message: String = "error_network", details: String? = null): DomainError {
             return DomainError(
                 code = ErrorCode.NETWORK_ERROR,
                 message = message,
@@ -39,7 +39,7 @@ data class DomainError(
         /**
          * Create a server error
          */
-        fun serverError(message: String = "Server error", details: String? = null): DomainError {
+        fun serverError(message: String = "error_server", details: String? = null): DomainError {
             return DomainError(
                 code = ErrorCode.SERVER_ERROR,
                 message = message,
@@ -50,7 +50,7 @@ data class DomainError(
         /**
          * Create an authentication error
          */
-        fun authError(message: String = "Authentication error", details: String? = null): DomainError {
+        fun authError(message: String = "error_auth", details: String? = null): DomainError {
             return DomainError(
                 code = ErrorCode.UNAUTHORIZED,
                 message = message,
@@ -61,7 +61,7 @@ data class DomainError(
         /**
          * Create an unknown error
          */
-        fun unknownError(message: String = "Unknown error", details: String? = null): DomainError {
+        fun unknownError(message: String = "error_unknown", details: String? = null): DomainError {
             return DomainError(
                 code = ErrorCode.UNKNOWN_ERROR,
                 message = message,
@@ -72,7 +72,7 @@ data class DomainError(
         /**
          * Create a validation error
          */
-        fun validationError(message: String = "Validation error", details: String? = null): DomainError {
+        fun validationError(message: String = "error_validation", details: String? = null): DomainError {
             return DomainError(
                 code = ErrorCode.VALIDATION_ERROR,
                 message = message,
@@ -110,6 +110,11 @@ enum class ErrorCode(val code: Int) {
     NETWORK_ERROR(1000),
     SERVER_ERROR(1001),
     TIMEOUT(1002),
+    CONNECTION_REFUSED(1003),
+    CONNECTION_FAILED(1004),
+    CONNECTION_RESET(1005),
+    HOST_UNREACHABLE(1006),
+    SOCKET_ERROR(1007),
     UNAUTHORIZED(2000),
     FORBIDDEN(2001),
     NOT_FOUND(2002),

@@ -348,51 +348,85 @@ class NetworkAuthApiImpl(
         return when (e) {
             is io.ktor.client.plugins.ClientRequestException -> {
                 when (e.response.status.value) {
-                    401 -> DomainError.authError("Необходима авторизация")
-                    403 -> DomainError.authError("Доступ запрещен")
+                    401 -> DomainError(
+                        code = model.ErrorCode.UNAUTHORIZED,
+                        message = "auth_error_unauthorized",
+                        details = e.message
+                    )
+                    403 -> DomainError(
+                        code = model.ErrorCode.FORBIDDEN,
+                        message = "auth_error_forbidden",
+                        details = e.message
+                    )
                     404 -> DomainError(
                         code = model.ErrorCode.NOT_FOUND,
-                        message = "Ресурс не найден",
+                        message = "error_resource_not_found",
                         details = e.message
                     )
                     422 -> DomainError(
                         code = model.ErrorCode.VALIDATION_ERROR,
-                        message = "Ошибка валидации данных",
+                        message = "error_validation",
                         details = e.message
                     )
                     else -> DomainError(
                         code = model.ErrorCode.UNKNOWN_ERROR,
-                        message = "Ошибка запроса: ${e.message}",
+                        message = "error_request",
                         details = e.stackTraceToString()
                     )
                 }
             }
             is io.ktor.client.plugins.ServerResponseException -> {
-                DomainError.serverError("Ошибка сервера: ${e.message}")
+                DomainError(
+                    code = model.ErrorCode.SERVER_ERROR,
+                    message = "error_server",
+                    details = e.message
+                )
             }
             is io.ktor.client.plugins.RedirectResponseException -> {
                 DomainError(
                     code = model.ErrorCode.UNKNOWN_ERROR,
-                    message = "Перенаправление: ${e.message}",
+                    message = "error_redirect",
                     details = e.stackTraceToString()
                 )
             }
             is kotlinx.coroutines.TimeoutCancellationException -> {
                 DomainError(
                     code = model.ErrorCode.TIMEOUT,
-                    message = "Превышено время ожидания",
+                    message = "error_timeout",
                     details = e.message
                 )
             }
             else -> {
-                // Check if it's a connectivity error by examining the exception message
-                if (e.message?.contains("host", ignoreCase = true) == true ||
-                    e.message?.contains("connect", ignoreCase = true) == true ||
-                    e.message?.contains("network", ignoreCase = true) == true) {
-                    DomainError.networkError("Не удается подключиться к серверу", e.message)
-                } else {
-                    DomainError.unknownError("Неизвестная ошибка: ${e.message}", e.stackTraceToString())
+                // Универсальная проверка сообщения об ошибке для работы на всех платформах
+                val errorMessage = e.message ?: "Unknown error"
+
+                // Проверяем сообщение об ошибке на наличие ключевых слов и определяем код ошибки
+                val (errorCode, errorKey) = when {
+                    errorMessage.contains("Connection refused", ignoreCase = true) ->
+                        Pair(model.ErrorCode.CONNECTION_REFUSED, "error_connection_refused")
+                    errorMessage.contains("Failed to connect", ignoreCase = true) ->
+                        Pair(model.ErrorCode.CONNECTION_FAILED, "error_connection_failed")
+                    errorMessage.contains("Connection reset", ignoreCase = true) ->
+                        Pair(model.ErrorCode.CONNECTION_RESET, "error_connection_reset")
+                    errorMessage.contains("connect", ignoreCase = true) ->
+                        Pair(model.ErrorCode.CONNECTION_FAILED, "error_connection_problem")
+                    errorMessage.contains("timeout", ignoreCase = true) ->
+                        Pair(model.ErrorCode.TIMEOUT, "error_connection_timeout")
+                    errorMessage.contains("socket", ignoreCase = true) ->
+                        Pair(model.ErrorCode.SOCKET_ERROR, "error_socket")
+                    errorMessage.contains("host", ignoreCase = true) ->
+                        Pair(model.ErrorCode.HOST_UNREACHABLE, "error_host_unreachable")
+                    errorMessage.contains("network", ignoreCase = true) ->
+                        Pair(model.ErrorCode.NETWORK_ERROR, "error_network")
+                    else ->
+                        Pair(model.ErrorCode.UNKNOWN_ERROR, "error_unknown")
                 }
+
+                DomainError(
+                    code = errorCode,
+                    message = errorKey,
+                    details = errorMessage
+                )
             }
         }
     }
