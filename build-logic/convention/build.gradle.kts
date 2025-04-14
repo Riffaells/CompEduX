@@ -12,7 +12,7 @@ dependencies {
 }
 
 kotlin {
-    jvmToolchain(libs.versions.jvm.get().toInt())
+//    jvmToolchain(libs.versions.jvm.get().toInt())
 }
 
 gradlePlugin {

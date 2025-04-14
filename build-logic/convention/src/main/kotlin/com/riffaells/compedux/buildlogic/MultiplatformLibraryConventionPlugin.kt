@@ -19,7 +19,7 @@ class MultiplatformLibraryConventionPlugin : Plugin<Project> {
 
 
             extensions.configure<KotlinMultiplatformExtension> {
-                jvmToolchain(libs.versions.jvm.get().toInt())
+//                jvmToolchain(libs.versions.jvm.get().toInt())
                 androidTarget {
 
                 }

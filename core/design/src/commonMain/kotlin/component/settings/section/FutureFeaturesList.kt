@@ -3,6 +3,7 @@ package component.settings.section
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -28,13 +29,13 @@ import androidx.compose.ui.unit.dp
 import component.settings.badge.PlanningBadge
 
 /**
- * Компонент для отображения списка будущих функций
+ * Component for displaying a list of upcoming features
  *
- * @param title Заголовок списка
- * @param features Список функций
- * @param icon Иконка для заголовка
- * @param initiallyExpanded Флаг начального состояния (развернуто/свернуто)
- * @param modifier Модификатор для стилизации компонента
+ * @param title List title
+ * @param features List of features
+ * @param icon Optional icon for the header
+ * @param initiallyExpanded Initial expansion state
+ * @param modifier Modifier for styling
  */
 @Composable
 fun FutureFeaturesList(
@@ -48,7 +49,7 @@ fun FutureFeaturesList(
 
     Surface(
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 4.dp)
@@ -69,7 +70,7 @@ fun FutureFeaturesList(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { isExpanded = !isExpanded }
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -80,15 +81,15 @@ fun FutureFeaturesList(
                         imageVector = icon,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(18.dp)
                     )
 
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
 
                     Text(
                         text = title,
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -99,7 +100,8 @@ fun FutureFeaturesList(
                     else
                         Icons.Outlined.Visibility,
                     contentDescription = if (isExpanded) "Свернуть" else "Развернуть",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    modifier = Modifier.size(18.dp)
                 )
             }
 
@@ -108,20 +110,23 @@ fun FutureFeaturesList(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 4.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     features.forEach { feature ->
                         FeatureItem(feature = feature)
                     }
                 }
+
+                // Добавляем отступ внизу
+                Spacer(modifier = Modifier.height(8.dp))
             }
         }
     }
 }
 
 /**
- * Элемент списка функций
+ * Feature list item
  */
 @Composable
 private fun FeatureItem(
@@ -134,25 +139,40 @@ private fun FeatureItem(
             .padding(vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Иконка статуса
-        Icon(
-            imageVector = when (feature.status) {
-                FeatureStatus.PLANNED -> Icons.Default.Schedule
-                FeatureStatus.IN_PROGRESS -> Icons.Default.Update
-                FeatureStatus.COMPLETED -> Icons.Default.Check
-                FeatureStatus.FEATURED -> Icons.Default.Star
-            },
-            contentDescription = null,
-            tint = when (feature.status) {
-                FeatureStatus.PLANNED -> MaterialTheme.colorScheme.outline
-                FeatureStatus.IN_PROGRESS -> MaterialTheme.colorScheme.primary
-                FeatureStatus.COMPLETED -> MaterialTheme.colorScheme.tertiary
-                FeatureStatus.FEATURED -> MaterialTheme.colorScheme.secondary
-            },
-            modifier = Modifier.size(16.dp)
-        )
+        // Иконка статуса с круглым фоном
+        Box(
+            modifier = Modifier
+                .size(24.dp)
+                .background(
+                    color = when (feature.status) {
+                        FeatureStatus.PLANNED -> MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
+                        FeatureStatus.IN_PROGRESS -> MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                        FeatureStatus.COMPLETED -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f)
+                        FeatureStatus.FEATURED -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)
+                    },
+                    shape = RoundedCornerShape(12.dp)
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = when (feature.status) {
+                    FeatureStatus.PLANNED -> Icons.Default.Schedule
+                    FeatureStatus.IN_PROGRESS -> Icons.Default.Update
+                    FeatureStatus.COMPLETED -> Icons.Default.Check
+                    FeatureStatus.FEATURED -> Icons.Default.Star
+                },
+                contentDescription = null,
+                tint = when (feature.status) {
+                    FeatureStatus.PLANNED -> MaterialTheme.colorScheme.outline
+                    FeatureStatus.IN_PROGRESS -> MaterialTheme.colorScheme.primary
+                    FeatureStatus.COMPLETED -> MaterialTheme.colorScheme.tertiary
+                    FeatureStatus.FEATURED -> MaterialTheme.colorScheme.secondary
+                },
+                modifier = Modifier.size(14.dp)
+            )
+        }
 
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(12.dp))
 
         // Описание функции
         Column(
@@ -179,20 +199,42 @@ private fun FeatureItem(
         Spacer(modifier = Modifier.width(8.dp))
 
         // Бейдж статуса
-        PlanningBadge(
-            text = when (feature.status) {
-                FeatureStatus.PLANNED -> "Планируется"
-                FeatureStatus.IN_PROGRESS -> "В разработке"
-                FeatureStatus.COMPLETED -> "Реализовано"
-                FeatureStatus.FEATURED -> "Особенность"
-            },
-            planned = feature.status == FeatureStatus.PLANNED || feature.status == FeatureStatus.IN_PROGRESS
-        )
+        val statusColor = when (feature.status) {
+            FeatureStatus.PLANNED -> MaterialTheme.colorScheme.outline
+            FeatureStatus.IN_PROGRESS -> MaterialTheme.colorScheme.primary
+            FeatureStatus.COMPLETED -> MaterialTheme.colorScheme.tertiary
+            FeatureStatus.FEATURED -> MaterialTheme.colorScheme.secondary
+        }
+
+        val backgroundColor = when (feature.status) {
+            FeatureStatus.PLANNED -> MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
+            FeatureStatus.IN_PROGRESS -> MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+            FeatureStatus.COMPLETED -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f)
+            FeatureStatus.FEATURED -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f)
+        }
+
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = backgroundColor,
+            border = BorderStroke(1.dp, statusColor.copy(alpha = 0.2f))
+        ) {
+            Text(
+                text = when (feature.status) {
+                    FeatureStatus.PLANNED -> "Планируется"
+                    FeatureStatus.IN_PROGRESS -> "В разработке"
+                    FeatureStatus.COMPLETED -> "Реализовано"
+                    FeatureStatus.FEATURED -> "Особенность"
+                },
+                style = MaterialTheme.typography.labelMedium,
+                color = statusColor,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+            )
+        }
     }
 }
 
 /**
- * Класс, представляющий будущую функцию
+ * Class representing a future feature
  */
 data class FutureFeature(
     val title: String,
@@ -201,11 +243,11 @@ data class FutureFeature(
 )
 
 /**
- * Статусы будущих функций
+ * Status types for future features
  */
 enum class FeatureStatus {
-    PLANNED,      // Запланирована на будущее
-    IN_PROGRESS,  // В процессе разработки
-    COMPLETED,    // Завершена, но еще не выпущена
-    FEATURED      // Особая функция (приоритетная)
+    PLANNED,      // Planned for future
+    IN_PROGRESS,  // Currently in development
+    COMPLETED,    // Completed but not yet released
+    FEATURED      // Special priority feature
 }

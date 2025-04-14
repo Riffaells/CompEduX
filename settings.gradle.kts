@@ -7,8 +7,10 @@ pluginManagement {
         mavenCentral()
         gradlePluginPortal()
         maven("https://s01.oss.sonatype.org/content/repositories/releases/")
-
+        maven("https://packages.jetbrains.team/maven/p/firework/dev")
     }
+
+
 }
 
 // Делаем версионный каталог доступным для build-logic
@@ -20,7 +22,11 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         maven("https://s01.oss.sonatype.org/content/repositories/releases/")
+        maven("https://packages.jetbrains.team/maven/p/firework/dev")
     }
+}
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention") version "0.9.0"
 }
 
 // Включаем все модули проекта

@@ -24,15 +24,16 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * Современный компонент предупреждения с улучшенным дизайном и плавной анимацией
+ * Modern alert component with improved design and smooth animations
  *
- * @param title Заголовок предупреждения
- * @param message Текст предупреждения
- * @param icon Иконка предупреждения
- * @param isVisible Флаг видимости предупреждения
- * @param onDismiss Функция-обработчик закрытия предупреждения
- * @param severity Уровень серьезности предупреждения
- * @param modifier Модификатор для стилизации компонента
+ * @param title Alert title
+ * @param message Alert message text
+ * @param icon Optional custom icon for the alert
+ * @param isVisible Visibility flag
+ * @param onDismiss Callback function when alert is dismissed
+ * @param severity Alert severity level
+ * @param closeButtonContentDescription Accessibility description for close button
+ * @param modifier Modifier for styling
  */
 @Composable
 fun WarningAlert(
@@ -42,6 +43,7 @@ fun WarningAlert(
     isVisible: Boolean = true,
     onDismiss: () -> Unit = {},
     severity: AlertSeverity = AlertSeverity.INFO,
+    closeButtonContentDescription: String? = null,
     modifier: Modifier = Modifier
 ) {
     var isExpanded by remember { mutableStateOf(true) }
@@ -83,7 +85,7 @@ fun WarningAlert(
         exit = fadeOut(animationSpec = tween(durationMillis = 300)) +
                shrinkVertically(animationSpec = tween(durationMillis = 300, easing = EaseInCubic))
     ) {
-        ElevatedCard(
+        Surface(
             modifier = modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -98,14 +100,8 @@ fun WarningAlert(
                     )
                 ),
             shape = RoundedCornerShape(12.dp),
-            colors = CardDefaults.elevatedCardColors(
-                containerColor = colors.backgroundColor,
-                contentColor = colors.contentColor
-            ),
-//            border = BorderStroke(1.dp, colors.borderColor),
-            elevation = CardDefaults.elevatedCardElevation(
-                defaultElevation = 2.dp
-            )
+            color = colors.backgroundColor,
+            border = BorderStroke(1.dp, colors.borderColor)
         ) {
             Column(
                 modifier = Modifier.padding(16.dp)
@@ -114,7 +110,7 @@ fun WarningAlert(
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Top
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Заголовок с иконкой
                     Row(
@@ -125,7 +121,7 @@ fun WarningAlert(
                             imageVector = alertIcon,
                             contentDescription = null,
                             tint = colors.iconColor,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(20.dp)
                         )
 
                         Spacer(modifier = Modifier.width(12.dp))
@@ -133,79 +129,35 @@ fun WarningAlert(
                         Text(
                             text = title,
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Medium,
                             color = colors.contentColor
                         )
                     }
 
-                    // Кнопки действий
-                    Row(
-                        horizontalArrangement = Arrangement.End,
-                        verticalAlignment = Alignment.CenterVertically
+                    // Кнопка закрытия
+                    IconButton(
+                        onClick = { handleDismiss() },
+                        modifier = Modifier.size(32.dp)
                     ) {
-                        if (message.isNotEmpty()) {
-                            IconButton(
-                                onClick = { isExpanded = !isExpanded },
-                                modifier = Modifier.size(36.dp)
-                            ) {
-                                Icon(
-                                    imageVector = if (isExpanded)
-                                        Icons.Outlined.VisibilityOff
-                                    else
-                                        Icons.Outlined.Visibility,
-                                    contentDescription = if (isExpanded) "Скрыть содержимое" else "Показать содержимое",
-                                    tint = colors.iconColor.copy(alpha = 0.8f),
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
-
-                        IconButton(
-                            onClick = { handleDismiss() },
-                            modifier = Modifier.size(36.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Закрыть",
-                                tint = colors.iconColor.copy(alpha = 0.8f),
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = closeButtonContentDescription,
+                            tint = colors.iconColor.copy(alpha = 0.7f),
+                            modifier = Modifier.size(16.dp)
+                        )
                     }
                 }
 
-                // Содержимое алерта (если есть сообщение и оно развернуто)
+                // Содержимое алерта
                 if (message.isNotEmpty()) {
-                    AnimatedVisibility(
-                        visible = isExpanded,
-                        enter = expandVertically(
-                            animationSpec = tween(durationMillis = 300, easing = EaseOutCubic)
-                        ) + fadeIn(
-                            animationSpec = tween(durationMillis = 200)
-                        ),
-                        exit = shrinkVertically(
-                            animationSpec = tween(durationMillis = 300, easing = EaseInCubic)
-                        ) + fadeOut(
-                            animationSpec = tween(durationMillis = 200)
-                        )
-                    ) {
-                        Column {
-                            Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
 
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = colors.messageBackgroundColor,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text(
-                                    text = message,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = colors.contentColor,
-                                    modifier = Modifier.padding(12.dp)
-                                )
-                            }
-                        }
-                    }
+                    Text(
+                        text = message,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colors.contentColor.copy(alpha = 0.9f),
+                        modifier = Modifier.padding(start = 32.dp, end = 8.dp)
+                    )
                 }
             }
         }
@@ -213,7 +165,7 @@ fun WarningAlert(
 }
 
 /**
- * Цветовая схема для предупреждения
+ * Color scheme for alert types
  */
 data class AlertColors(
     val backgroundColor: Color,
@@ -224,7 +176,7 @@ data class AlertColors(
 )
 
 /**
- * Уровни серьезности предупреждения с улучшенными цветами
+ * Alert severity levels with improved color schemes
  */
 enum class AlertSeverity {
     WARNING,
@@ -235,22 +187,22 @@ enum class AlertSeverity {
     fun getColors(): AlertColors {
         return when (this) {
             WARNING -> AlertColors(
-                backgroundColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f),
-                messageBackgroundColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f),
+                backgroundColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.15f),
+                messageBackgroundColor = Color.Transparent,
                 contentColor = MaterialTheme.colorScheme.onErrorContainer,
                 iconColor = MaterialTheme.colorScheme.error,
                 borderColor = MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
             )
             ERROR -> AlertColors(
-                backgroundColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.9f),
-                messageBackgroundColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f),
+                backgroundColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f),
+                messageBackgroundColor = Color.Transparent,
                 contentColor = MaterialTheme.colorScheme.onErrorContainer,
                 iconColor = MaterialTheme.colorScheme.error,
                 borderColor = MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
             )
             INFO -> AlertColors(
-                backgroundColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f),
-                messageBackgroundColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                backgroundColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f),
+                messageBackgroundColor = Color.Transparent,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 iconColor = MaterialTheme.colorScheme.primary,
                 borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)

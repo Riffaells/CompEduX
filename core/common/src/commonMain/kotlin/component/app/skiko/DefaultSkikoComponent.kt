@@ -33,11 +33,12 @@ class DefaultSkikoComponent(
     override val di: DI
 ) : SkikoComponent, DIAware, ComponentContext by componentContext {
 
-    private val skikoStoreFactory: SkikoStoreFactory by instance()
+    private val skikoStoreFactory by instance<SkikoStoreFactory>()
 
     private val store = instanceKeeper.getStore {
         skikoStoreFactory.create()
     }
+
 
     @OptIn(ExperimentalCoroutinesApi::class)
     override val state: StateFlow<SkikoStore.State> = store.stateFlow

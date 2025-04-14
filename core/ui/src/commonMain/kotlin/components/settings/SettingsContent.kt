@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.stack.animation.fade
@@ -30,6 +31,10 @@ import component.app.settings.SettingsComponent
 import component.app.settings.store.SettingsStore
 import components.settings.base.SettingCategory
 import components.settings.base.SettingCategoryItem
+import components.settings.appearance.AppearanceSettingsContent
+import components.settings.base.SettingsScaffold
+import components.settings.language.LanguageSettingsContent
+import components.settings.model.CategoryState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.ExperimentalResourceApi
@@ -53,11 +58,51 @@ fun SettingsContent(
     ) { child ->
         when (val instance = child.instance) {
             is SettingsComponent.Child.MainChild -> SettingsCategoriesScreen(modifier, component)
-            is SettingsComponent.Child.CategoryChild -> SettingsCategoryScreen(
-                modifier = modifier,
-                component = component,
-                category = instance.category
-            )
+            is SettingsComponent.Child.CategoryChild -> {
+                // Создаем соответствующий объект CategoryState на основе типа категории
+                val categoryState = when (instance.category) {
+                    SettingsComponent.SettingsCategory.APPEARANCE -> CategoryState.Appearance(
+                        component = component,
+                        title = stringResource(Res.string.settings_category_appearance)
+                    )
+                    SettingsComponent.SettingsCategory.LANGUAGE -> CategoryState.Language(
+                        component = component,
+                        title = stringResource(Res.string.settings_category_language)
+                    )
+                    SettingsComponent.SettingsCategory.NETWORK -> CategoryState.Network(
+                        component = component,
+                        title = stringResource(Res.string.settings_category_network)
+                    )
+                    SettingsComponent.SettingsCategory.SECURITY -> CategoryState.Security(
+                        component = component,
+                        title = stringResource(Res.string.settings_category_security)
+                    )
+                    SettingsComponent.SettingsCategory.NOTIFICATIONS -> CategoryState.Notifications(
+                        component = component,
+                        title = stringResource(Res.string.settings_category_notifications)
+                    )
+                    SettingsComponent.SettingsCategory.STORAGE -> CategoryState.Storage(
+                        title = stringResource(Res.string.settings_category_storage)
+                    )
+                    SettingsComponent.SettingsCategory.EXPERIMENTAL -> CategoryState.Experimental(
+                        component = component,
+                        title = stringResource(Res.string.settings_category_experimental)
+                    )
+                    SettingsComponent.SettingsCategory.SYSTEM -> CategoryState.System(
+                        title = stringResource(Res.string.settings_category_system)
+                    )
+                    SettingsComponent.SettingsCategory.PROFILE -> CategoryState.Profile(
+                        component = component,
+                        title = stringResource(Res.string.settings_category_profile)
+                    )
+                }
+
+                SettingsCategoryScreen(
+                    modifier = modifier,
+                    categoryState = categoryState,
+                    onBack = component::onBackFromCategory
+                )
+            }
         }
     }
 }
@@ -65,13 +110,15 @@ fun SettingsContent(
 /**
  * Экран с категориями настроек
  */
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalResourceApi::class)
 @Composable
-fun SettingsCategoriesScreen(
+private fun SettingsCategoriesScreen(
     modifier: Modifier = Modifier,
     component: SettingsComponent
 ) {
     // Получаем состояние из компонента
     val state by component.state.collectAsState()
+    val scrollState = rememberScrollState()
 
     // Состояние для анимации элементов
     var showContent by remember { mutableStateOf(false) }
@@ -82,37 +129,31 @@ fun SettingsCategoriesScreen(
         showContent = true
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Настройки") },
-                navigationIcon = {
-                    IconButton(onClick = { component.onAction(SettingsStore.Intent.Back) }) {
-                        Icon(RIcons.ArrowBack, contentDescription = "Назад")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { component.onDrawerButtonClicked() }) {
-                        Icon(Icons.Default.Menu, contentDescription = "Меню")
-                    }
-                }
-            )
-        }
-    ) { padding ->
-        Box(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
-        ) {
+    SettingsScaffold(
+        modifier = modifier,
+        content = {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp)
-                    .padding(bottom = 100.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .verticalScroll(scrollState)
+                    .padding(bottom = 16.dp)
             ) {
-                // Анимация заголовка
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(
+                            text = stringResource(Res.string.settings_title),
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        )
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background,
+                        titleContentColor = MaterialTheme.colorScheme.onBackground
+                    )
+                )
+
+                // Title header with animation
                 AnimatedVisibility(
                     visible = showContent,
                     enter = fadeIn(animationSpec = tween(500)) +
@@ -124,11 +165,12 @@ fun SettingsCategoriesScreen(
                 ) {
                     Text(
                         text = "Настройки приложения",
-                        style = MaterialTheme.typography.headlineSmall
+                        style = MaterialTheme.typography.headlineSmall,
+                        modifier = Modifier.padding(horizontal = 16.dp)
                     )
                 }
 
-                // Список категорий настроек
+                // Settings categories list
                 val categories = listOf(
                     SettingCategory(
                         title = stringResource(Res.string.settings_category_profile),
@@ -179,11 +221,15 @@ fun SettingsCategoriesScreen(
                     ) {
                         SettingCategoryItem(
                             category = category,
-                            onClick = { component.onCategorySelected(category.category) }
+                            onClick = { component.onCategorySelected(category.category) },
+                            modifier = Modifier.padding(horizontal = 16.dp)
                         )
                     }
                 }
+
+                // Add bottom padding for better spacing
+                Spacer(modifier = Modifier.height(100.dp))
             }
         }
-    }
+    )
 }

@@ -107,7 +107,64 @@
     <string name="security_feature_passwords">Управление паролями</string>
     <string name="security_feature_lockout">Блокировка после неудачных попыток входа</string>
 
+    <!-- Экспериментальные компоненты -->
+    <string name="experimental_title">Экспериментальные компоненты</string>
+    <string name="experimental_description">Здесь представлены компоненты интерфейса для тестирования и демонстрации. Вы можете изучить их и использовать в своем проекте.</string>
+    <string name="experimental_info">Компоненты интерфейса</string>
 
+    <!-- Секции экспериментальных компонентов -->
+    <string name="experimental_section_buttons">Кнопки</string>
+    <string name="experimental_button_standard">Стандартная</string>
+    <string name="experimental_button_icon">С иконкой</string>
+    <string name="experimental_button_outlined">Контурная</string>
+    <string name="experimental_button_tonal">Тональная</string>
+    <string name="experimental_button_text">Текстовая</string>
+    <string name="experimental_button_toggleable">Переключаемая</string>
+
+    <string name="experimental_section_cards">Карточки</string>
+    <string name="experimental_card_standard">Стандартная карточка</string>
+    <string name="experimental_card_standard_desc">Описание карточки с базовым стилем</string>
+    <string name="experimental_card_elevated">Карточка с тенью</string>
+    <string name="experimental_card_elevated_desc">Приподнятая карточка с эффектом тени</string>
+    <string name="experimental_card_outlined">Карточка с контуром</string>
+    <string name="experimental_card_outlined_desc">Карточка с видимой границей</string>
+
+    <string name="experimental_section_inputs">Поля ввода</string>
+    <string name="experimental_input_standard">Стандартное поле</string>
+    <string name="experimental_input_placeholder">Введите текст</string>
+    <string name="experimental_input_filled">Заполненное поле</string>
+    <string name="experimental_input_icons">С иконками</string>
+    <string name="experimental_input_clear">Очистить</string>
+
+    <string name="experimental_section_controls">Переключатели</string>
+    <string name="experimental_control_switch">Switch</string>
+    <string name="experimental_control_checkbox">Checkbox</string>
+    <string name="experimental_control_radio">Radio buttons</string>
+    <string name="experimental_control_radio_option1">Вариант 1</string>
+    <string name="experimental_control_radio_option2">Вариант 2</string>
+
+    <string name="experimental_section_sliders">Слайдеры и индикаторы</string>
+    <string name="experimental_slider_standard">Стандартный слайдер</string>
+    <string name="experimental_slider_value">Значение: %d%%</string>
+    <string name="experimental_slider_min">Мин</string>
+    <string name="experimental_slider_middle">Среднее</string>
+    <string name="experimental_slider_max">Макс</string>
+    <string name="experimental_progress">Прогресс</string>
+    <string name="experimental_progress_infinite">Бесконечный</string>
+
+    <string name="experimental_section_animations">Анимированные компоненты</string>
+    <string name="experimental_animation_pulse">Пульсирующая</string>
+    <string name="experimental_animation_gradient">Градиент</string>
+
+    <string name="experimental_section_custom">Собственные компоненты</string>
+    <string name="experimental_custom_futuristic">Футуристический элемент настроек</string>
+    <string name="experimental_custom_futuristic_desc">Пример компонента с пользовательским дизайном</string>
+    <string name="experimental_custom_badge">Тестовый компонент</string>
+    <string name="experimental_custom_premium">Премиум компонент</string>
+    <string name="experimental_custom_premium_desc">Пример карточки с центрированным содержимым и иконкой</string>
+    <string name="experimental_custom_more">Подробнее</string>
+
+    <!-- Логин -->
     <string name="login_welcome_back">С возвращением!</string>
     <string name="login_we_missed_you">Мы скучали по вам</string>
     <string name="login_email">Email</string>
@@ -118,6 +175,5 @@
     <string name="login_back">Назад</string>
     <string name="profile_logout">Выйти</string>
     <string name="profile_back">Назад</string>
-
 
 </resources>

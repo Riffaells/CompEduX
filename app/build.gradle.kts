@@ -1,27 +1,62 @@
 import org.jetbrains.compose.ExperimentalComposeLibrary
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import org.jetbrains.compose.reload.ComposeHotRun
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSetTree
+import org.jetbrains.kotlin.compose.compiler.gradle.ComposeFeatureFlag
+import org.gradle.jvm.toolchain.JavaLanguageVersion
+import org.gradle.jvm.toolchain.JvmVendorSpec
 
 plugins {
     alias(libs.plugins.compedux.multiplatform)
     alias(libs.plugins.compedux.multiplatform.compose)
     alias(libs.plugins.compedux.decompose)
     alias(libs.plugins.android.application)
+    alias(libs.plugins.compose.hot)
+}
+
+composeCompiler {
+    featureFlags.add(ComposeFeatureFlag.OptimizeNonSkippingGroups)
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(libs.versions.jvm.get().toInt())
+        vendor.set(JvmVendorSpec.JETBRAINS)
+    }
+}
+
+tasks.register<ComposeHotRun>("runHot") {
+    mainClass.set("DevMainKt")
+}
+
+tasks.named("runHot") {
+    this as ComposeHotRun
+    javaLauncher.set(javaToolchains.launcherFor {
+        languageVersion.set(JavaLanguageVersion.of(libs.versions.jvm.get().toInt()))
+        vendor.set(JvmVendorSpec.JETBRAINS)
+    })
+}
+
+// Решаем проблему с перезаписью MANIFEST.MF
+tasks.withType<Jar> {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+// Также настраиваем процессирование ресурсов
+tasks.withType<ProcessResources> {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 kotlin {
-
-    jvmToolchain(libs.versions.jvm.get().toInt())
+    // Регистрируем все необходимые таргеты явно
     androidTarget {
-        //https://www.jetbrains.com/help/kotlin-multiplatform-dev/compose-test.html
         @OptIn(ExperimentalKotlinGradlePluginApi::class)
         instrumentedTestVariant.sourceSetTree.set(KotlinSourceSetTree.test)
     }
 
-
-
+    // Подключаем JVM таргет для десктоп
     jvm()
 
     @OptIn(ExperimentalWasmDsl::class)
@@ -41,10 +76,8 @@ kotlin {
         }
     }
 
-
     sourceSets {
         commonMain.dependencies {
-
             implementation(projects.core.utils)
 
             // Module dependencies
@@ -53,13 +86,12 @@ kotlin {
             implementation(projects.core.ui)
             implementation(projects.core.design)
         }
-
     }
 }
 
 android {
     namespace = "com.riffaells.compedux"
-    compileSdk = 35
+    compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {
         minSdk = libs.versions.minSdk.get().toInt()
@@ -80,9 +112,6 @@ android {
         }
     }
 }
-
-
-
 
 compose.desktop {
     application {

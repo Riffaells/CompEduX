@@ -19,10 +19,11 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun SettingCategoryItem(
     category: SettingCategory,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
             .clip(RoundedCornerShape(16.dp))

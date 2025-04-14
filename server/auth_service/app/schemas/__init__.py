@@ -1,14 +1,22 @@
 # Schemas Package
 from .base import UserBaseSchema
 from .privacy import PrivacySettingsSchema, PrivacySettingsUpdateSchema
-from .auth import UserLoginSchema, TokenSchema, TokenRefreshSchema
+from .auth import UserLoginSchema, TokenSchema, TokenRefreshSchema, TokenData
 # Temporarily commented out room-related schemas to troubleshoot database connection issues
 from .associations import UserOAuthProviderSchema  # , UserRoomSchema, RoomSchema
 from .user import (
     UserCreateSchema,
     UserUpdateSchema,
     UserResponseSchema,
-    UserPublicProfileSchema
+    UserPublicProfileSchema,
+    UserProfileSchema,
+    UserPreferencesSchema
+)
+from .stats import (
+    PlatformStatSchema,
+    OSStatSchema,
+    AppVersionStatSchema,
+    ClientStatsResponse
 )
 
 __all__ = [
@@ -25,5 +33,11 @@ __all__ = [
     'UserCreateSchema',
     'UserUpdateSchema',
     'UserResponseSchema',
-    'UserPublicProfileSchema'
+    'UserPublicProfileSchema',
+    'UserProfileSchema',
+    'UserPreferencesSchema',
+    'PlatformStatSchema',
+    'OSStatSchema',
+    'AppVersionStatSchema',
+    'ClientStatsResponse'
 ]

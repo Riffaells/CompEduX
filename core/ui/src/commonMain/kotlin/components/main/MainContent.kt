@@ -103,7 +103,7 @@ fun MainContent(
                     exit = fadeOut()
                 ) {
                     Text(
-                        text = "Главный экран",
+                        text = "Быстро ли вы можете найти нужный вам курс?",
                         style = MaterialTheme.typography.bodyLarge
                     )
                 }
@@ -129,15 +129,6 @@ fun MainContent(
                                 .scale(buttonScale)
                         ) {
                             Text("Открыть настройки")
-                        }
-
-                        Button(
-                            onClick = { component.onAction(MainStore.Intent.UpdateTitle("Обновленный заголовок")) },
-                            modifier = Modifier
-                                .padding(top = 8.dp)
-                                .scale(buttonScale)
-                        ) {
-                            Text("Обновить заголовок")
                         }
 
                         Button(

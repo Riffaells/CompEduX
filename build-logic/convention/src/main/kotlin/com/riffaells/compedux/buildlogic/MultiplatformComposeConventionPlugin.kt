@@ -3,6 +3,8 @@ package com.riffaells.compedux.buildlogic
 import libs
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.jvm.toolchain.JavaLanguageVersion
+import org.gradle.jvm.toolchain.JvmVendorSpec
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.getByType
 import org.jetbrains.compose.ComposeExtension
@@ -18,7 +20,10 @@ class MultiplatformComposeConventionPlugin : Plugin<Project> {
                 apply(libs.plugins.kmultiplatform.get().pluginId)
                 apply(libs.plugins.kcompose.get().pluginId)
                 apply(libs.plugins.compose.compiler.get().pluginId)
+                apply(libs.plugins.compose.hot.get().pluginId)
             }
+
+
 
             extensions.configure<ComposeExtension> {
                 // Configure Compose-specific settings if needed
@@ -26,7 +31,14 @@ class MultiplatformComposeConventionPlugin : Plugin<Project> {
 
             extensions.configure<KotlinMultiplatformExtension> {
                 // Set JVM target compatibility to match Java
-                jvmToolchain(libs.versions.jvm.get().toInt())
+//                jvmToolchain {
+//                    languageVersion.set(JavaLanguageVersion.of(libs.versions.jvm.get().toInt()))
+//                    vendor.set(JvmVendorSpec.JETBRAINS)
+//                }
+
+//                androidTarget()
+
+                jvm()
 
                 // Add opt-in annotations for experimental APIs
                 targets.configureEach {
