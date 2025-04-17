@@ -1,3 +1,11 @@
+# Добавляем путь к корневой директории в начале файла
+import sys
+import os
+# Получаем абсолютный путь к корневой директории проекта
+root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+if root_dir not in sys.path:
+    sys.path.insert(0, root_dir)
+
 from fastapi import FastAPI, Request, Response, Depends, Header, HTTPException, Security
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
@@ -10,104 +18,88 @@ import asyncio
 from typing import Optional, Callable, Dict, Any, TypeVar
 from fastapi import status
 import uuid
-import os
 from datetime import datetime
 from pathlib import Path
 import logging
-import logging.config
-import yaml
 from jose import jwt
 from uuid import UUID
+from sqlalchemy.orm import Session
 
+# Импорты из проекта
 from .api.routes import auth, users, stats
 from .core.config import settings
 from .db.init_db import init_db
+from .db.database import database  # Импорт database
 from .core.exceptions import APIException, api_exception_handler, validation_exception_handler
-from .core.logging import setup_logging, get_logger, log_request_info, log_response_info
+from .db.session import get_db
+from .schemas import UserCreateSchema
 
-# Настройка логирования
-log_level = "debug" if settings.DEBUG else "info"
-# Определяем путь к файлу конфигурации логирования
-log_config_path = "auth_service/app/core/logging.conf"
-setup_logging(level=log_level, enable_file_logging=True, config_path=log_config_path)
-logger = get_logger("main")
+# Импортируем единый логгер из common модуля
+from common.logger import get_logger
+from common.logger.middleware import setup_request_logging
 
-# Setup database connection for development mode using SQLite
-if os.getenv("ENV") == "development":
-    sqlite_path = Path(__file__).parent.parent / "dev.db"
-    os.environ["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
-        "SQLALCHEMY_DATABASE_URI", f"sqlite:///{sqlite_path}"
-    )
+# Получаем настроенный логгер
+logger = get_logger("auth_service")
 
+# Настраиваем обработчик ошибок подключения к БД
+def handle_db_error(logger, error_msg, e):
+    exc_type, exc_value, exc_traceback = sys.exc_info()
+    log_msg = f"{error_msg}: {str(e)}"
+    logger.error(f"[bold red]{log_msg}[/bold red]")
+    return HTTPException(status_code=503, detail=log_msg)
+
+# Определяем функцию lifespan
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
-    Обработчик событий жизненного цикла приложения.
+    Контекст жизненного цикла приложения
     """
     # Startup: выполняется при запуске приложения
-    logger.info("Запуск приложения...")
+    logger.info("[bold green]Auth Service starting up...[/bold green]")
+    logger.info("[blue]Connecting to database...[/blue]")
 
     # Инициализация базы данных - делаем это асинхронно
-    from concurrent.futures import ThreadPoolExecutor
-    with ThreadPoolExecutor() as pool:
-        loop = asyncio.get_event_loop()
-        db_initialized = await loop.run_in_executor(pool, init_db)
-        if db_initialized:
-            logger.info("База данных успешно инициализирована")
-        else:
-            logger.warning("Не удалось инициализировать базу данных. Приложение может работать некорректно.")
+    try:
+        # init_db возвращает bool, но он должен вызываться синхронно
+        init_db()
+        logger.info("База данных успешно инициализирована")
+    except Exception as e:
+        logger.error(f"[bold red]Database initialization error: {e}[/bold red]")
+        logger.warning("Unable to initialize database. Application may not work properly.")
+
+    # Соединение с базой данных
+    try:
+        await database.connect()
+        logger.info(f"Connected to database {database.url}")
+        logger.info("[green]Database connection established[/green]")
+    except Exception as e:
+        logger.error(f"[bold red]Failed to connect to database: {e}[/bold red]")
+        sys.exit(1)
 
     yield  # Здесь приложение работает
 
     # Shutdown: выполняется при завершении работы
-    logger.info("Завершение работы приложения...")
+    logger.info("[bold yellow]Auth Service shutting down...[/bold yellow]")
 
+    # Отключение от базы данных
+    try:
+        await database.disconnect()
+        logger.info("[green]Database connection closed[/green]")
+    except Exception as e:
+        logger.error(f"[bold red]Error disconnecting from database: {e}[/bold red]")
+
+# Создаем FastAPI приложение
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    description=settings.DESCRIPTION + """
-
-## Версионирование API
-
-Сервис поддерживает гибридный подход к версионированию API:
-
-1. **Версия в пути** - традиционный подход: `/api/v1/users`
-2. **Версия в заголовке** - современный подход: `/api/users` с заголовком `X-API-Version: v1`
-3. **Без указания версии** - работает с последней версией: `/api/users` или `/users`
-
-### Примеры использования:
-
-```bash
-# Версия в пути (традиционный подход)
-curl -X GET http://localhost:8000/api/v1/users/me -H "Authorization: Bearer YOUR_TOKEN"
-
-# Версия в заголовке (современный подход)
-curl -X GET http://localhost:8000/api/users/me -H "X-API-Version: v1" -H "Authorization: Bearer YOUR_TOKEN"
-
-# Без указания версии (последняя версия)
-curl -X GET http://localhost:8000/api/users/me -H "Authorization: Bearer YOUR_TOKEN"
-```
-
-В ответах всегда присутствует заголовок `X-API-Version`, указывающий используемую версию API.
-    """,
+    description=settings.DESCRIPTION,
     version=settings.VERSION,
-    lifespan=lifespan,
-    # Настройки для Swagger UI
-    docs_url="/docs",
-    redoc_url="/redoc",
-    openapi_url="/openapi.json",
-    swagger_ui_parameters={
-        "deepLinking": True,  # Позволяет использовать прямые ссылки на операции
-        "defaultModelsExpandDepth": 3,  # Глубина раскрытия моделей
-        "defaultModelExpandDepth": 3,  # Глубина раскрытия модели
-        "displayRequestDuration": True,  # Показывать время выполнения запроса
-    }
+    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    docs_url=f"{settings.API_V1_STR}/docs",
+    redoc_url=f"{settings.API_V1_STR}/redoc",
+    lifespan=lifespan
 )
 
-# Регистрируем обработчики исключений
-app.add_exception_handler(APIException, api_exception_handler)
-app.add_exception_handler(RequestValidationError, validation_exception_handler)
-
-# Configure CORS
+# Добавляем поддержку CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.BACKEND_CORS_ORIGINS,
@@ -115,6 +107,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Настройка middleware для логирования запросов
+setup_request_logging(
+    app=app,
+    logger=logger,
+    exclude_paths=[
+        "/docs", "/redoc", "/openapi.json", "/healthz",
+        f"{settings.API_V1_STR}/docs", f"{settings.API_V1_STR}/redoc",
+        f"{settings.API_V1_STR}/openapi.json"
+    ],
+    log_request_headers=False
+)
+
+# Обработчики исключений
+app.add_exception_handler(APIException, api_exception_handler)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
 
 # Создадим класс для добавления версии API в заголовок ответа
 class VersionedAPIRoute(APIRouter):
@@ -173,6 +181,10 @@ async def health_check_root():
     Используется системами мониторинга и балансировщиками нагрузки.
     """
     return {"status": "healthy"}
+
+# Подключаем маршруты auth напрямую к корню для API Gateway
+# Эти маршруты будут доступны как /login, /register и т.д.
+app.include_router(auth.router, tags=["gateway-auth"])
 
 # Информационный эндпоинт о API
 @app.get("/api", response_model=Dict[str, str],
@@ -279,7 +291,7 @@ async def debug_routes(_: bool = Depends(verify_admin_access)):
         })
     return {"routes": routes}
 
-# Объединенный middleware для обработки запросов, логирования и версионирования API
+# Объединенный middleware для обработки запросов и версионирования API
 @app.middleware("http")
 async def combined_middleware(request: Request, call_next):
     # Генерируем уникальный ID для запроса
@@ -301,35 +313,31 @@ async def combined_middleware(request: Request, call_next):
         auth_header = request.headers.get("Authorization")
         if auth_header and auth_header.startswith("Bearer "):
             token = auth_header.replace("Bearer ", "")
-            # Разбор токена без проверки подписи, только для получения ID
-            payload = jwt.decode(
-                token,
-                settings.AUTH_SECRET_KEY,
-                algorithms=["HS256"],
-                options={"verify_signature": True}
-            )
-            user_id_str = payload.get("sub")
-            if user_id_str:
-                user_id = UUID(user_id_str)
-                request.state.user_id = user_id
+            # Разбор токена для получения ID - без полной валидации
+            # для ускорения работы и избежания ненужных проверок подписи
+            try:
+                # Используем опцию verify_signature=False для ускорения
+                # Это безопасно, так как мы только получаем ID для статистики
+                payload = jwt.decode(
+                    token,
+                    settings.AUTH_SECRET_KEY,
+                    algorithms=["HS256"],
+                    options={"verify_signature": False}
+                )
+                user_id_str = payload.get("sub")
+                if user_id_str:
+                    try:
+                        user_id = UUID(user_id_str)
+                        request.state.user_id = user_id
+                    except ValueError:
+                        # Игнорируем ошибку парсинга UUID
+                        pass
+            except Exception as jwt_error:
+                # Игнорируем ошибки JWT для статистики
+                pass
     except Exception as e:
-        logger = get_logger("auth")
-        logger.debug(f"Error parsing token for stats: {str(e)}")
         # Игнорируем ошибки при получении пользователя, это не критично для статистики
-
-    # Определение важных запросов для логирования
-    is_important = path.startswith(('/auth/login', '/auth/register', '/api/v1/auth/login', '/api/v1/auth/register'))
-    should_log = is_important or settings.DEBUG
-
-    # Логируем запрос, если это нужно
-    if should_log:
-        log_request_info(
-            request_id=request_id,
-            method=method,
-            path=path,
-            version=api_version,
-            client_ip=client_ip
-        )
+        pass
 
     # Замеряем время выполнения
     start_time = time.time()
@@ -339,45 +347,13 @@ async def combined_middleware(request: Request, call_next):
         response = await call_next(request)
         process_time = (time.time() - start_time) * 1000  # время в миллисекундах
 
-        # Добавляем версию API и request_id в ответ
-        response.headers["X-API-Version"] = request.state.api_version
         response.headers["X-Request-ID"] = request_id
-
-        # Логируем результат
-        if response.status_code >= 400 or process_time > 1000 or is_important or settings.DEBUG:
-            log_response_info(
-                request_id=request_id,
-                status_code=response.status_code,
-                duration_ms=process_time,
-                path=path,
-                method=method
-            )
-
-        # Собираем статистику клиента, если есть информация в заголовках
-        # Делаем это после отправки ответа, чтобы не замедлять основной поток
-        if request.headers.get("X-Client-Platform") or request.headers.get("X-App-Version"):
-            from .services.stats import collect_client_stats
-            from .db.session import SessionLocal
-
-            # Используем ID пользователя из request.state
-            user_id = getattr(request.state, "user_id", None)
-
-            # Сохраняем статистику асинхронно
-            db = SessionLocal()
-            try:
-                asyncio.create_task(collect_client_stats(request, user_id, db))
-            except Exception as stats_error:
-                logger = get_logger("stats")
-                logger.error(f"Error collecting stats: {str(stats_error)}")
-                # В случае ошибки просто продолжаем, это некритичная операция
-                db.close()
 
         return response
     except Exception as e:
         # Логируем исключения
         process_time = (time.time() - start_time) * 1000
-        error_logger = get_logger("error")
-        error_logger.error(
+        logger.error(
             f"Exception in {method} {path}: {str(e)}",
             extra={
                 "request_id": request_id,

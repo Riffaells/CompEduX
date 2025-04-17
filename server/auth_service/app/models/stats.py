@@ -3,7 +3,7 @@ import uuid
 from sqlalchemy import Column, String, DateTime, Integer, BigInteger, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 
-from ..db.base_class import Base
+from .base import Base
 
 class ClientStatModel(Base):
     """

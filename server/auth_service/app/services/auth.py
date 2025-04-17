@@ -44,6 +44,30 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
+def decode_jwt_token(token: str) -> Dict[str, Any]:
+    """
+    Decode JWT token and return payload.
+
+    Args:
+        token: JWT token string
+
+    Returns:
+        Dictionary with token payload
+
+    Raises:
+        HTTPException: If token is invalid or expired
+    """
+    try:
+        payload = jwt.decode(token, settings.AUTH_SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except JWTError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Could not validate credentials: {str(e)}",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+
 def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
     """Create JWT access token"""
     to_encode = data.copy()

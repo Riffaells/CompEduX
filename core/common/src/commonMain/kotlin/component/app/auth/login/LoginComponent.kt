@@ -20,9 +20,8 @@ import utils.rDispatchers
 interface LoginComponent {
     val state: StateFlow<LoginStore.State>
 
-    fun onLoginClick(email: String, password: String)
+    fun accept(intent: LoginStore.Intent)
     fun onBackClick()
-    fun onRegisterClick()
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -48,30 +47,37 @@ class DefaultLoginComponent(
 
     override val state: StateFlow<LoginStore.State> = loginStore.stateFlow
 
-    override fun onLoginClick(email: String, password: String) {
-        // Set username and password first
-        loginStore.accept(LoginStore.Intent.SetUsername(email))
-        loginStore.accept(LoginStore.Intent.SetPassword(password))
-        // Then trigger login
-        loginStore.accept(LoginStore.Intent.Login)
-
-        // Monitor auth state changes to trigger navigation on success
+    init {
+        // Мониторинг изменений состояния для навигации
         scope.launch {
-            // This is simplified - in a real implementation, you would monitor
-            // the AuthState from a shared AuthStore or Repository to detect successful login
-            // For now, we'll assume the LoginStore handles everything
-            // You would replace this with actual auth state monitoring
-            if (authUseCases.isAuthenticated()) {
-                onLoginSuccess()
+            // Здесь можно отслеживать состояние из state и вызывать соответствующие колбэки
+            // Например, если пользователь аутентифицирован или нужно перейти на другой экран
+        }
+    }
+
+    override fun accept(intent: LoginStore.Intent) {
+        loginStore.accept(intent)
+
+        // Обрабатываем дополнительные действия в зависимости от типа Intent
+        when (intent) {
+            is LoginStore.Intent.Login -> {
+                // Проверяем успешность входа
+                scope.launch {
+                    if (authUseCases.isAuthenticated()) {
+                        onLoginSuccess()
+                    }
+                }
             }
+
+            is LoginStore.Intent.NavigateToRegister -> {
+                onRegister()
+            }
+
+            else -> { /* Для других интентов никаких действий не требуется */ }
         }
     }
 
     override fun onBackClick() {
         onBack()
-    }
-
-    override fun onRegisterClick() {
-        onRegister()
     }
 }

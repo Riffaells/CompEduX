@@ -1,7 +1,7 @@
 # Schemas Package
 from .base import UserBaseSchema
 from .privacy import PrivacySettingsSchema, PrivacySettingsUpdateSchema
-from .auth import UserLoginSchema, TokenSchema, TokenRefreshSchema, TokenData
+from .auth import UserLoginSchema, TokenSchema, TokenRefreshSchema, TokenPayloadSchema
 # Temporarily commented out room-related schemas to troubleshoot database connection issues
 from .associations import UserOAuthProviderSchema  # , UserRoomSchema, RoomSchema
 from .user import (
@@ -26,6 +26,7 @@ __all__ = [
     'UserLoginSchema',
     'TokenSchema',
     'TokenRefreshSchema',
+    'TokenPayloadSchema',
     'UserOAuthProviderSchema',
     # Temporarily commented out room-related schemas to troubleshoot database connection issues
     # 'UserRoomSchema',

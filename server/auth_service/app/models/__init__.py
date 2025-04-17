@@ -11,11 +11,15 @@ from .associations import UserOAuthProviderModel, user_oauth_providers
 __all__ = [
     'Base',
     'UserModel',
+    'UserProfileModel',
+    'UserPreferencesModel',
+    'UserRatingModel',
     'UserRole',
     'OAuthProvider',
     'PrivacyLevel',
     'UserPrivacyModel',
     'RefreshTokenModel',
+    'ClientStatModel',
     # Temporarily removed RoomModel for troubleshooting
     'UserOAuthProviderModel',
     'user_oauth_providers',

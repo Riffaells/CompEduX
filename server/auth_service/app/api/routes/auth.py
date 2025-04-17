@@ -1,5 +1,6 @@
 from datetime import timedelta
 import logging
+from typing import Dict, Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Body, Request
 from fastapi.security import OAuth2PasswordBearer
@@ -24,6 +25,8 @@ from ...services.auth import (
     get_current_user,
     refresh_access_token,
     revoke_refresh_token,
+    get_user_by_id,
+    decode_jwt_token,
 )
 from ..utils import prepare_user_response
 
@@ -36,6 +39,15 @@ router = APIRouter()
 class LoginRequest(BaseModel):
     username: str  # Может быть email или username
     password: str
+
+# Схема для ответа verify-token
+class TokenVerifyResponse(BaseModel):
+    id: str
+    username: str
+    email: str
+    is_active: bool
+    is_admin: bool
+    created_at: Optional[str] = None
 
 @router.post("/register", response_model=TokenSchema)
 async def register(user_in: UserCreateSchema, db: Session = Depends(get_db)):
@@ -156,6 +168,7 @@ async def get_current_user_info(
 
 
 @router.post("/logout", status_code=status.HTTP_200_OK)
+@router.get("/logout", status_code=status.HTTP_200_OK)
 async def logout(
     request: Request,
     response: Response,
@@ -196,11 +209,92 @@ async def logout(
         logger.info(f"Successfully logged out user: {current_user.id}")
         return {"message": "Successfully logged out"}
     else:
-        logger.warning(f"No valid tokens found to revoke for user: {current_user.id}")
-        return {"message": "No active sessions to logout"}
+        logger.warning(f"Failed to logout user: {current_user.id}")
+        return {"message": "No active tokens to revoke"}
 
 
-@router.post("/verify-token")
-async def verify_token(current_user: UserModel = Depends(get_current_user)):
-    """Verify token and return user ID"""
-    return {"user_id": str(current_user.id), "valid": True}
+@router.post("/verify-token", response_model=TokenVerifyResponse)
+async def verify_token(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    Verify token and return user info if token is valid.
+    Used internally by API Gateway for authentication.
+
+    Token can be provided in the Authorization header or in the request body.
+    """
+    # Пытаемся получить токен из разных источников
+    token = None
+
+    # 1. Проверяем заголовок Authorization
+    auth_header = request.headers.get('Authorization')
+    if auth_header and auth_header.startswith('Bearer '):
+        token = auth_header.replace('Bearer ', '')
+
+    # 2. Если в заголовке нет, проверяем тело запроса
+    if not token:
+        try:
+            # Пытаемся прочитать тело как JSON
+            body = await request.json()
+            token = body.get('token')
+        except Exception:
+            # Игнорируем ошибки при парсинге JSON
+            pass
+
+    # Если токен так и не найден, возвращаем ошибку
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Token not provided"
+        )
+
+    # Проверяем токен через current_user
+    try:
+        # Получаем полезную нагрузку из токена
+        payload = decode_jwt_token(token)
+
+        if not payload:
+            logger.warning("Invalid token format")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token format"
+            )
+
+        # Получаем пользователя по ID из токена
+        user_id = payload.get("sub")
+        if not user_id:
+            logger.warning("User ID not found in token")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User ID not found in token"
+            )
+
+        # Проверяем существование пользователя
+        user = get_user_by_id(db, user_id)
+        if not user:
+            logger.warning(f"User not found: {user_id}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found"
+            )
+
+        # Логируем успешную верификацию
+        logger.info(f"Successfully verified token for user: {user.id}")
+
+        # Возвращаем информацию о пользователе
+        return {
+            "id": str(user.id),
+            "username": user.username,
+            "email": user.email,
+            "is_active": user.is_active,
+            "is_admin": user.is_admin,
+            "created_at": user.created_at.isoformat() if user.created_at else None
+        }
+
+    except Exception as e:
+        logger.warning(f"Token verification failed: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token"
+        )

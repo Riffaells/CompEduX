@@ -73,11 +73,17 @@ async def collect_client_stats(request: Request, user_id: Optional[UUID] = None,
         client_version = headers.get("X-Client-Version")
         user_agent = headers.get("User-Agent")
 
+        # Проверяем наличие минимально необходимых данных
+        if not client_platform and not app_version:
+            logger.debug("Insufficient client data in headers, skipping stats collection")
+            return
+
         # Преобразуем build в число
         try:
             client_build = int(client_build_str) if client_build_str else None
         except ValueError:
             client_build = None
+            logger.debug(f"Invalid client build value: {client_build_str}")
 
         # Парсим User-Agent
         ua_info = parse_user_agent(user_agent)
@@ -107,6 +113,7 @@ async def collect_client_stats(request: Request, user_id: Optional[UUID] = None,
             if client_build and existing_stat.client_build != client_build:
                 existing_stat.client_build = client_build
             db.commit()
+            logger.debug(f"Updated client stats for user {user_id}, platform {client_platform}")
         else:
             # Создаем новую запись
             new_stat = ClientStatModel(
@@ -126,10 +133,13 @@ async def collect_client_stats(request: Request, user_id: Optional[UUID] = None,
             )
             db.add(new_stat)
             db.commit()
+            logger.debug(f"Created new client stats record for platform {client_platform}" +
+                      (f", user {user_id}" if user_id else ""))
 
     except Exception as e:
         logger.exception(f"Error collecting client stats: {str(e)}")
-        db.rollback()
+        if db:
+            db.rollback()
 
 def get_platform_stats(db: Session) -> List[Dict[str, Any]]:
     """

@@ -47,23 +47,37 @@ object RIcons {
     val Translate = Icons.Rounded.Translate
     val Network = Icons.Rounded.NetworkPing
 
-    val Proxy: ImageVector = Icons.Default.VpnKey
-    val NetworkCheck: ImageVector = Icons.Default.NetworkCheck
-    val Cache: ImageVector = Icons.Default.Storage
-    val Dns: ImageVector = Icons.Default.Dns
-    val NetworkAuto: ImageVector = Icons.Default.AutoAwesome
-    val Wifi: ImageVector = Icons.Default.Wifi
-    val Cellular: ImageVector = Icons.Default.SignalCellular4Bar
-    val Ethernet: ImageVector = Icons.Default.Settings
+    val Proxy = Icons.Default.VpnKey
+    val NetworkCheck = Icons.Default.NetworkCheck
+    val Cache = Icons.Default.Storage
+    val Dns = Icons.Default.Dns
+    val NetworkAuto = Icons.Default.AutoAwesome
+    val Wifi = Icons.Default.Wifi
+    val Cellular = Icons.Default.SignalCellular4Bar
+    val Ethernet = Icons.Default.Settings
 
 
     // Protocol icons
-    val Http: ImageVector = Icons.Default.Http
-    val Https: ImageVector = Icons.Default.Https
-    val Downloading: ImageVector = Icons.Default.Downloading
-    val Security: ImageVector = Icons.Default.Security
-    val Language: ImageVector = Icons.Default.Language
-    val Edit: ImageVector = Icons.Default.Edit
+    val Http = Icons.Default.Http
+    val Https = Icons.Default.Https
+    val Downloading = Icons.Default.Downloading
+    val Security = Icons.Default.Security
+    val Language = Icons.Default.Language
+    val Edit = Icons.Default.Edit
+    val EmojiEmotions = Icons.Default.EmojiEmotions
 
-
+    // Дополнительные иконки для ProfileContent
+    val Info = Icons.Default.Info
+    val Link = Icons.Default.Link
+    val Timer = Icons.Default.Timer
+    val LocalCafe = Icons.Default.LocalCafe
+    val FormatSize = Icons.Default.FormatSize
+    val DarkMode = Icons.Default.DarkMode
+    val Notifications = Icons.Default.Notifications
+    val Code = Icons.Default.Code
+    val LocationOn = Icons.Default.LocationOn
+    val Description = Icons.Default.Description
+    val Public = Icons.Default.Public
+    val Work = Icons.Default.Work
+    val Chat = Icons.Default.Chat
 }

@@ -23,10 +23,8 @@ import utils.rDispatchers
 interface ProfileComponent {
     val state: StateFlow<ProfileStore.State>
 
-    fun onUsernameChange(username: String)
-    fun onUpdateProfile()
+    fun accept(intent: ProfileStore.Intent)
     fun onLogout()
-    fun onBackClicked()
 }
 
 /**
@@ -36,7 +34,6 @@ class DefaultProfileComponent(
     override val di: DI,
     componentContext: ComponentContext,
     private val onLogout: () -> Unit,
-    private val onBackClicked: () -> Unit
 ) : ProfileComponent, DIAware, ComponentContext by componentContext {
 
     private val authUseCases: AuthUseCases by instance()
@@ -53,24 +50,21 @@ class DefaultProfileComponent(
 
     override val state: StateFlow<ProfileStore.State> = profileStore.stateFlow
 
-    override fun onUsernameChange(username: String) {
-        profileStore.accept(ProfileStore.Intent.UpdateUsername(username))
-    }
+    override fun accept(intent: ProfileStore.Intent) {
+        profileStore.accept(intent)
 
-    override fun onUpdateProfile() {
-        profileStore.accept(ProfileStore.Intent.SaveProfile)
+        // Если это Logout intent, то после обработки в Store нужно выполнить навигацию
+        if (intent is ProfileStore.Intent.Logout) {
+            scope.launch {
+                onLogout()
+            }
+        }
     }
 
     override fun onLogout() {
         profileStore.accept(ProfileStore.Intent.Logout)
         scope.launch {
-            // Wait for the logout to complete (the store will handle the actual API call)
-            // Then trigger navigation
             onLogout()
         }
-    }
-
-    override fun onBackClicked() {
-        onBackClicked()
     }
 }

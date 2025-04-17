@@ -143,7 +143,6 @@ val componentModule = DI.Module("componentModule") {
             di = di,
             componentContext = params.componentContext,
             onLogout = params.onLogout,
-            onBackClicked = params.onBackClicked
         )
     }
 }

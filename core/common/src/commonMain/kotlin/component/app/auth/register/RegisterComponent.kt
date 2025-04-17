@@ -9,6 +9,7 @@ import component.app.auth.store.RegisterStoreFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.kodein.di.DI
 import org.kodein.di.DIAware
@@ -19,9 +20,8 @@ import utils.rDispatchers
 interface RegisterComponent {
     val state: StateFlow<RegisterStore.State>
 
-    fun onRegisterClick(email: String, password: String, confirmPassword: String, username: String)
+    fun accept(intent: RegisterStore.Intent)
     fun onBackClick()
-    fun onLoginClick()
 }
 
 class DefaultRegisterComponent(
@@ -46,30 +46,43 @@ class DefaultRegisterComponent(
 
     override val state: StateFlow<RegisterStore.State> = registerStore.stateFlow
 
-    override fun onRegisterClick(email: String, password: String, confirmPassword: String, username: String) {
-        registerStore.accept(RegisterStore.Intent.RegisterClicked(
-            email = email,
-            password = password,
-            username = username
-        ))
-
-        // Monitor auth state changes to trigger navigation on success
+    init {
+        // Мониторинг изменений состояния
         scope.launch {
-            // This is simplified - in a real implementation, you would monitor
-            // the AuthState from a shared AuthStore or Repository to detect successful registration
-            // For now, we'll assume the RegisterStore handles everything
-            // You would replace this with actual auth state monitoring
-            if (authUseCases.isAuthenticated()) {
-                onRegisterSuccess()
+            state.collectLatest { state ->
+                // Проверяем состояние аутентификации
+                if (state.isAuthenticated) {
+                    onRegisterSuccess()
+                }
+
+                // Проверяем необходимость перехода к экрану входа
+                if (state.shouldNavigateToLogin) {
+                    onLogin()
+                    registerStore.accept(RegisterStore.Intent.ErrorShown) // Сбрасываем флаг
+                }
             }
+        }
+    }
+
+    override fun accept(intent: RegisterStore.Intent) {
+        registerStore.accept(intent)
+
+        // Обрабатываем дополнительные действия в зависимости от типа Intent
+        when (intent) {
+            is RegisterStore.Intent.RegisterClicked -> {
+                // Проверяем успешность регистрации через Store состояние
+                // (мониторинг уже настроен в init блоке)
+            }
+
+            is RegisterStore.Intent.NavigateToLogin -> {
+                onLogin()
+            }
+
+            else -> { /* Для других интентов никаких действий не требуется */ }
         }
     }
 
     override fun onBackClick() {
         onBack()
-    }
-
-    override fun onLoginClick() {
-        onLogin()
     }
 }

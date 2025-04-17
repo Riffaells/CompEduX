@@ -1,20 +1,22 @@
 from fastapi import Request, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.security.utils import get_authorization_scheme_param
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Tuple
 import jwt
 from jwt.exceptions import PyJWTError
 import logging
 import httpx
-from app.core.config import settings
 import time
+import asyncio
+from app.core.config import settings, SERVICE_ROUTES
+from app.core.proxy import get_http_client
 
 logger = logging.getLogger(__name__)
 
-# Используем глобальную переменную для кэширования состояния сервиса авторизации
-_auth_service_up = None
-_last_auth_check = 0
-_AUTH_CHECK_INTERVAL = 60  # 1 минута между проверками
+# Кэш для проверки токенов
+# Структура: {token: (timestamp, user_info)}
+_token_cache: Dict[str, Tuple[float, Dict[str, Any]]] = {}
+_TOKEN_CACHE_TTL = 60  # секунды, сколько хранить токен в кэше
 
 # Создаем объект для проверки Bearer токена
 security = HTTPBearer(auto_error=False)
@@ -23,12 +25,26 @@ class AuthMiddleware:
     """
     Middleware для проверки JWT токена и добавления информации о пользователе
     к запросу.
+
+    Поддерживает два режима работы:
+    1. Локальная проверка JWT-токена (быстро, но без возможности отзыва)
+    2. Проверка токена через сервис авторизации (медленнее, но надежнее)
     """
 
-    def __init__(self):
-        """Инициализация middleware"""
+    def __init__(self, use_remote_validation: bool = True):
+        """
+        Инициализация middleware
+
+        Args:
+            use_remote_validation: Использовать ли удаленную валидацию через сервис авторизации
+        """
         self.public_key = settings.JWT_PUBLIC_KEY
         self.algorithm = settings.JWT_ALGORITHM
+        self.use_remote_validation = use_remote_validation
+
+        # Определяем URL сервиса авторизации
+        auth_config = SERVICE_ROUTES.get("auth", {})
+        self.auth_service_url = auth_config.get("base_url")
 
     async def __call__(self, request: Request, call_next):
         """
@@ -43,28 +59,28 @@ class AuthMiddleware:
 
         # Если есть токен, проверяем его и получаем информацию о пользователе
         if credentials:
-            try:
-                # Проверяем токен с помощью JWT
-                payload = self._verify_jwt_token(credentials.credentials)
+            token = credentials.credentials
 
-                if payload:
-                    # Добавляем информацию о пользователе к запросу
-                    user = {
-                        "id": str(payload.get("user_id", "")),
-                        "email": payload.get("email", ""),
-                        "username": payload.get("username", ""),
-                        "is_admin": payload.get("is_admin", False),
-                        "scopes": payload.get("scopes", [])
-                    }
+            # Проверяем токен
+            if self.use_remote_validation and self.auth_service_url:
+                # Проверка через сервис авторизации
+                user = await self._verify_token_remote(token)
+            else:
+                # Локальная проверка JWT
+                try:
+                    payload = self._verify_jwt_token(token)
+                    if payload:
+                        user = {
+                            "id": str(payload.get("user_id", "")),
+                            "email": payload.get("email", ""),
+                            "username": payload.get("username", ""),
+                            "is_admin": payload.get("is_admin", False),
+                            "scopes": payload.get("scopes", [])
+                        }
+                except Exception as e:
+                    logger.warning(f"Invalid token: {str(e)}")
 
-                    # Логгируем успешное получение пользователя
-                    logger.debug(f"User authenticated: {user['username']}")
-            except Exception as e:
-                # Если токен невалидный, продолжаем запрос без добавления
-                # информации о пользователе
-                logger.warning(f"Invalid token: {str(e)}")
-
-        # Добавляем информацию о пользователе к запросу (или None, если токен невалидный)
+        # Добавляем информацию о пользователе к запросу
         request.state.user = user
 
         # Продолжаем обработку запроса
@@ -84,7 +100,7 @@ class AuthMiddleware:
 
     def _verify_jwt_token(self, token: str) -> Optional[Dict[str, Any]]:
         """
-        Проверяет JWT токен и возвращает payload, если токен валидный
+        Проверяет JWT токен локально и возвращает payload, если токен валидный
         """
         try:
             payload = jwt.decode(
@@ -96,4 +112,68 @@ class AuthMiddleware:
             return payload
         except PyJWTError as e:
             logger.warning(f"JWT validation error: {str(e)}")
+            return None
+
+    async def _verify_token_remote(self, token: str) -> Optional[Dict[str, Any]]:
+        """
+        Проверяет токен через сервис авторизации
+        """
+        global _token_cache
+
+        # Проверяем кэш
+        current_time = time.time()
+        if token in _token_cache:
+            timestamp, user_info = _token_cache[token]
+            if current_time - timestamp < _TOKEN_CACHE_TTL:
+                return user_info
+
+        # Если не в кэше или устарел, проверяем через сервис
+        client = await get_http_client()
+
+        try:
+            # Формируем URL для проверки токена
+            if self.auth_service_url.endswith("/"):
+                auth_url = f"{self.auth_service_url}verify-token"
+            else:
+                auth_url = f"{self.auth_service_url}/verify-token"
+
+            # Отправляем запрос на проверку токена
+            response = await client.post(
+                auth_url,
+                json={"token": token},
+                timeout=3.0,
+                headers={"Content-Type": "application/json"}
+            )
+
+            # Если токен валидный, получаем информацию о пользователе
+            if response.status_code == 200:
+                user_info = response.json()
+                # Кэшируем результат
+                _token_cache[token] = (current_time, user_info)
+                return user_info
+
+            # Если токен невалидный, возвращаем None
+            logger.warning(f"Token validation failed: {response.status_code}")
+            return None
+
+        except Exception as e:
+            logger.error(f"Error validating token remotely: {str(e)}")
+
+            # В случае ошибки связи с сервисом авторизации
+            # пробуем локальную проверку как запасной вариант
+            try:
+                payload = self._verify_jwt_token(token)
+                if payload:
+                    user = {
+                        "id": str(payload.get("user_id", "")),
+                        "email": payload.get("email", ""),
+                        "username": payload.get("username", ""),
+                        "is_admin": payload.get("is_admin", False),
+                        "scopes": payload.get("scopes", [])
+                    }
+                    logger.info("Fallback to local token validation")
+                    return user
+            except Exception:
+                pass
+
             return None

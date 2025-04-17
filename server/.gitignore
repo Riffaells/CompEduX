@@ -4,7 +4,6 @@ __pycache__/
 *$py.class
 *.so
 .Python
-env/
 build/
 develop-eggs/
 dist/
@@ -16,9 +15,12 @@ lib64/
 parts/
 sdist/
 var/
+wheels/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
 .pytest_cache/
 .coverage
 htmlcov/
@@ -26,12 +28,17 @@ htmlcov/
 .nox/
 .hypothesis/
 .pytest_cache/
+coverage.xml
+*.cover
+*.py,cover
 
 # Virtual Environment
 venv/
 ENV/
 env/
 .env
+.venv/
+.python-version
 
 # IDE specific files
 .idea/
@@ -39,6 +46,11 @@ env/
 *.swp
 *.swo
 .DS_Store
+.history/
+*.sublime-*
+.project
+.pydevproject
+.settings/
 
 # Logs
 logs/
@@ -46,36 +58,71 @@ logs/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+lerna-debug.log*
 
 # Database
 *.sqlite3
 *.db
+*.sql
+*.dump
 
 # Docker
 .docker/
+docker-compose.override.yml
 
 # Local development settings
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*.local
+.env.development
+.env.test
+.env.production
 
-# Alembic migrations (optional, you might want to track these)
-# migrations/versions/
+# Service files
+*.pid
+*.sock
+
+# Alembic migrations (include these, but ignore specific files)
+# Make sure to include migrations but ignore .env and sensitive data
+migrations/.env
 
 # Jupyter Notebook
 .ipynb_checkpoints
 
-# mypy
+# Mypy, typing
 .mypy_cache/
 .dmypy.json
 dmypy.json
-
-# Pyre type checker
 .pyre/
-
-# pytype static type analyzer
 .pytype/
 
 # Cython debug symbols
 cython_debug/
+
+# Frontend
+node_modules/
+dist/
+.cache/
+.parcel-cache/
+
+# Local k8s configurations
+kubeconfig*
+kube*.yml
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+.terraformrc
+terraform.rc
+*.tfvars
+
+# Ansible
+*.retry
+
+# Sensitive files
+secrets.yml
+credentials.json
+*_credentials.*
+*.secret
+*.key
+*.pem

@@ -76,12 +76,10 @@ data class RegisterComponentParams(
  *
  * @property componentContext Decompose component context.
  * @property onLogout Callback for logging out.
- * @property onBackClicked Callback for returning.
  */
 data class ProfileComponentParams(
     val componentContext: ComponentContext,
-    val onLogout: () -> Unit,
-    val onBackClicked: () -> Unit
+    val onLogout: () -> Unit
 )
 
 /**
@@ -298,8 +296,7 @@ class DefaultAuthComponent(
                 onLogout = {
                     _store.accept(AuthStore.Intent.Logout)
                     navigationExecutor.navigateTo(Config.Login)
-                },
-                onBackClicked = onBack
+                }
             )
         )
     }

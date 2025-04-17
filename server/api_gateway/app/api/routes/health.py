@@ -14,6 +14,7 @@ async def health_check() -> Dict[str, Any]:
     """
     services = {
         "auth": settings.AUTH_SERVICE_URL,
+        "course": settings.COURSE_SERVICE_URL,
         "room": settings.ROOM_SERVICE_URL,
         "competition": settings.COMPETITION_SERVICE_URL,
         "achievement": settings.ACHIEVEMENT_SERVICE_URL

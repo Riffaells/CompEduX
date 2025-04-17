@@ -2,43 +2,50 @@ package components.auth
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
-import androidx.compose.foundation.background
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import compedux.core.ui.generated.resources.*
 import component.app.auth.register.RegisterComponent
+import component.app.auth.store.RegisterStore
+import org.jetbrains.compose.resources.ExperimentalResourceApi
+import org.jetbrains.compose.resources.stringResource
 import ui.icon.RIcons
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalResourceApi::class)
 @Composable
 fun RegisterContent(component: RegisterComponent) {
     val state by component.state.collectAsState()
     val clipboardManager = LocalClipboardManager.current
+    val scrollState = rememberScrollState()
 
+    // Только UI-специфичное состояние
+    var passwordVisible by remember { mutableStateOf(false) }
+    var confirmPasswordVisible by remember { mutableStateOf(false) }
+
+    // Локальные переменные для полей формы
     var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }
-    var confirmPasswordVisible by remember { mutableStateOf(false) }
 
     // Автоматическое заполнение полей для тестирования
     LaunchedEffect(Unit) {
@@ -49,93 +56,50 @@ fun RegisterContent(component: RegisterComponent) {
         confirmPassword = "Test123456!"
     }
 
-    // Градиент для фона карточки
-    val cardGradient = Brush.verticalGradient(
-        colors = listOf(
-            MaterialTheme.colorScheme.surface,
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
-        )
-    )
-
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        // Декоративные элементы фона
-        Box(
-            modifier = Modifier
-                .size(200.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f))
-                .align(Alignment.TopEnd)
-                .offset(x = 50.dp, y = (-50).dp)
-        )
-
-        Box(
-            modifier = Modifier
-                .size(150.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.15f))
-                .align(Alignment.BottomStart)
-                .offset(x = (-50).dp, y = 50.dp)
-        )
-
-        Surface(
+        Card(
             modifier = Modifier
                 .fillMaxWidth(0.9f)
                 .padding(16.dp),
             shape = RoundedCornerShape(24.dp),
-            shadowElevation = 4.dp
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
         ) {
-            Box(
+            Column(
                 modifier = Modifier
-                    .background(cardGradient)
-                    .padding(horizontal = 32.dp, vertical = 40.dp),
+                    .verticalScroll(scrollState)
+                    .padding(horizontal = 24.dp, vertical = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
+                // Header
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(24.dp)
-                ) {
-                    // Header with animation
-                    AnimatedVisibility(
-                        visible = true,
-                        enter = fadeIn() + slideInVertically()
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(80.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primaryContainer),
-                                contentAlignment = Alignment.Center
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Icon(
                                     imageVector = RIcons.PersonAdd,
                                     contentDescription = null,
-                                    modifier = Modifier.size(40.dp),
+                        modifier = Modifier.size(56.dp),
                                     tint = MaterialTheme.colorScheme.primary
                                 )
-                            }
-
                             Text(
-                                text = "Создание аккаунта",
-                                style = MaterialTheme.typography.headlineMedium
+                        text = "Присоединяйся к нам!",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.primary
                             )
                             Text(
-                                text = "Присоединяйтесь к нам",
+                        text = "Будет весело, обещаем!",
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                        }
                     }
 
-                    // Input Fields with animations
+                // Input Fields
                     Column(
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         OutlinedTextField(
                             value = username,
@@ -144,36 +108,23 @@ fun RegisterContent(component: RegisterComponent) {
                                     username = value
                                 }
                             },
-                            label = { Text("Придумайте классное имя") },
+                        label = { Text("Придумай классное имя") },
                             leadingIcon = {
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .padding(4.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
                                     Icon(
                                         RIcons.Person,
                                         null,
                                         tint = MaterialTheme.colorScheme.primary
                                     )
-                                }
                             },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
                             singleLine = true,
                             supportingText = {
                                 // Показываем счетчик только при превышении лимита
-                                if (username.length >= 20) {
-                                    Text("${username.length}/20", color = MaterialTheme.colorScheme.error)
+                            if (username.length >= 15) {
+                                Text("${username.length}/20", color = if (username.length == 20) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
+                            }
                                 }
-                            },
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-                            )
                         )
 
                         OutlinedTextField(
@@ -181,30 +132,17 @@ fun RegisterContent(component: RegisterComponent) {
                             onValueChange = { value ->
                                 email = value
                             },
-                            label = { Text("Ваша волшебная почта") },
+                        label = { Text("Твоя волшебная почта") },
                             leadingIcon = {
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .padding(4.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
                                     Icon(
                                         RIcons.Email,
                                         null,
                                         tint = MaterialTheme.colorScheme.primary
                                     )
-                                }
                             },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
-                            singleLine = true,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-                            )
+                        singleLine = true
                         )
 
                         OutlinedTextField(
@@ -212,22 +150,13 @@ fun RegisterContent(component: RegisterComponent) {
                             onValueChange = { value ->
                                 password = value
                             },
-                            label = { Text("Секретный пароль (никому не говорите!)") },
+                        label = { Text("Секретный пароль (никому не говори!)") },
                             leadingIcon = {
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .padding(4.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
                                     Icon(
                                         RIcons.Lock,
                                         null,
                                         tint = MaterialTheme.colorScheme.primary
                                     )
-                                }
                             },
                             trailingIcon = {
                                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
@@ -240,11 +169,7 @@ fun RegisterContent(component: RegisterComponent) {
                             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
-                            singleLine = true,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-                            )
+                        singleLine = true
                         )
 
                         OutlinedTextField(
@@ -252,22 +177,15 @@ fun RegisterContent(component: RegisterComponent) {
                             onValueChange = { value ->
                                 confirmPassword = value
                             },
-                            label = { Text("Повторите свой супер-пароль ещё разок") },
+                        label = { Text("Повтори пароль ещё разок") },
                             leadingIcon = {
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .padding(4.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
                                     Icon(
                                         RIcons.Lock,
                                         null,
-                                        tint = MaterialTheme.colorScheme.primary
+                                tint = if (password != confirmPassword && confirmPassword.isNotEmpty())
+                                    MaterialTheme.colorScheme.error
+                                else MaterialTheme.colorScheme.primary
                                     )
-                                }
                             },
                             trailingIcon = {
                                 IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
@@ -281,49 +199,52 @@ fun RegisterContent(component: RegisterComponent) {
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
                             singleLine = true,
-                            isError = password != confirmPassword && confirmPassword.isNotEmpty(),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                                errorBorderColor = MaterialTheme.colorScheme.error
-                            )
-                        )
-                    }
+                        isError = password != confirmPassword && confirmPassword.isNotEmpty()
+                    )
+                }
 
-                    // Отображение ошибки с возможностью копирования
+                // Error message
                     AnimatedVisibility(visible = state.error != null) {
                         state.error?.let { errorMsg ->
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
                             Card(
+                                modifier = Modifier
+                                    .wrapContentWidth()
+                                    .clickable {
+                                        clipboardManager.setText(AnnotatedString(errorMsg))
+                                    },
                                 colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f)
+                                    containerColor = MaterialTheme.colorScheme.errorContainer
                                 ),
-                                shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier.fillMaxWidth()
+                                shape = RoundedCornerShape(12.dp)
                             ) {
                                 Text(
                                     text = errorMsg,
                                     color = MaterialTheme.colorScheme.onErrorContainer,
                                     style = MaterialTheme.typography.bodyMedium,
                                     textAlign = TextAlign.Center,
-                                    modifier = Modifier
-                                        .clickable {
-                                            clipboardManager.setText(AnnotatedString(errorMsg))
-                                        }
-                                        .padding(12.dp)
-                                        .fillMaxWidth()
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
                                 )
                             }
                         }
                     }
+                }
 
-                    // Actions with animations
+                // Actions
                     Column(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Button(
                             onClick = {
                                 if (!state.isLoading) {
-                                    component.onRegisterClick(email, password, confirmPassword, username)
+                                component.accept(RegisterStore.Intent.RegisterClicked(
+                                    username = username,
+                                    email = email,
+                                    password = password
+                                ))
                                 }
                             },
                             modifier = Modifier
@@ -337,12 +258,10 @@ fun RegisterContent(component: RegisterComponent) {
                                     password.isNotEmpty() &&
                                     password == confirmPassword,
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                            containerColor = MaterialTheme.colorScheme.primary
                             )
                         ) {
                             if (state.isLoading) {
-                                // Индикатор загрузки внутри кнопки
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(24.dp),
                                     color = MaterialTheme.colorScheme.onPrimary,
@@ -355,8 +274,8 @@ fun RegisterContent(component: RegisterComponent) {
                                 ) {
                                     Icon(RIcons.PersonAdd, null)
                                     Spacer(Modifier.width(8.dp))
-                                    Text("Создать аккаунт")
-                                }
+                                Text("Создать супер-аккаунт!")
+                            }
                             }
                         }
 
@@ -364,40 +283,35 @@ fun RegisterContent(component: RegisterComponent) {
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            TextButton(
+                        OutlinedButton(
                                 onClick = { component.onBackClick() },
-                                modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).padding(end = 8.dp),
                                 enabled = !state.isLoading,
-                                colors = ButtonDefaults.textButtonColors(
-                                    contentColor = MaterialTheme.colorScheme.outline
-                                )
+                            shape = RoundedCornerShape(12.dp)
                             ) {
                                 Row(
                                     horizontalArrangement = Arrangement.Center,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(RIcons.ArrowBack, null)
-                                    Spacer(Modifier.width(8.dp))
+                                Spacer(Modifier.width(4.dp))
                                     Text("Назад")
                                 }
                             }
 
-                            TextButton(
-                                onClick = { component.onLoginClick() },
-                                modifier = Modifier.weight(1f),
+                        OutlinedButton(
+                            onClick = { component.accept(RegisterStore.Intent.NavigateToLogin) },
+                            modifier = Modifier.weight(1f).padding(start = 8.dp),
                                 enabled = !state.isLoading,
-                                colors = ButtonDefaults.textButtonColors(
-                                    contentColor = MaterialTheme.colorScheme.primary
-                                )
+                            shape = RoundedCornerShape(12.dp)
                             ) {
                                 Row(
                                     horizontalArrangement = Arrangement.Center,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text("Войти")
-                                    Spacer(Modifier.width(8.dp))
+                                Spacer(Modifier.width(4.dp))
                                     Icon(RIcons.Login, null)
-                                }
                             }
                         }
                     }

@@ -2,25 +2,24 @@ package components.auth
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import compedux.core.ui.generated.resources.*
 import component.app.auth.login.LoginComponent
+import component.app.auth.store.LoginStore
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.resources.stringResource
 import ui.icon.RIcons
@@ -29,125 +28,65 @@ import ui.icon.RIcons
 @Composable
 fun LoginContent(component: LoginComponent) {
     val state by component.state.collectAsState()
+    val clipboardManager = LocalClipboardManager.current
+    val scrollState = rememberScrollState()
 
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+    // Только UI-специфичное состояние
     var passwordVisible by remember { mutableStateOf(false) }
 
-    // Анимированные цвета для градиента
-    val infiniteTransition = rememberInfiniteTransition(label = "background")
-
     Box(
-        modifier = Modifier
-            .fillMaxSize(),
+        modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        // Декоративные элементы
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(32.dp),
-            contentAlignment = Alignment.TopEnd
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(150.dp)
-                    .offset(x = 20.dp, y = (-20).dp)
-                    .alpha(0.2f)
-                    .background(
-                        brush = Brush.radialGradient(
-                            colors = listOf(MaterialTheme.colorScheme.primary, Color.Transparent)
-                        ),
-                        shape = CircleShape
-                    )
-                    .blur(radius = 40.dp)
-            )
-        }
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(32.dp),
-            contentAlignment = Alignment.BottomStart
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(120.dp)
-                    .offset(x = (-20).dp, y = 20.dp)
-                    .alpha(0.2f)
-                    .background(
-                        brush = Brush.radialGradient(
-                            colors = listOf(MaterialTheme.colorScheme.tertiary, Color.Transparent)
-                        ),
-                        shape = CircleShape
-                    )
-                    .blur(radius = 35.dp)
-            )
-        }
-
-        Surface(
+        Card(
             modifier = Modifier
                 .fillMaxWidth(0.9f)
-                .padding(16.dp)
-                .graphicsLayer {
-                    alpha = 0.97f
-                },
-            shape = RoundedCornerShape(32.dp),
-            tonalElevation = 8.dp,
-            shadowElevation = 10.dp
+                .padding(16.dp),
+            shape = RoundedCornerShape(24.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
         ) {
-            Box(
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.surface,
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
-                            )
-                        )
-                    )
+                    .verticalScroll(scrollState)
+                    .padding(horizontal = 24.dp, vertical = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
+                // Header
                 Column(
-                    modifier = Modifier
-                        .padding(horizontal = 32.dp, vertical = 48.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(24.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Header with animation
-                    AnimatedVisibility(
-                        visible = true,
-                        enter = fadeIn() + slideInVertically() + expandVertically()
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
+                    Icon(
+                        imageVector = RIcons.EmojiEmotions,
+                        contentDescription = null,
+                        modifier = Modifier.size(56.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
                             Text(
-                                text = stringResource(Res.string.login_welcome_back),
+                        text = "С возвращением, друг!",
                                 style = MaterialTheme.typography.headlineMedium,
                                 color = MaterialTheme.colorScheme.primary
                             )
                             Text(
-                                text = stringResource(Res.string.login_we_missed_you),
+                        text = "Мы очень скучали по тебе",
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                        }
                     }
 
-                    // Input Fields with animations
+                // Input Fields
                     Column(
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         OutlinedTextField(
-                            value = email,
+                        value = state.username,
                             onValueChange = { value ->
                                 if (value.length <= 50) {
-                                    email = value
+                                component.accept(LoginStore.Intent.SetUsername(value))
                                 }
                             },
-                            label = { Text(stringResource(Res.string.login_email)) },
+                        label = { Text("Твоя суперская почта") },
                             leadingIcon = {
                                 Icon(
                                     imageVector = RIcons.Email,
@@ -155,29 +94,19 @@ fun LoginContent(component: LoginComponent) {
                                     tint = MaterialTheme.colorScheme.primary
                                 )
                             },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .graphicsLayer {
-                                    clip = true
-                                    shape = RoundedCornerShape(16.dp)
-                                    shadowElevation = 2f
-                                },
+                        modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
-                            singleLine = true,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
-                            )
+                        singleLine = true
                         )
 
                         OutlinedTextField(
-                            value = password,
+                        value = state.password,
                             onValueChange = { value ->
                                 if (value.length <= 32) {
-                                    password = value
+                                component.accept(LoginStore.Intent.SetPassword(value))
                                 }
                             },
-                            label = { Text(stringResource(Res.string.login_password)) },
+                        label = { Text("Твой секретный пароль") },
                             leadingIcon = {
                                 Icon(
                                     imageVector = RIcons.Lock,
@@ -190,36 +119,34 @@ fun LoginContent(component: LoginComponent) {
                                     Icon(
                                         if (passwordVisible) RIcons.VisibilityOff else RIcons.Visibility,
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                                    tint = MaterialTheme.colorScheme.primary
                                     )
                                 }
                             },
                             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .graphicsLayer {
-                                    clip = true
-                                    shape = RoundedCornerShape(16.dp)
-                                    shadowElevation = 2f
-                                },
+                        modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
-                            singleLine = true,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
-                            )
-                        )
-                    }
+                        singleLine = true
+                    )
+                }
 
-                    // Отображение ошибки
+                // Error message
                     AnimatedVisibility(
                         visible = state.error != null,
                         enter = fadeIn() + scaleIn() + expandVertically(),
                         exit = fadeOut() + scaleOut() + shrinkVertically()
                     ) {
                         state.error?.let { errorMsg ->
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
                             Card(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .wrapContentWidth()
+                                    .clickable {
+                                        clipboardManager.setText(AnnotatedString(errorMsg))
+                                    },
                                 colors = CardDefaults.cardColors(
                                     containerColor = MaterialTheme.colorScheme.errorContainer
                                 ),
@@ -230,34 +157,27 @@ fun LoginContent(component: LoginComponent) {
                                     color = MaterialTheme.colorScheme.onErrorContainer,
                                     style = MaterialTheme.typography.bodyMedium,
                                     textAlign = TextAlign.Center,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(12.dp)
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
                                 )
+                            }
                             }
                         }
                     }
 
-                    // Actions with animations
+                // Actions
                     Column(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        // Кнопка входа с загрузкой внутри
+                    // Login Button
                         Button(
-                            onClick = { component.onLoginClick(email, password) },
+                        onClick = { component.accept(LoginStore.Intent.Login) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(56.dp)
-                                .graphicsLayer {
-                                    clip = true
-                                    shape = RoundedCornerShape(16.dp)
-                                    shadowElevation = 4f
-                                },
+                            .height(56.dp),
                             shape = RoundedCornerShape(16.dp),
-                            enabled = !state.isLoading && email.isNotEmpty() && password.isNotEmpty(),
+                        enabled = !state.isLoading && state.username.isNotEmpty() && state.password.isNotEmpty(),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
+                            containerColor = MaterialTheme.colorScheme.primary
                             )
                         ) {
                             Box(
@@ -282,7 +202,7 @@ fun LoginContent(component: LoginComponent) {
                                         )
                                         Spacer(Modifier.width(8.dp))
                                         Text(
-                                            text = stringResource(Res.string.login_button),
+                                        text = "Вперед к знаниям!",
                                             style = MaterialTheme.typography.titleMedium,
                                             color = MaterialTheme.colorScheme.onPrimary
                                         )
@@ -291,16 +211,14 @@ fun LoginContent(component: LoginComponent) {
                             }
                         }
 
-                        TextButton(
-                            onClick = { component.onRegisterClick() },
+                    // Register Button
+                    OutlinedButton(
+                        onClick = { component.accept(LoginStore.Intent.NavigateToRegister) },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(48.dp),
                             enabled = !state.isLoading,
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.textButtonColors(
-                                contentColor = MaterialTheme.colorScheme.primary
-                            )
+                        shape = RoundedCornerShape(12.dp)
                         ) {
                             Row(
                                 horizontalArrangement = Arrangement.Center,
@@ -309,20 +227,18 @@ fun LoginContent(component: LoginComponent) {
                                 Icon(RIcons.PersonAdd, null)
                                 Spacer(Modifier.width(8.dp))
                                 Text(
-                                    text = stringResource(Res.string.login_create_account),
+                                text = "Хочу завести аккаунт!",
                                     style = MaterialTheme.typography.titleSmall
                                 )
                             }
                         }
 
+                    // Back Button
                         TextButton(
                             onClick = { component.onBackClick() },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(48.dp),
-                            colors = ButtonDefaults.textButtonColors(
-                                contentColor = MaterialTheme.colorScheme.outline
-                            ),
                             enabled = !state.isLoading,
                             shape = RoundedCornerShape(12.dp)
                         ) {
@@ -333,10 +249,9 @@ fun LoginContent(component: LoginComponent) {
                                 Icon(RIcons.ArrowBack, null)
                                 Spacer(Modifier.width(8.dp))
                                 Text(
-                                    text = stringResource(Res.string.login_back),
+                                text = "Вернуться назад",
                                     style = MaterialTheme.typography.titleSmall
                                 )
-                            }
                         }
                     }
                 }
