@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+Authentication service module for auth_service
+"""
 from datetime import UTC, datetime, timedelta
 from typing import Optional, Dict, Any, Union
 import random

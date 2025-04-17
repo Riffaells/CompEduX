@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Добавляем путь к корневой директории в начале файла
 import sys
 import os
@@ -57,6 +58,10 @@ async def lifespan(app: FastAPI):
     # Startup: выполняется при запуске приложения
     logger.info("[bold green]Auth Service starting up...[/bold green]")
     logger.info("[blue]Connecting to database...[/blue]")
+
+    # Регистрируем обработчики исключений
+    app.add_exception_handler(APIException, api_exception_handler)
+    app.add_exception_handler(RequestValidationError, validation_exception_handler)
 
     # Инициализация базы данных - делаем это асинхронно
     try:
@@ -119,10 +124,6 @@ setup_request_logging(
     ],
     log_request_headers=False
 )
-
-# Обработчики исключений
-app.add_exception_handler(APIException, api_exception_handler)
-app.add_exception_handler(RequestValidationError, validation_exception_handler)
 
 # Создадим класс для добавления версии API в заголовок ответа
 class VersionedAPIRoute(APIRouter):

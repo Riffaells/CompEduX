@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+Statistics service module for auth_service
+"""
 import re
 import logging
 from datetime import datetime, UTC

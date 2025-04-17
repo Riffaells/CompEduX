@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+Инициализация базы данных для auth_service
+"""
 import logging
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
