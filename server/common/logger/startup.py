@@ -8,6 +8,7 @@ import logging
 
 # Flag for tracking logging initialization
 _logging_initialized = {}
+_pythonpath_warned = False  # Флаг для отслеживания сообщения о PYTHONPATH
 
 def initialize_logging(service_name, log_file=None):
     """
@@ -23,7 +24,7 @@ def initialize_logging(service_name, log_file=None):
     Returns:
         Configured logger
     """
-    global _logging_initialized
+    global _logging_initialized, _pythonpath_warned
 
     # Prevent re-initialization for the same service
     if service_name in _logging_initialized:
@@ -62,11 +63,13 @@ def initialize_logging(service_name, log_file=None):
 
     # Add path to project root directory to PYTHONPATH
     root_dir = os.path.abspath(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-    sys.path.insert(0, root_dir)
+    if root_dir not in sys.path:
+        sys.path.insert(0, root_dir)
 
-    # In child reload process, don't repeat PYTHONPATH message
-    if not is_reload_process:
+    # Выводим сообщение о PYTHONPATH только один раз за всё время работы приложения
+    if not _pythonpath_warned and not is_reload_process:
         temp_logger.info(f"Adding root directory to PYTHONPATH: {root_dir}")
+        _pythonpath_warned = True
 
     # Import logging modules - if there's an error here, the application will terminate immediately
     from common.logger import setup_rich_logger
@@ -80,7 +83,7 @@ def initialize_logging(service_name, log_file=None):
 
     # Log only in the main process
     if not is_reload_process:
-        logger.info(f"[cyan]{service_name} logger initialized[/cyan]")
+        logger.info(f"{service_name} logger initialized")
 
     # Set the flag that logging has been initialized
     _logging_initialized[service_name] = True
