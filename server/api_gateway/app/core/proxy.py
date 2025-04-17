@@ -10,7 +10,7 @@ import time
 import logging
 import asyncio
 from typing import Dict, Tuple, Optional, Any, List
-from datetime import datetime
+from datetime import datetime, UTC
 
 from app.core.config import SERVICE_ROUTES, settings
 
@@ -527,7 +527,7 @@ async def get_all_services_health() -> Dict:
 
     return {
         "status": overall_status,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "api_gateway": api_gateway_info,
         "services": services_status,
         "stats": {

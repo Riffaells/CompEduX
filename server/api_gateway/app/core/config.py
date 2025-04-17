@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     # Общие настройки
     ENV: str = "development"
     DEBUG: bool = True
+    IS_WINDOWS: bool = sys.platform.startswith("win")
 
     # Настройки API Gateway
     API_GATEWAY_HOST: str = "0.0.0.0"
@@ -53,21 +54,21 @@ SERVICE_ROUTES: Dict[str, Dict[str, str]] = {
         "prefix": "/auth",
         "health_endpoint": "/health"
     },
-    "room": {
-        "base_url": settings.ROOM_SERVICE_URL,
-        "prefix": "/rooms",
-        "health_endpoint": "/health"
-    },
-    "competition": {
-        "base_url": settings.COMPETITION_SERVICE_URL,
-        "prefix": "/competitions",
-        "health_endpoint": "/health"
-    },
-    "achievement": {
-        "base_url": settings.ACHIEVEMENT_SERVICE_URL,
-        "prefix": "/achievements",
-        "health_endpoint": "/health"
-    },
+    # "room": {
+    #     "base_url": settings.ROOM_SERVICE_URL,
+    #     "prefix": "/rooms",
+    #     "health_endpoint": "/health"
+    # },
+    # "competition": {
+    #     "base_url": settings.COMPETITION_SERVICE_URL,
+    #     "prefix": "/competitions",
+    #     "health_endpoint": "/health"
+    # },
+    # "achievement": {
+    #     "base_url": settings.ACHIEVEMENT_SERVICE_URL,
+    #     "prefix": "/achievements",
+    #     "health_endpoint": "/health"
+    # },
     "course": {
         "base_url": settings.COURSE_SERVICE_URL,
         "prefix": "/courses",
