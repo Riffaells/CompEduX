@@ -42,4 +42,5 @@ include(
     ":core:design",
     ":core:ui",
     ":feature:settings",
+    ":feature:tree",
 )
