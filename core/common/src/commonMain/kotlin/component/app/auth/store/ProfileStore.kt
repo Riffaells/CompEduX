@@ -19,7 +19,7 @@ import org.kodein.di.instance
 import usecase.auth.AuthUseCases
 import logging.Logger
 import repository.auth.AuthRepository
-import utils.rDispatchers
+import navigation.rDispatchers
 
 interface ProfileStore : Store<ProfileStore.Intent, ProfileStore.State, Nothing> {
     sealed interface Intent {

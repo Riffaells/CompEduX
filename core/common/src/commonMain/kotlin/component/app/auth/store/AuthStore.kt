@@ -11,16 +11,14 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import logging.Logger
-import model.DomainError
 import model.DomainResult
 import model.UserDomain
-import model.auth.AuthResponseDomain
 import model.auth.AuthStateDomain
 import org.kodein.di.DI
 import org.kodein.di.DIAware
 import org.kodein.di.instance
 import usecase.auth.AuthUseCases
-import utils.rDispatchers
+import navigation.rDispatchers
 
 /**
  * Глобальное хранилище состояния аутентификации

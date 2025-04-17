@@ -8,14 +8,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import component.app.auth.store.ProfileStore
 import component.app.auth.store.ProfileStoreFactory
 import org.kodein.di.DI
 import org.kodein.di.DIAware
 import org.kodein.di.instance
 import usecase.auth.AuthUseCases
-import utils.rDispatchers
+import navigation.rDispatchers
 
 /**
  * Component for the profile screen

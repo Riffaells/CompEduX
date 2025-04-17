@@ -12,6 +12,7 @@ kotlin {
             implementation(projects.core.design)
             implementation(projects.core.common)
             implementation(projects.feature.settings)
+            implementation(projects.feature.tree)
         }
     }
 }

@@ -19,24 +19,30 @@ data class MainComponentParams(
     val componentContext: ComponentContext,
     val onSettingsClicked: () -> Unit,
     val onDevelopmentMapClicked: () -> Unit,
-    val onRoomClicked: () -> Unit = {}
+    val onTreeClicked: () -> Unit,
+    val onRoomClicked: (String) -> Unit
 )
 
 
+/**
+ * Компонент главного экрана приложения
+ */
 interface MainComponent {
     val state: StateFlow<MainStore.State>
 
     fun onAction(action: MainStore.Intent)
     fun onSettingsClicked()
     fun onDevelopmentMapClicked()
-    fun onRoomClicked()
+    fun onTreeClicked()
+    fun onRoomClicked(roomId: String)
 }
 
 class DefaultMainComponent(
     componentContext: ComponentContext,
     private val onSettings: () -> Unit,
     private val onDevelopmentMap: () -> Unit,
-    private val onRoom: () -> Unit,
+    private val onTree: () -> Unit,
+    private val onRoom: (String) -> Unit,
     override val di: DI
 ) : MainComponent, DIAware, ComponentContext by componentContext {
 
@@ -64,7 +70,11 @@ class DefaultMainComponent(
         onDevelopmentMap.invoke()
     }
 
-    override fun onRoomClicked() {
-        onRoom.invoke()
+    override fun onTreeClicked() {
+        onTree.invoke()
+    }
+
+    override fun onRoomClicked(roomId: String) {
+        onRoom.invoke(roomId)
     }
 }

@@ -34,6 +34,7 @@ import ui.theme.AppTheme
 import utils.getScreenWidth
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
+import ui.TreeContent
 
 /**
  * Корневой композабл, который отображает текущий дочерний компонент
@@ -295,6 +296,10 @@ private fun RenderContent(
             is SkikoChild -> SkikoContent(modifier, instance.component)
             is AuthChild -> AuthContent(instance.component)
             is RoomChild -> RoomContent(modifier, instance.component)
+            is TreeChild -> TreeContent(
+                component = instance.component,
+                modifier = Modifier
+            )
         }
 
     }

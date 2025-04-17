@@ -11,9 +11,8 @@ import logging.Logger
 import org.kodein.di.DI
 import org.kodein.di.DIAware
 import org.kodein.di.instance
-import repository.auth.AuthRepository
 import usecase.auth.AuthUseCases
-import utils.rDispatchers
+import navigation.rDispatchers
 
 interface RoomStore : Store<RoomStore.Intent, RoomStore.State, Nothing> {
 

@@ -1,7 +1,8 @@
-package utils
+package navigation
 
 import com.arkivanov.decompose.DelicateDecomposeApi
 import com.arkivanov.decompose.router.stack.*
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -31,7 +32,7 @@ import logging.Logger
 class NavigationExecutor<C : Any>(
     private val navigation: StackNavigation<C>,
     private val scope: CoroutineScope,
-    private val mainDispatcher: kotlinx.coroutines.CoroutineDispatcher,
+    private val mainDispatcher: CoroutineDispatcher,
     private val logger: Logger,
     private val tag: String = "Navigation"
 ) {

@@ -6,8 +6,6 @@ import com.arkivanov.decompose.router.stack.StackNavigation
 import com.arkivanov.decompose.router.stack.childStack
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
-import com.arkivanov.mvikotlin.core.instancekeeper.getStore
-import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import component.app.auth.login.DefaultLoginComponent
 import component.app.auth.login.LoginComponent
@@ -15,20 +13,17 @@ import component.app.auth.register.DefaultRegisterComponent
 import component.app.auth.register.RegisterComponent
 import component.app.auth.store.AuthStore
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import logging.Logger
 import org.kodein.di.DI
 import org.kodein.di.DIAware
 import org.kodein.di.factory
 import org.kodein.di.instance
-import usecase.auth.AuthUseCases
-import utils.NavigationExecutor
-import utils.rDispatchers
+import navigation.NavigationExecutor
+import navigation.rDispatchers
 
 /**
  * Parameters for creating the authentication component.

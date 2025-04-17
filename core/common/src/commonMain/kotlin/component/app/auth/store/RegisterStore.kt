@@ -12,7 +12,7 @@ import model.auth.AuthStateDomain
 import org.kodein.di.DI
 import org.kodein.di.DIAware
 import org.kodein.di.instance
-import utils.rDispatchers
+import navigation.rDispatchers
 
 /**
  * Интерфейс хранилища состояния для экрана регистрации

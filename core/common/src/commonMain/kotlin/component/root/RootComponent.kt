@@ -21,7 +21,6 @@ import component.app.skiko.SkikoComponentParams
 import component.root.RootComponent.Child.*
 import component.root.store.RootStore
 import component.root.store.RootStoreFactory
-import di.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.Serializable
@@ -29,8 +28,10 @@ import logging.Logger
 import org.kodein.di.*
 import settings.AppearanceSettings
 import settings.MultiplatformSettings
-import utils.NavigationExecutor
-import utils.rDispatchers
+import navigation.NavigationExecutor
+import navigation.rDispatchers
+import component.tree.TreeComponentParams
+import component.tree.DefaultTreeComponent
 
 
 /**
@@ -111,6 +112,11 @@ interface RootComponent {
     fun onRoomClicked()
 
     /**
+     * Переход на экран дерева развития
+     */
+    fun onTreeClicked()
+
+    /**
      * Представляет различные типы дочерних компонентов,
      * которые могут быть активны в приложении
      */
@@ -139,6 +145,11 @@ interface RootComponent {
          * Экран комнаты (чата/конференции)
          */
         class RoomChild(val component: DefaultRoomComponent) : Child()
+
+        /**
+         * Экран дерева развития
+         */
+        class TreeChild(val component: DefaultTreeComponent) : Child()
     }
 
     /**
@@ -269,6 +280,7 @@ class DefaultRootComponent(
             Config.Skiko -> SkikoChild(skikoComponent(componentContext))
             Config.Auth -> AuthChild(authComponent(componentContext))
             Config.Room -> RoomChild(roomComponent(componentContext))
+            Config.Tree -> TreeChild(treeComponent(componentContext))
         }
 
     /**
@@ -282,9 +294,18 @@ class DefaultRootComponent(
         return mainComponentFactory(
             MainComponentParams(
                 componentContext = componentContext,
-                onSettingsClicked = ::onSettingsClicked,
-                onDevelopmentMapClicked = ::onDevelopmentMapClicked,
-                onRoomClicked = ::onRoomClicked
+                onSettingsClicked = {
+                    store.accept(RootStore.Intent.NavigateToSettings)
+                },
+                onDevelopmentMapClicked = {
+                    store.accept(RootStore.Intent.NavigateToSkiko)
+                },
+                onTreeClicked = {
+                    store.accept(RootStore.Intent.NavigateToTree)
+                },
+                onRoomClicked = { roomId ->
+                    store.accept(RootStore.Intent.NavigateToRoom(roomId))
+                }
             )
         )
     }
@@ -352,6 +373,22 @@ class DefaultRootComponent(
     }
 
     /**
+     * Создает компонент дерева развития
+     *
+     * @param componentContext Контекст для создаваемого компонента
+     * @return Компонент дерева развития
+     */
+    private fun treeComponent(componentContext: ComponentContext): DefaultTreeComponent {
+        val treeComponentFactory by factory<TreeComponentParams, DefaultTreeComponent>()
+        return treeComponentFactory(
+            TreeComponentParams(
+                componentContext = componentContext,
+                onBack = { navigationExecutor.pop() }
+            )
+        )
+    }
+
+    /**
      * Переход на главный экран
      */
     override fun onMainClicked() {
@@ -386,11 +423,19 @@ class DefaultRootComponent(
         navigationExecutor.navigateTo(Config.Room)
     }
 
+    /**
+     * Переход на экран дерева развития
+     */
+    override fun onTreeClicked() {
+        navigationExecutor.navigateTo(Config.Tree)
+    }
+
     private companion object {
         private const val WEB_PATH_SETTINGS = "settings"
         private const val WEB_PATH_SKIKO = "skiko"
         private const val WEB_PATH_AUTH = "auth"
         private const val WEB_PATH_ROOM = "room"
+        private const val WEB_PATH_TREE = "tree"
 
         /**
          * Формирует начальный стек компонентов на основе истории веб-навигации или глубокой ссылки
@@ -430,6 +475,7 @@ class DefaultRootComponent(
                 Config.Skiko -> "/$WEB_PATH_SKIKO"
                 Config.Auth -> "/$WEB_PATH_AUTH"
                 Config.Room -> "/$WEB_PATH_ROOM"
+                Config.Tree -> "/$WEB_PATH_TREE"
             }
 
         /**
@@ -483,6 +529,12 @@ class DefaultRootComponent(
          */
         @Serializable
         data object Room : Config
+
+        /**
+         * Экран дерева развития
+         */
+        @Serializable
+        data object Tree : Config
     }
 
     /**

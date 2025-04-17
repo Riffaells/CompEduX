@@ -17,9 +17,13 @@ import logging.Logger
 import platform.Platform
 import platform.PlatformInfo
 import com.riffaells.compedux.BuildConfig
+// Import necessary classes for network error handling
+import io.ktor.client.network.sockets.ConnectTimeoutException
+import io.ktor.client.network.sockets.SocketTimeoutException
+import kotlinx.io.IOException
 
 /**
- * Фабрика для создания HTTP клиента
+ * Factory for creating HTTP client
  */
 class HttpClientFactory(
     private val json: Json,
@@ -28,18 +32,32 @@ class HttpClientFactory(
     private val logger: Logger
 ) {
     /**
-     * Создает HTTP клиент с настроенными плагинами
+     * Error keys for network error handling
+     */
+    private object ErrorKeys {
+        const val CONNECTION_ERROR = "error_connection"
+        const val TIMEOUT_ERROR = "error_timeout"
+        const val UNAUTHORIZED = "error_unauthorized"
+        const val FORBIDDEN = "error_forbidden"
+        const val NOT_FOUND = "error_not_found"
+        const val VALIDATION_ERROR = "error_validation"
+        const val SERVER_ERROR = "error_server"
+        const val UNKNOWN_ERROR = "error_unknown"
+    }
+
+    /**
+     * Creates HTTP client with configured plugins
      */
     fun create(): HttpClient {
         return HttpClient {
-            // Устанавливаем таймауты
+            // Set timeouts from configuration
             install(HttpTimeout) {
                 connectTimeoutMillis = 15000 // 15 секунд на соединение
                 requestTimeoutMillis = 30000 // 30 секунд на запрос
                 socketTimeoutMillis = 15000 // 15 секунд на сокет
             }
 
-            // Настройка логирования
+            // Configure logging
             install(Logging) {
                 logger = object : io.ktor.client.plugins.logging.Logger {
                     override fun log(message: String) {
@@ -49,12 +67,12 @@ class HttpClientFactory(
                 level = LogLevel.HEADERS
             }
 
-            // Настройка сериализации/десериализации JSON
+            // Configure JSON serialization/deserialization
             install(ContentNegotiation) {
                 json(json)
             }
 
-            // Настройка аутентификации Bearer
+            // Configure Bearer authentication
             install(Auth) {
                 bearer {
                     loadTokens {
@@ -75,8 +93,8 @@ class HttpClientFactory(
                         val refreshToken = tokenStorage.getRefreshToken() ?: return@refreshTokens null
 
                         try {
-                            // В реальном приложении здесь должен быть запрос к API для обновления токена
-                            // Это лишь заглушка
+                            // In a real application, this would be an API request to refresh the token
+                            // This is just a placeholder
                             BearerTokens(
                                 accessToken = "refreshed_access_token",
                                 refreshToken = refreshToken
@@ -89,36 +107,75 @@ class HttpClientFactory(
                 }
             }
 
-            // Обработка ошибок
-            HttpResponseValidator {
+            // Enhanced error handling
+            install(HttpCallValidator) {
                 validateResponse { response ->
                     val statusCode = response.status.value
 
-                    if (statusCode >= 400) {
-                        when (statusCode) {
-                            401 -> throw ClientRequestException(response, "Unauthorized")
-                            403 -> throw ClientRequestException(response, "Forbidden")
-                            404 -> throw ClientRequestException(response, "Not Found")
-                            422 -> throw ClientRequestException(response, "Unprocessable Entity - Invalid request data")
-                            in 500..599 -> throw ServerResponseException(response, "Server Error")
-                            else -> throw ResponseException(response, "HTTP Error $statusCode")
-                        }
+                    when (statusCode) {
+                        in 200..299 -> Unit // Success range, do nothing
+                        401 -> throw ClientRequestException(
+                            response,
+                            ErrorKeys.UNAUTHORIZED
+                        )
+                        403 -> throw ClientRequestException(
+                            response,
+                            ErrorKeys.FORBIDDEN
+                        )
+                        404 -> throw ClientRequestException(
+                            response,
+                            ErrorKeys.NOT_FOUND
+                        )
+                        422 -> throw ClientRequestException(
+                            response,
+                            ErrorKeys.VALIDATION_ERROR
+                        )
+                        in 500..599 -> throw ServerResponseException(
+                            response,
+                            ErrorKeys.SERVER_ERROR
+                        )
+                    }
+                }
+
+                handleResponseExceptionWithRequest { exception, request ->
+                    // Enhanced logging with request details
+                    val requestMethod = request.method.value
+                    val requestUrl = request.url.toString()
+
+                    // Get appropriate error key based on exception type
+                    val errorKey = when (exception) {
+                        is ConnectTimeoutException -> ErrorKeys.CONNECTION_ERROR
+                        is SocketTimeoutException -> ErrorKeys.TIMEOUT_ERROR
+                        is HttpRequestTimeoutException -> ErrorKeys.TIMEOUT_ERROR
+                        is IOException -> ErrorKeys.CONNECTION_ERROR
+                        else -> exception.message ?: ErrorKeys.UNKNOWN_ERROR
+                    }
+
+                    logger.e("[Network Error] $requestMethod $requestUrl - $errorKey", exception)
+
+                    // Transform specific exception types for better handling up the stack
+                    when (exception) {
+                        is ConnectTimeoutException,
+                        is SocketTimeoutException,
+                        is HttpRequestTimeoutException ->
+                            throw IOException(ErrorKeys.CONNECTION_ERROR, exception)
+                        else -> throw exception
                     }
                 }
             }
 
-            // Установка базового URL и заголовков для всех запросов
+            // Set base URL and headers for all requests
             defaultRequest {
-                // Всегда устанавливаем правильный Content-Type для JSON
+                // Always set the correct Content-Type for JSON
                 contentType(ContentType.Application.Json)
                 accept(ContentType.Application.Json)
 
-                // Добавляем общие заголовки, которые повторялись в каждом запросе
+                // Add common headers that were repeated in each request
                 header("X-App-Version", BuildConfig.APP_VERSION.toString())
                 header("X-App-Name", BuildConfig.APP_NAME)
                 header("User-Agent", Platform.userAgent(BuildConfig.APP_NAME, BuildConfig.APP_VERSION.toString()))
 
-                // Добавляем заголовки с информацией о приложении
+                // Add headers with application information
                 header("X-Client-Platform", getPlatformName())
                 header("X-Client-App", BuildConfig.APP_NAME)
                 header("X-Client-Version", BuildConfig.APP_VERSION)

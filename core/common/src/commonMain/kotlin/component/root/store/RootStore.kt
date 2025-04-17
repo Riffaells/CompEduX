@@ -1,6 +1,5 @@
 package component.root.store
 
-import settings.MultiplatformSettings
 import com.arkivanov.mvikotlin.core.store.Reducer
 import com.arkivanov.mvikotlin.core.store.SimpleBootstrapper
 import com.arkivanov.mvikotlin.core.store.Store
@@ -12,15 +11,23 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import logging.Logger
+import navigation.rDispatchers
 import org.kodein.di.DI
 import org.kodein.di.DIAware
 import org.kodein.di.instance
-import utils.rDispatchers
+import settings.MultiplatformSettings
 
 interface RootStore : Store<RootStore.Intent, RootStore.State, Nothing> {
 
     sealed interface Intent {
         data object Init : Intent
+        data object NavigateToMain : Intent
+        data object NavigateToSettings : Intent
+        data object NavigateToDevMap : Intent
+        data object NavigateToSkiko : Intent
+        data object NavigateToTree : Intent
+        data object NavigateToAuth : Intent
+        data class NavigateToRoom(val roomId: String) : Intent
         data class UpdateTheme(val theme: Int) : Intent
         data class UpdateLanguage(val language: String) : Intent
     }
@@ -32,6 +39,27 @@ interface RootStore : Store<RootStore.Intent, RootStore.State, Nothing> {
         val loading: Boolean = false,
         val initialized: Boolean = false,
     )
+}
+
+@Serializable
+sealed class NavigationConfig {
+    @Serializable
+    data object Main : NavigationConfig()
+
+    @Serializable
+    data object Settings : NavigationConfig()
+
+    @Serializable
+    data object Skiko : NavigationConfig()
+
+    @Serializable
+    data object Tree : NavigationConfig()
+
+    @Serializable
+    data object Auth : NavigationConfig()
+
+    @Serializable
+    data class Room(val roomId: String) : NavigationConfig()
 }
 
 internal class RootStoreFactory(
@@ -62,6 +90,7 @@ internal class RootStoreFactory(
         data object InitializationComplete : Msg
         data class UpdateTheme(val theme: Int) : Msg
         data class UpdateLanguage(val language: String) : Msg
+        data class NavigateTo(val config: NavigationConfig) : Msg
     }
 
     private inner class ExecutorImpl(
@@ -159,6 +188,35 @@ internal class RootStoreFactory(
                     }
                     Unit
                 }
+
+                is RootStore.Intent.NavigateToMain -> {
+                    dispatch(Msg.NavigateTo(NavigationConfig.Main))
+                    handleNavigateTo(NavigationConfig.Main)
+                }
+                is RootStore.Intent.NavigateToSettings -> {
+                    dispatch(Msg.NavigateTo(NavigationConfig.Settings))
+                    handleNavigateTo(NavigationConfig.Settings)
+                }
+                is RootStore.Intent.NavigateToDevMap -> {
+                    dispatch(Msg.NavigateTo(NavigationConfig.Skiko))
+                    handleNavigateTo(NavigationConfig.Skiko)
+                }
+                is RootStore.Intent.NavigateToSkiko -> {
+                    dispatch(Msg.NavigateTo(NavigationConfig.Skiko))
+                    handleNavigateTo(NavigationConfig.Skiko)
+                }
+                is RootStore.Intent.NavigateToTree -> {
+                    dispatch(Msg.NavigateTo(NavigationConfig.Tree))
+                    handleNavigateTo(NavigationConfig.Tree)
+                }
+                is RootStore.Intent.NavigateToAuth -> {
+                    dispatch(Msg.NavigateTo(NavigationConfig.Auth))
+                    handleNavigateTo(NavigationConfig.Auth)
+                }
+                is RootStore.Intent.NavigateToRoom -> {
+                    dispatch(Msg.NavigateTo(NavigationConfig.Room(intent.roomId)))
+                    handleNavigateTo(NavigationConfig.Room(intent.roomId))
+                }
             }
 
         private fun saveThemeSettings(value: Int) {
@@ -190,6 +248,16 @@ internal class RootStoreFactory(
                 }
             }
         }
+
+        // Add a handler for NavigateTo messages
+        private fun handleNavigateTo(config: NavigationConfig) {
+            // As this is an example implementation, we would normally send this to a navigation controller
+            // For now, we'll log the navigation request
+            logger.d("Navigation request: $config")
+
+            // Actual implementation would be something like:
+            // navigationExecutor.navigateTo(mapConfigToNavigationConfig(config))
+        }
     }
 
     private object ReducerImpl : Reducer<RootStore.State, Msg> {
@@ -200,6 +268,7 @@ internal class RootStoreFactory(
                 Msg.InitializationComplete -> copy(initialized = true)
                 is Msg.UpdateTheme -> copy(theme = msg.theme)
                 is Msg.UpdateLanguage -> copy(language = msg.language)
+                is Msg.NavigateTo -> this // Navigation doesn't affect state
             }
     }
 }

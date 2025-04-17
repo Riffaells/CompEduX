@@ -17,7 +17,7 @@ import settings.AppearanceSettings
 import settings.NetworkSettings
 import settings.SecuritySettings
 import settings.ProfileSettings
-import utils.rDispatchers
+import navigation.rDispatchers
 
 interface SettingsStore : Store<SettingsStore.Intent, SettingsStore.State, SettingsStore.Label> {
 

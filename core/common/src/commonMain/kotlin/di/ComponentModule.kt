@@ -55,6 +55,7 @@ val componentModule = DI.Module("componentModule") {
             componentContext = params.componentContext,
             onSettings = params.onSettingsClicked,
             onDevelopmentMap = params.onDevelopmentMapClicked,
+            onTree = params.onTreeClicked,
             onRoom = params.onRoomClicked,
             di = di
         )

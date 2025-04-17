@@ -142,17 +142,24 @@ fun MainContent(
 
                         // Добавляем кнопку для открытия карты развития
                         Button(
-                            onClick = { /*component.onAction(MainStore.Intent.OpenDevelopmentMap)*/ },
-                            modifier = Modifier
-                                .padding(top = 16.dp)
-                                .scale(buttonScale)
+                            onClick = { component.onDevelopmentMapClicked() },
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Открыть карту развития")
+                            Text("Карта развития (Skiko)")
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Button(
+                            onClick = { component.onTreeClicked() },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Дерево развития")
                         }
 
                         // Добавляем кнопку для открытия комнаты
                         Button(
-                            onClick = { component.onRoomClicked() },
+                            onClick = { component.onRoomClicked("") },
                             modifier = Modifier
                                 .padding(top = 16.dp)
                                 .scale(buttonScale)

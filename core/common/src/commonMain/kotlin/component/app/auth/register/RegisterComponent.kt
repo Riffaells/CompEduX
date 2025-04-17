@@ -15,7 +15,7 @@ import org.kodein.di.DI
 import org.kodein.di.DIAware
 import org.kodein.di.instance
 import usecase.auth.AuthUseCases
-import utils.rDispatchers
+import navigation.rDispatchers
 
 interface RegisterComponent {
     val state: StateFlow<RegisterStore.State>

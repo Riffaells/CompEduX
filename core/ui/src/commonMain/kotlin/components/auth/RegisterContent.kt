@@ -78,144 +78,147 @@ fun RegisterContent(component: RegisterComponent) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Icon(
-                                    imageVector = RIcons.PersonAdd,
-                                    contentDescription = null,
+                ) {
+                    Icon(
+                        imageVector = RIcons.PersonAdd,
+                        contentDescription = null,
                         modifier = Modifier.size(56.dp),
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            Text(
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
                         text = "Присоединяйся к нам!",
                         style = MaterialTheme.typography.headlineMedium,
                         color = MaterialTheme.colorScheme.primary
-                            )
-                            Text(
+                    )
+                    Text(
                         text = "Будет весело, обещаем!",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                    }
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
 
                 // Input Fields
-                    Column(
+                Column(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        OutlinedTextField(
-                            value = username,
-                            onValueChange = { value ->
-                                if (value.length <= 20) {
-                                    username = value
-                                }
-                            },
-                        label = { Text("Придумай классное имя") },
-                            leadingIcon = {
-                                    Icon(
-                                        RIcons.Person,
-                                        null,
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            singleLine = true,
-                            supportingText = {
-                                // Показываем счетчик только при превышении лимита
-                            if (username.length >= 15) {
-                                Text("${username.length}/20", color = if (username.length == 20) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
+                ) {
+                    OutlinedTextField(
+                        value = username,
+                        onValueChange = { value ->
+                            if (value.length <= 20) {
+                                username = value
                             }
-                                }
-                        )
+                        },
+                        label = { Text("Придумай классное имя") },
+                        leadingIcon = {
+                            Icon(
+                                RIcons.Person,
+                                null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        singleLine = true,
+                        supportingText = {
+                            // Показываем счетчик только при превышении лимита
+                            if (username.length >= 15) {
+                                Text(
+                                    "${username.length}/20",
+                                    color = if (username.length == 20) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    )
 
-                        OutlinedTextField(
-                            value = email,
-                            onValueChange = { value ->
-                                email = value
-                            },
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = { value ->
+                            email = value
+                        },
                         label = { Text("Твоя волшебная почта") },
-                            leadingIcon = {
-                                    Icon(
-                                        RIcons.Email,
-                                        null,
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
+                        leadingIcon = {
+                            Icon(
+                                RIcons.Email,
+                                null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
                         singleLine = true
-                        )
+                    )
 
-                        OutlinedTextField(
-                            value = password,
-                            onValueChange = { value ->
-                                password = value
-                            },
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { value ->
+                            password = value
+                        },
                         label = { Text("Секретный пароль (никому не говори!)") },
-                            leadingIcon = {
-                                    Icon(
-                                        RIcons.Lock,
-                                        null,
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                            },
-                            trailingIcon = {
-                                IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                                    Icon(
-                                        if (passwordVisible) RIcons.VisibilityOff else RIcons.Visibility,
-                                        null
-                                    )
-                                }
-                            },
-                            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
+                        leadingIcon = {
+                            Icon(
+                                RIcons.Lock,
+                                null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        },
+                        trailingIcon = {
+                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                Icon(
+                                    if (passwordVisible) RIcons.VisibilityOff else RIcons.Visibility,
+                                    null
+                                )
+                            }
+                        },
+                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
                         singleLine = true
-                        )
+                    )
 
-                        OutlinedTextField(
-                            value = confirmPassword,
-                            onValueChange = { value ->
-                                confirmPassword = value
-                            },
+                    OutlinedTextField(
+                        value = confirmPassword,
+                        onValueChange = { value ->
+                            confirmPassword = value
+                        },
                         label = { Text("Повтори пароль ещё разок") },
-                            leadingIcon = {
-                                    Icon(
-                                        RIcons.Lock,
-                                        null,
+                        leadingIcon = {
+                            Icon(
+                                RIcons.Lock,
+                                null,
                                 tint = if (password != confirmPassword && confirmPassword.isNotEmpty())
                                     MaterialTheme.colorScheme.error
                                 else MaterialTheme.colorScheme.primary
-                                    )
-                            },
-                            trailingIcon = {
-                                IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
-                                    Icon(
-                                        if (confirmPasswordVisible) RIcons.VisibilityOff else RIcons.Visibility,
-                                        null
-                                    )
-                                }
-                            },
-                            visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            singleLine = true,
+                            )
+                        },
+                        trailingIcon = {
+                            IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
+                                Icon(
+                                    if (confirmPasswordVisible) RIcons.VisibilityOff else RIcons.Visibility,
+                                    null
+                                )
+                            }
+                        },
+                        visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        singleLine = true,
                         isError = password != confirmPassword && confirmPassword.isNotEmpty()
                     )
                 }
 
                 // Error message
-                    AnimatedVisibility(visible = state.error != null) {
-                        state.error?.let { errorMsg ->
+                AnimatedVisibility(visible = state.error != null) {
+                    state.error?.let { errorMsg ->
                         Box(
                             modifier = Modifier.fillMaxWidth(),
                             contentAlignment = Alignment.Center
                         ) {
                             Card(
                                 modifier = Modifier
-                                    .wrapContentWidth()
                                     .clickable {
                                         clipboardManager.setText(AnnotatedString(errorMsg))
-                                    },
+                                    }
+                                    .wrapContentWidth(),
                                 colors = CardDefaults.cardColors(
                                     containerColor = MaterialTheme.colorScheme.errorContainer
                                 ),
@@ -234,84 +237,86 @@ fun RegisterContent(component: RegisterComponent) {
                 }
 
                 // Actions
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Button(
-                            onClick = {
-                                if (!state.isLoading) {
-                                component.accept(RegisterStore.Intent.RegisterClicked(
-                                    username = username,
-                                    email = email,
-                                    password = password
-                                ))
-                                }
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp)
-                                .animateContentSize(),
-                            shape = RoundedCornerShape(16.dp),
-                            enabled = !state.isLoading &&
-                                    username.isNotEmpty() &&
-                                    email.isNotEmpty() &&
-                                    password.isNotEmpty() &&
-                                    password == confirmPassword,
-                            colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
-                            )
-                        ) {
-                            if (state.isLoading) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(24.dp),
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                                    strokeWidth = 2.dp
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Button(
+                        onClick = {
+                            if (!state.isLoading) {
+                                component.accept(
+                                    RegisterStore.Intent.RegisterClicked(
+                                        username = username,
+                                        email = email,
+                                        password = password
+                                    )
                                 )
-                            } else {
-                                Row(
-                                    horizontalArrangement = Arrangement.Center,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(RIcons.PersonAdd, null)
-                                    Spacer(Modifier.width(8.dp))
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
+                            .animateContentSize(),
+                        shape = RoundedCornerShape(16.dp),
+                        enabled = !state.isLoading &&
+                                username.isNotEmpty() &&
+                                email.isNotEmpty() &&
+                                password.isNotEmpty() &&
+                                password == confirmPassword,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        if (state.isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Row(
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(RIcons.PersonAdd, null)
+                                Spacer(Modifier.width(8.dp))
                                 Text("Создать супер-аккаунт!")
                             }
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        OutlinedButton(
+                            onClick = { component.onBackClick() },
+                            modifier = Modifier.weight(1f).padding(end = 8.dp),
+                            enabled = !state.isLoading,
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(RIcons.ArrowBack, null)
+                                Spacer(Modifier.width(4.dp))
+                                Text("Назад")
                             }
                         }
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                        OutlinedButton(
-                                onClick = { component.onBackClick() },
-                            modifier = Modifier.weight(1f).padding(end = 8.dp),
-                                enabled = !state.isLoading,
-                            shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Row(
-                                    horizontalArrangement = Arrangement.Center,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(RIcons.ArrowBack, null)
-                                Spacer(Modifier.width(4.dp))
-                                    Text("Назад")
-                                }
-                            }
 
                         OutlinedButton(
                             onClick = { component.accept(RegisterStore.Intent.NavigateToLogin) },
                             modifier = Modifier.weight(1f).padding(start = 8.dp),
-                                enabled = !state.isLoading,
+                            enabled = !state.isLoading,
                             shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(
-                                    horizontalArrangement = Arrangement.Center,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text("Войти")
+                                Text("Войти")
                                 Spacer(Modifier.width(4.dp))
-                                    Icon(RIcons.Login, null)
+                                Icon(RIcons.Login, null)
                             }
                         }
                     }

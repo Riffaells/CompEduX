@@ -12,7 +12,7 @@ import logging.Logger
 import org.kodein.di.DI
 import org.kodein.di.DIAware
 import org.kodein.di.instance
-import utils.rDispatchers
+import navigation.rDispatchers
 
 interface SkikoStore : Store<SkikoStore.Intent, SkikoStore.State, Nothing> {
 
