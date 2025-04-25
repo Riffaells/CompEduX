@@ -1,70 +1,62 @@
 #!/usr/bin/env python3
 """
-Скрипт запуска API Gateway сервиса
+API Gateway service runner script
 """
 import os
 import sys
-import uvicorn
-import logging
 
-# Добавляем путь к корневой директории проекта
+# Add path to the root directory
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.dirname(ROOT_DIR))
+PROJECT_ROOT = os.path.dirname(ROOT_DIR)
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 
-# Установка переменной окружения для предотвращения буферизации
+# Set environment variable to prevent buffering
 os.environ["PYTHONUNBUFFERED"] = "1"
 
-# Полностью отключаем логи uvicorn для режима reload
-# Отключаем старые и новые варианты логгеров
-loggers_to_silence = [
-    "uvicorn.watchgram.watcher",     # Старая версия
-    "uvicorn.reload",                # Новая версия
-    "uvicorn.statreload",            # Для изменений файлов
-    "watchfiles",                    # Основная библиотека для отслеживания файлов
-    "watchfiles.main",               # Конкретно модуль main формирует сообщения
-]
-
-for logger_name in loggers_to_silence:
-    logger = logging.getLogger(logger_name)
-    logger.handlers = []
-    logger.propagate = False
-    logger.setLevel(logging.CRITICAL)  # Только критические ошибки
-    logger.addHandler(logging.NullHandler())
-
-# Для полного отключения логов можно также напрямую отключить весь модуль
-logging.getLogger("watchfiles.main").disabled = True
-
-# Инициализируем единый логгер
+# Initialize unified logger
 from common.logger import initialize_logging
+
 logger = initialize_logging("api_gateway", log_file="logs/api_gateway.log")
 
+# Import app modules
+from api_gateway.app.core.config import settings
+
+
 def main():
-    # Загружаем настройки из .env файла
+    """
+    Main function to run the API Gateway service.
+    Sets up the environment and launches the FastAPI app with uvicorn.
+    """
+    # Load environment variables from .env file
     from dotenv import load_dotenv
     env_path = os.path.join(ROOT_DIR, '.env')
     load_dotenv(dotenv_path=env_path)
 
-    # Получаем настройки хоста и порта из .env
-    host = os.getenv("API_GATEWAY_HOST", "0.0.0.0")
-    port = int(os.getenv("API_GATEWAY_PORT", 8000))
+    # Use settings from config
+    host = settings.API_GATEWAY_HOST
+    port = settings.API_GATEWAY_PORT
 
     logger.info(f"[bold green]Starting API Gateway on {host}:{port}[/bold green]")
+    logger.info(f"Environment: {settings.ENV}, Debug mode: {settings.DEBUG}")
 
-    try:
-        # Запускаем uvicorn с отключенным собственным логированием
-        uvicorn.run(
-            "app.main:app",
-            host=host,
-            port=port,
-            reload=True,
-            log_level="error",       # Минимальный уровень логов uvicorn
-            access_log=False,        # Отключаем логи доступа uvicorn
-            use_colors=False         # Отключаем цвета uvicorn, чтобы Rich работал
-        )
-    except KeyboardInterrupt:
-        logger.info("[yellow]Shutdown by keyboard interrupt[/yellow]")
-    except Exception as e:
-        logger.error(f"[bold red]Error during startup: {str(e)}[/bold red]", exc_info=True)
+    # Print service URLs for reference
+    logger.info(f"Auth service URL: {settings.AUTH_SERVICE_URL}")
+    if settings.COURSE_SERVICE_URL:
+        logger.info(f"Course service URL: {settings.COURSE_SERVICE_URL}")
+
+    # Run the API Gateway with uvicorn
+    import uvicorn
+
+    uvicorn.run(
+        "app.main:app",
+        host=host,
+        port=port,
+        log_level="error",  # Minimal uvicorn log level
+        access_log=False,  # Disable uvicorn access logs
+        use_colors=False  # Disable uvicorn colors for Rich compatibility
+    )
+
 
 if __name__ == "__main__":
     main()

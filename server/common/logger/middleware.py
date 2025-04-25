@@ -2,11 +2,10 @@
 Middleware for request/response logging in FastAPI applications.
 """
 
-import time
-import logging
 import asyncio
-from typing import Callable, List, Dict, Any, Optional
-import uuid
+import logging
+import time
+from typing import List
 
 from fastapi import FastAPI, Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
@@ -19,11 +18,11 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
     """Middleware for logging HTTP requests and responses."""
 
     def __init__(
-        self,
-        app: ASGIApp,
-        logger: logging.Logger,
-        exclude_paths: List[str] = None,
-        log_request_headers: bool = False
+            self,
+            app: ASGIApp,
+            logger: logging.Logger,
+            exclude_paths: List[str] = None,
+            log_request_headers: bool = False
     ):
         """
         Initialize the middleware.
@@ -40,7 +39,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         self.log_request_headers = log_request_headers
 
     async def dispatch(
-        self, request: Request, call_next: RequestResponseEndpoint
+            self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
         """Process the request and log information."""
         # Get client IP and request ID
@@ -69,7 +68,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             user_agent_short = user_agent[:30] + "..." if len(user_agent) > 30 else user_agent
 
             log_message = (
-                f"[{current_time}] [request]{method}[/request] [cyan]{path}[/cyan] - "
+                f"[request]{method}[/request] [cyan]{path}[/cyan] - "
                 f"IP:[blue]{client_ip}[/blue]"
             )
 
@@ -97,22 +96,22 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             if should_log:
                 if response.status_code >= 500:
                     self.logger.critical(
-                        f"[{current_time}] [critical]SERVER ERROR[/critical] [request]{method}[/request] "
+                        f"[critical]SERVER ERROR[/critical] [request]{method}[/request] "
                         f"[cyan]{path}[/cyan] - [bold red]{response.status_code}[/bold red] ({duration_ms}ms)"
                     )
                 elif response.status_code >= 400:
                     self.logger.error(
-                        f"[{current_time}] [error]CLIENT ERROR[/error] [request]{method}[/request] "
+                        f"[error]CLIENT ERROR[/error] [request]{method}[/request] "
                         f"[cyan]{path}[/cyan] - [bold red]{response.status_code}[/bold red] ({duration_ms}ms)"
                     )
                 elif path.startswith(('/auth', '/api/v1/auth', '/login', '/register')):
                     self.logger.info(
-                        f"[{current_time}] [auth]AUTH REQUEST[/auth] [request]{method}[/request] "
+                        f"[auth]AUTH REQUEST[/auth] [request]{method}[/request] "
                         f"[cyan]{path}[/cyan] - [green]{response.status_code}[/green] ({duration_ms}ms)"
                     )
                 else:
                     self.logger.info(
-                        f"[{current_time}] [response]{method}[/response] [cyan]{path}[/cyan] - "
+                        f"[response]{method}[/response] [cyan]{path}[/cyan] - "
                         f"[green]{response.status_code}[/green] ({duration_ms}ms)"
                     )
 
@@ -120,22 +119,22 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 
         except asyncio.CancelledError:
             self.logger.warning(
-                f"[{current_time}] [yellow]Request cancelled: {method} {path}[/yellow]"
+                f"[yellow]Request cancelled: {method} {path}[/yellow]"
             )
             raise  # Re-raise to allow proper handling
 
         except Exception as e:
             self.logger.error(
-                f"[{current_time}] [bold red]Request error: {method} {path} - {str(e)}[/bold red]"
+                f"[bold red]Request error: {method} {path} - {str(e)}[/bold red]"
             )
             raise  # Re-raise to allow FastAPI to handle the exception
 
 
 def setup_request_logging(
-    app: FastAPI,
-    logger: logging.Logger,
-    exclude_paths: List[str] = None,
-    log_request_headers: bool = False
+        app: FastAPI,
+        logger: logging.Logger,
+        exclude_paths: List[str] = None,
+        log_request_headers: bool = False
 ) -> None:
     """
     Set up request logging middleware for a FastAPI application.

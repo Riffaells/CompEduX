@@ -1,6 +1,7 @@
 package api
 
 import api.auth.NetworkAuthApi
+import client.safeSendWithErrorBody
 import config.NetworkConfig
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -8,7 +9,7 @@ import io.ktor.client.network.sockets.*
 import io.ktor.client.plugins.*
 import io.ktor.client.request.*
 import io.ktor.http.*
-import io.ktor.utils.io.CancellationException
+import io.ktor.utils.io.*
 import kotlinx.coroutines.delay
 import kotlinx.io.IOException
 import logging.Logger
@@ -20,8 +21,6 @@ import model.auth.*
 import model.user.NetworkUserResponse
 import kotlin.math.pow
 import kotlin.random.Random
-import client.safeSendWithErrorBody
-import model.auth.NetworkErrorResponse
 
 /**
  * Implementation of NetworkAuthApi that uses Ktor HttpClient
@@ -57,6 +56,44 @@ class NetworkAuthApiImpl(
     }
 
     /**
+     * Processes API exceptions and converts them to appropriate DomainError
+     *
+     * @param e The exception to process
+     * @param errorTag A tag to identify the error context in logs
+     * @return DomainResult.Error with appropriate error details
+     */
+    private fun processApiException(e: Exception, errorTag: String): DomainResult.Error {
+        logger.e("$errorTag error", e)
+        return when (e) {
+            is ClientRequestException -> DomainResult.Error(
+                DomainError.fromServerCode(
+                    serverCode = e.response.status.value,
+                    message = e.message,
+                    details = null
+                )
+            )
+            is ServerResponseException -> DomainResult.Error(
+                DomainError.serverError(
+                    message = "error_server_unavailable",
+                    details = e.message
+                )
+            )
+            is IOException, is ConnectTimeoutException, is SocketTimeoutException -> DomainResult.Error(
+                DomainError.networkError(
+                    message = "error_network_connectivity",
+                    details = e.message
+                )
+            )
+            else -> DomainResult.Error(
+                DomainError.unknownError(
+                    message = "error_unknown",
+                    details = e.message
+                )
+            )
+        }
+    }
+
+    /**
      * Executes a network operation with retry mechanism for handling transient errors.
      * Uses exponential backoff strategy with random jitter to avoid thundering herd problem.
      *
@@ -84,7 +121,7 @@ class NetworkAuthApiImpl(
                     return DomainResult.Error(
                         DomainError.fromServerCode(
                             serverCode = e.response.status.value,
-                            message = e.message ?: "error_client_request",
+                            message = e.message,
                             details = null
                         )
                     )
@@ -127,7 +164,8 @@ class NetworkAuthApiImpl(
             if (attempt < maxRetries) {
                 // Calculate delay with exponential backoff and jitter
                 val jitter = Random.nextDouble(-jitterFactor, jitterFactor)
-                val delayWithJitter = (baseRetryDelayMs * (2.0.pow(attempt.toDouble())) + (baseRetryDelayMs * jitter)).toLong()
+                val delayWithJitter =
+                    (baseRetryDelayMs * (2.0.pow(attempt.toDouble())) + (baseRetryDelayMs * jitter)).toLong()
                 logger.d("Retry attempt $attempt/$maxRetries after $delayWithJitter ms")
                 delay(delayWithJitter)
             } else {
@@ -144,6 +182,7 @@ class NetworkAuthApiImpl(
                     details = lastException?.message
                 )
             }
+
             is ServerResponseException -> {
                 logger.e("Server error persisted after all retries", lastException)
                 DomainError.serverError(
@@ -151,14 +190,16 @@ class NetworkAuthApiImpl(
                     details = lastException.message
                 )
             }
+
             is ClientRequestException -> {
                 logger.e("Client error persisted after all retries", lastException)
                 DomainError.fromServerCode(
                     serverCode = lastException.response.status.value,
-                    message = lastException.message ?: "error_client_request",
+                    message = lastException.message,
                     details = null
                 )
             }
+
             else -> {
                 logger.e("Unknown error type persisted after all retries", lastException)
                 DomainError.unknownError(
@@ -201,16 +242,17 @@ class NetworkAuthApiImpl(
             logger,
             { errorResponse ->
                 // Convert error response to domain error
-                logger.w("Registration failed: ${errorResponse.message}")
+                logger.w("Registration failed: ${errorResponse.getErrorMessage()}")
                 DomainError.fromServerCode(
-                    serverCode = errorResponse.code,
-                    message = errorResponse.message,
+                    serverCode = errorResponse.getErrorCode(),
+                    message = errorResponse.getErrorMessage(),
                     details = errorResponse.details
                 )
             }
         ).also {
             // Log success if operation succeeded
-            if (it is DomainResult.Success) {
+            it.onSuccess {
+
                 logger.i("User registered successfully: ${request.email}")
             }
         }.map { networkResponse ->
@@ -247,10 +289,10 @@ class NetworkAuthApiImpl(
             logger,
             { errorResponse ->
                 // Convert error response to domain error
-                logger.w("Login failed: ${errorResponse.message}")
+                logger.w("Login failed: ${errorResponse.getErrorMessage()}")
                 DomainError.fromServerCode(
-                    serverCode = errorResponse.code,
-                    message = errorResponse.message,
+                    serverCode = errorResponse.getErrorCode(),
+                    message = errorResponse.getErrorMessage(),
                     details = errorResponse.details
                 )
             }
@@ -296,45 +338,57 @@ class NetworkAuthApiImpl(
                 } else {
                     // Обработка ошибки
                     val errorResponse = response.body<NetworkErrorResponse>()
-                    logger.w("Token refresh failed: ${errorResponse.message}")
+                    logger.w("Token refresh failed: ${errorResponse.getErrorMessage()}")
                     DomainResult.Error(
                         DomainError.fromServerCode(
-                            serverCode = errorResponse.code,
-                            message = errorResponse.message,
+                            serverCode = errorResponse.getErrorCode(),
+                            message = errorResponse.getErrorMessage(),
                             details = errorResponse.details
                         )
                     )
                 }
             } catch (e: Exception) {
-                logger.e("Refresh token error", e)
-                when (e) {
-                    is ClientRequestException -> DomainResult.Error(
+                processApiException(e, "Refresh token")
+            }
+        }
+    }
+
+    /**
+     * Verifies access token and retrieves user information
+     *
+     * @param token Access token to verify
+     * @return DomainResult with user data on success or error details on failure
+     */
+    override suspend fun verifyToken(token: String): DomainResult<UserDomain> {
+        return executeWithRetry {
+            try {
+                val apiUrl = getApiUrl()
+
+                // Выполнение запроса
+                logger.d("Verifying token")
+                val response = client.get("$apiUrl/auth/verify") {
+                    header(HttpHeaders.Authorization, "Bearer $token")
+                }
+
+                if (response.status.isSuccess()) {
+                    // Парсинг успешного ответа
+                    val userResponse = response.body<NetworkUserResponse>()
+                    logger.i("Token verified successfully for user: ${userResponse.username}")
+                    DomainResult.Success(userResponse.toDomain())
+                } else {
+                    // Обработка ошибки
+                    val errorResponse = response.body<NetworkErrorResponse>()
+                    logger.w("Token verification failed: ${errorResponse.getErrorMessage()}")
+                    DomainResult.Error(
                         DomainError.fromServerCode(
-                            serverCode = e.response.status.value,
-                            message = e.message ?: "error_refresh_token_failed",
-                            details = null
-                        )
-                    )
-                    is ServerResponseException -> DomainResult.Error(
-                        DomainError.serverError(
-                            message = "error_server_unavailable",
-                            details = e.message
-                        )
-                    )
-                    // Для остальных ошибок создаем общий DomainError
-                    is IOException -> DomainResult.Error(
-                        DomainError.networkError(
-                            message = "error_network_connectivity",
-                            details = e.message
-                        )
-                    )
-                    else -> DomainResult.Error(
-                        DomainError.unknownError(
-                            message = "error_unknown",
-                            details = e.message
+                            serverCode = errorResponse.getErrorCode(),
+                            message = errorResponse.getErrorMessage(),
+                            details = errorResponse.details
                         )
                     )
                 }
+            } catch (e: Exception) {
+                processApiException(e, "Token verification")
             }
         }
     }
@@ -364,45 +418,17 @@ class NetworkAuthApiImpl(
                 } else {
                     // Обработка ошибки
                     val errorResponse = response.body<NetworkErrorResponse>()
-                    logger.w("Get user info failed: ${errorResponse.message}")
+                    logger.w("Get user info failed: ${errorResponse.getErrorMessage()}")
                     DomainResult.Error(
                         DomainError.fromServerCode(
-                            serverCode = errorResponse.code,
-                            message = errorResponse.message,
+                            serverCode = errorResponse.getErrorCode(),
+                            message = errorResponse.getErrorMessage(),
                             details = errorResponse.details
                         )
                     )
                 }
             } catch (e: Exception) {
-                logger.e("Get current user error", e)
-                when (e) {
-                    is ClientRequestException -> DomainResult.Error(
-                        DomainError.fromServerCode(
-                            serverCode = e.response.status.value,
-                            message = e.message ?: "error_get_user_failed",
-                            details = null
-                        )
-                    )
-                    is ServerResponseException -> DomainResult.Error(
-                        DomainError.serverError(
-                            message = "error_server_unavailable",
-                            details = e.message
-                        )
-                    )
-                    // Для остальных ошибок создаем общий DomainError
-                    is IOException -> DomainResult.Error(
-                        DomainError.networkError(
-                            message = "error_network_connectivity",
-                            details = e.message
-                        )
-                    )
-                    else -> DomainResult.Error(
-                        DomainError.unknownError(
-                            message = "error_unknown",
-                            details = e.message
-                        )
-                    )
-                }
+                processApiException(e, "Get current user")
             }
         }
     }
@@ -425,51 +451,30 @@ class NetworkAuthApiImpl(
                 }
 
                 if (response.status.isSuccess()) {
-                    // Если HTTP-статус успешный, считаем операцию успешной
-                    logger.i("User logged out successfully")
+                    // Парсинг успешного ответа с сообщением
+                    val logoutResponse = response.body<NetworkLogoutResponse>()
+                    logger.i("User logged out successfully: ${logoutResponse.message}")
                     DomainResult.Success(Unit)
                 } else {
-                    // Обработка ошибки
+                    // Обработка ошибки - если токен невалидный (401), считаем что пользователь уже разлогинен
+                    if (response.status.value == 401) {
+                        logger.i("Token was already invalid, considered logged out")
+                        return@executeWithRetry DomainResult.Success(Unit)
+                    }
+
+                    // Обработка других ошибок
                     val errorResponse = response.body<NetworkErrorResponse>()
-                    logger.w("Logout failed: ${errorResponse.message}")
+                    logger.w("Logout failed: ${errorResponse.getErrorMessage()}")
                     DomainResult.Error(
                         DomainError.fromServerCode(
-                            serverCode = errorResponse.code,
-                            message = errorResponse.message,
+                            serverCode = errorResponse.getErrorCode(),
+                            message = errorResponse.getErrorMessage(),
                             details = errorResponse.details
                         )
                     )
                 }
             } catch (e: Exception) {
-                logger.e("Logout error", e)
-                when (e) {
-                    is ClientRequestException -> DomainResult.Error(
-                        DomainError.fromServerCode(
-                            serverCode = e.response.status.value,
-                            message = e.message ?: "error_logout_failed",
-                            details = null
-                        )
-                    )
-                    is ServerResponseException -> DomainResult.Error(
-                        DomainError.serverError(
-                            message = "error_server_unavailable",
-                            details = e.message
-                        )
-                    )
-                    // Для остальных ошибок создаем общий DomainError
-                    is IOException -> DomainResult.Error(
-                        DomainError.networkError(
-                            message = "error_network_connectivity",
-                            details = e.message
-                        )
-                    )
-                    else -> DomainResult.Error(
-                        DomainError.unknownError(
-                            message = "error_unknown",
-                            details = e.message
-                        )
-                    )
-                }
+                processApiException(e, "Logout")
             }
         }
     }
@@ -496,45 +501,17 @@ class NetworkAuthApiImpl(
                 } else {
                     // Обработка ошибки
                     val errorResponse = response.body<NetworkErrorResponse>()
-                    logger.w("Check server status failed: ${errorResponse.message}")
+                    logger.w("Check server status failed: ${errorResponse.getErrorMessage()}")
                     DomainResult.Error(
                         DomainError.fromServerCode(
-                            serverCode = errorResponse.code,
-                            message = errorResponse.message,
+                            serverCode = errorResponse.getErrorCode(),
+                            message = errorResponse.getErrorMessage(),
                             details = errorResponse.details
                         )
                     )
                 }
             } catch (e: Exception) {
-                logger.e("Check server status error", e)
-                when (e) {
-                    is ClientRequestException -> DomainResult.Error(
-                        DomainError.fromServerCode(
-                            serverCode = e.response.status.value,
-                            message = e.message ?: "error_server_status_failed",
-                            details = null
-                        )
-                    )
-                    is ServerResponseException -> DomainResult.Error(
-                        DomainError.serverError(
-                            message = "error_server_unavailable",
-                            details = e.message
-                        )
-                    )
-                    // Для остальных ошибок создаем общий DomainError
-                    is IOException -> DomainResult.Error(
-                        DomainError.networkError(
-                            message = "error_network_connectivity",
-                            details = e.message
-                        )
-                    )
-                    else -> DomainResult.Error(
-                        DomainError.unknownError(
-                            message = "error_unknown",
-                            details = e.message
-                        )
-                    )
-                }
+                processApiException(e, "Check server status")
             }
         }
     }
@@ -554,6 +531,7 @@ class NetworkAuthApiImpl(
                 // Подготовка запроса в формате API
                 // Важно: для предотвращения ошибки 422 используем data class вместо Map
                 data class UpdateProfileRequest(val username: String)
+
                 val requestBody = UpdateProfileRequest(username)
 
                 // Выполнение запроса
@@ -572,45 +550,17 @@ class NetworkAuthApiImpl(
                 } else {
                     // Обработка ошибки
                     val errorResponse = response.body<NetworkErrorResponse>()
-                    logger.w("Update profile failed: ${errorResponse.message}")
+                    logger.w("Update profile failed: ${errorResponse.getErrorMessage()}")
                     DomainResult.Error(
                         DomainError.fromServerCode(
-                            serverCode = errorResponse.code,
-                            message = errorResponse.message,
+                            serverCode = errorResponse.getErrorCode(),
+                            message = errorResponse.getErrorMessage(),
                             details = errorResponse.details
                         )
                     )
                 }
             } catch (e: Exception) {
-                logger.e("Update profile error", e)
-                when (e) {
-                    is ClientRequestException -> DomainResult.Error(
-                        DomainError.fromServerCode(
-                            serverCode = e.response.status.value,
-                            message = e.message ?: "error_update_profile_failed",
-                            details = null
-                        )
-                    )
-                    is ServerResponseException -> DomainResult.Error(
-                        DomainError.serverError(
-                            message = "error_server_unavailable",
-                            details = e.message
-                        )
-                    )
-                    // Для остальных ошибок создаем общий DomainError
-                    is IOException -> DomainResult.Error(
-                        DomainError.networkError(
-                            message = "error_network_connectivity",
-                            details = e.message
-                        )
-                    )
-                    else -> DomainResult.Error(
-                        DomainError.unknownError(
-                            message = "error_unknown",
-                            details = e.message
-                        )
-                    )
-                }
+                processApiException(e, "Update profile")
             }
         }
     }

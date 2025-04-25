@@ -1,4 +1,4 @@
-package component.app.skiko.store
+package component
 
 import com.arkivanov.mvikotlin.core.store.Reducer
 import com.arkivanov.mvikotlin.core.store.SimpleBootstrapper
@@ -14,7 +14,7 @@ import org.kodein.di.DIAware
 import org.kodein.di.instance
 import navigation.rDispatchers
 
-interface SkikoStore : Store<SkikoStore.Intent, SkikoStore.State, Nothing> {
+interface TechnologyTreeStore : Store<TechnologyTreeStore.Intent, TechnologyTreeStore.State, Nothing> {
 
     sealed interface Intent {
         data object Init : Intent
@@ -22,6 +22,7 @@ interface SkikoStore : Store<SkikoStore.Intent, SkikoStore.State, Nothing> {
         data class UpdateJsonInput(val jsonText: String) : Intent
         data class ParseJson(val jsonText: String) : Intent
         data class NodeClicked(val nodeId: String) : Intent
+        data class NodeMoved(val nodeId: String, val newPosition: Position) : Intent
     }
 
     @Serializable
@@ -134,17 +135,17 @@ interface SkikoStore : Store<SkikoStore.Intent, SkikoStore.State, Nothing> {
     )
 }
 
-internal class SkikoStoreFactory(
+internal class TechnologyTreeStoreFactory(
     private val storeFactory: StoreFactory,
     override val di: DI
 ) : DIAware {
 
     private val logger by instance<Logger>()
 
-    fun create(): SkikoStore =
-        object : SkikoStore, Store<SkikoStore.Intent, SkikoStore.State, Nothing> by storeFactory.create(
+    fun create(): TechnologyTreeStore =
+        object : TechnologyTreeStore, Store<TechnologyTreeStore.Intent, TechnologyTreeStore.State, Nothing> by storeFactory.create(
             name = "SkikoStore",
-            initialState = SkikoStore.State(),
+            initialState = TechnologyTreeStore.State(),
             bootstrapper = SimpleBootstrapper(Unit),
             executorFactory = ::ExecutorImpl,
             reducer = ReducerImpl
@@ -152,14 +153,15 @@ internal class SkikoStoreFactory(
 
     private sealed interface Msg {
         data object LoadingData : Msg
-        data class JsonParsed(val tree: SkikoStore.TreeData) : Msg
+        data class JsonParsed(val tree: TechnologyTreeStore.TreeData) : Msg
         data class JsonInputUpdated(val jsonText: String) : Msg
         data class ErrorOccurred(val error: String) : Msg
         data class NodeSelected(val nodeId: String) : Msg
+        data class NodePositionUpdated(val nodeId: String, val newPosition: TechnologyTreeStore.Position) : Msg
     }
 
     private inner class ExecutorImpl :
-        CoroutineExecutor<SkikoStore.Intent, Unit, SkikoStore.State, Msg, Nothing>(
+        CoroutineExecutor<TechnologyTreeStore.Intent, Unit, TechnologyTreeStore.State, Msg, Nothing>(
             rDispatchers.main
         ) {
 
@@ -185,7 +187,7 @@ internal class SkikoStoreFactory(
                 dispatch(Msg.LoadingData)
 
                 val json = Json { ignoreUnknownKeys = true }
-                val tree = json.decodeFromString<SkikoStore.TreeData>(jsonText)
+                val tree = json.decodeFromString<TechnologyTreeStore.TreeData>(jsonText)
                 dispatch(Msg.JsonParsed(tree))
             } catch (e: Exception) {
                 logger.e("Error parsing JSON: ${e.message}")
@@ -193,23 +195,26 @@ internal class SkikoStoreFactory(
             }
         }
 
-        override fun executeIntent(intent: SkikoStore.Intent): Unit =
+        override fun executeIntent(intent: TechnologyTreeStore.Intent): Unit =
             try {
                 when (intent) {
-                    is SkikoStore.Intent.Init -> {
+                    is TechnologyTreeStore.Intent.Init -> {
                         // Инициализация уже выполнена в executeAction
                     }
-                    is SkikoStore.Intent.Back -> {
+                    is TechnologyTreeStore.Intent.Back -> {
                         // Обработка в компоненте
                     }
-                    is SkikoStore.Intent.UpdateJsonInput -> {
+                    is TechnologyTreeStore.Intent.UpdateJsonInput -> {
                         dispatch(Msg.JsonInputUpdated(intent.jsonText))
                     }
-                    is SkikoStore.Intent.ParseJson -> {
+                    is TechnologyTreeStore.Intent.ParseJson -> {
                         parseJsonTree(intent.jsonText)
                     }
-                    is SkikoStore.Intent.NodeClicked -> {
+                    is TechnologyTreeStore.Intent.NodeClicked -> {
                         dispatch(Msg.NodeSelected(intent.nodeId))
+                    }
+                    is TechnologyTreeStore.Intent.NodeMoved -> {
+                        dispatch(Msg.NodePositionUpdated(intent.nodeId, intent.newPosition))
                     }
                 }
             } catch (e: Exception) {
@@ -218,14 +223,40 @@ internal class SkikoStoreFactory(
             }
     }
 
-    private object ReducerImpl : Reducer<SkikoStore.State, Msg> {
-        override fun SkikoStore.State.reduce(msg: Msg): SkikoStore.State =
+    private object ReducerImpl : Reducer<TechnologyTreeStore.State, Msg> {
+        override fun TechnologyTreeStore.State.reduce(msg: Msg): TechnologyTreeStore.State =
             when (msg) {
                 is Msg.LoadingData -> copy(isLoading = true, error = null)
                 is Msg.JsonParsed -> copy(isLoading = false, parsedTree = msg.tree, error = null)
                 is Msg.JsonInputUpdated -> copy(jsonInput = msg.jsonText)
                 is Msg.ErrorOccurred -> copy(error = msg.error, isLoading = false)
                 is Msg.NodeSelected -> copy(selectedNodeId = msg.nodeId)
+                is Msg.NodePositionUpdated -> {
+                    // Обновляем позицию узла в дереве
+                    parsedTree?.let { currentTree ->
+                        val updatedNodes = currentTree.nodes.map { node ->
+                            if (node.id == msg.nodeId) {
+                                node.copy(position = msg.newPosition)
+                            } else {
+                                node
+                            }
+                        }
+                        val updatedTree = currentTree.copy(nodes = updatedNodes)
+
+                        // Обновляем JSON-представление
+                        val updatedJson = try {
+                            val json = Json {
+                                prettyPrint = true
+                                ignoreUnknownKeys = true
+                            }
+                            json.encodeToString(updatedTree)
+                        } catch (e: Exception) {
+                            jsonInput
+                        }
+
+                        copy(parsedTree = updatedTree, jsonInput = updatedJson)
+                    } ?: this
+                }
             }
     }
 }

@@ -198,6 +198,7 @@ class ProfileStoreFactory(
             }
         }
 
+        var l = 0
         override fun executeIntent(intent: ProfileStore.Intent): Unit =
             try {
                 when (intent) {
@@ -288,24 +289,12 @@ class ProfileStoreFactory(
                             dispatch(ProfileStore.Message.StartLoading)
                             dispatch(ProfileStore.Message.ClearError)
 
-                            try {
-                                // Simulate network delay for better UX
-                                delay(500)
+
 
                                 // TODO: Реализовать обновление профиля через репозиторий
                                 dispatch(ProfileStore.Message.SaveProfileSuccess)
 
-                            } catch (e: Exception) {
-                                logger.e("ProfileStore: Error updating profile", e)
-                                dispatch(
-                                    ProfileStore.Message.SetError(
-                                        e.message ?: "Error updating profile",
-                                        e.stackTraceToString()
-                                    )
-                                )
-                            } finally {
-                                dispatch(ProfileStore.Message.StopLoading)
-                            }
+
                         }
                     }
 
@@ -315,43 +304,26 @@ class ProfileStoreFactory(
                             dispatch(ProfileStore.Message.StartLoading)
                             dispatch(ProfileStore.Message.ClearError)
 
-                            try {
-                                // Simulate network delay
-                                delay(300)
 
-                                val result = authUseCases.logout()
+                            val result = authUseCases.logout()
+                            l+=1
+                            logger.i("ProfileStore: Count $l")
 
-                                when (result) {
-                                    is DomainResult.Success<Unit> -> {
-                                        logger.i("ProfileStore: Logout successful")
-                                        dispatch(ProfileStore.Message.LogoutSuccess)
-                                    }
-
-                                    is DomainResult.Error -> {
-                                        logger.w("ProfileStore: Logout failed: ${result.error.message}")
-                                        dispatch(
-                                            ProfileStore.Message.SetError(
-                                                result.error.message,
-                                                result.error.details
-                                            )
+                            result
+                                .onSuccess {
+                                    logger.i("ProfileStore: Logout successful")
+                                    dispatch(ProfileStore.Message.LogoutSuccess)
+                                }.onError { error ->
+                                    logger.w("ProfileStore: Logout failed: ${error.message}")
+                                    dispatch(
+                                        ProfileStore.Message.SetError(
+                                            error.message,
+                                            error.details
                                         )
-                                    }
-
-                                    is DomainResult.Loading -> {
-                                        logger.d("ProfileStore: Logout loading")
-                                        // Already in loading state
-                                    }
-                                }
-                            } catch (e: Exception) {
-                                logger.e("ProfileStore: Error during logout", e)
-                                dispatch(
-                                    ProfileStore.Message.SetError(
-                                        e.message ?: "Error during logout"
                                     )
-                                )
-                            } finally {
-                                dispatch(ProfileStore.Message.StopLoading)
-                            }
+                                }
+
+
                         }
                     }
                 }

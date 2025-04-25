@@ -2,7 +2,9 @@ package component.root
 
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.ExperimentalDecomposeApi
-import com.arkivanov.decompose.router.stack.*
+import com.arkivanov.decompose.router.stack.ChildStack
+import com.arkivanov.decompose.router.stack.StackNavigation
+import com.arkivanov.decompose.router.stack.childStack
 import com.arkivanov.decompose.router.stack.webhistory.WebHistoryController
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
@@ -16,8 +18,8 @@ import component.app.main.MainComponentParams
 import component.app.room.DefaultRoomComponent
 import component.app.room.RoomComponentParams
 import component.app.settings.DefaultSettingsComponent
-import component.app.skiko.DefaultSkikoComponent
-import component.app.skiko.SkikoComponentParams
+import component.DefaultTechnologyTreeComponent
+import component.TechnologyTreeComponentParams
 import component.root.RootComponent.Child.*
 import component.root.store.RootStore
 import component.root.store.RootStoreFactory
@@ -25,13 +27,14 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.Serializable
 import logging.Logger
-import org.kodein.di.*
-import settings.AppearanceSettings
-import settings.MultiplatformSettings
 import navigation.NavigationExecutor
 import navigation.rDispatchers
-import component.tree.TreeComponentParams
-import component.tree.DefaultTreeComponent
+import org.kodein.di.DI
+import org.kodein.di.DIAware
+import org.kodein.di.factory
+import org.kodein.di.instance
+import settings.AppearanceSettings
+import settings.MultiplatformSettings
 
 
 /**
@@ -134,7 +137,7 @@ interface RootComponent {
         /**
          * Экран с Skiko для графики
          */
-        class SkikoChild(val component: DefaultSkikoComponent) : Child()
+        class SkikoChild(val component: DefaultTechnologyTreeComponent) : Child()
 
         /**
          * Экран аутентификации
@@ -149,7 +152,7 @@ interface RootComponent {
         /**
          * Экран дерева развития
          */
-        class TreeChild(val component: DefaultTreeComponent) : Child()
+//        class TreeChild(val component: DefaultTreeComponent) : Child()
     }
 
     /**
@@ -280,7 +283,7 @@ class DefaultRootComponent(
             Config.Skiko -> SkikoChild(skikoComponent(componentContext))
             Config.Auth -> AuthChild(authComponent(componentContext))
             Config.Room -> RoomChild(roomComponent(componentContext))
-            Config.Tree -> TreeChild(treeComponent(componentContext))
+//            Config.Tree -> TreeChild(treeComponent(componentContext))
         }
 
     /**
@@ -330,10 +333,10 @@ class DefaultRootComponent(
      * @param componentContext Контекст для создаваемого компонента
      * @return Компонент Skiko
      */
-    private fun skikoComponent(componentContext: ComponentContext): DefaultSkikoComponent {
-        val skikoComponentFactory by factory<SkikoComponentParams, DefaultSkikoComponent>()
+    private fun skikoComponent(componentContext: ComponentContext): DefaultTechnologyTreeComponent {
+        val skikoComponentFactory by factory<TechnologyTreeComponentParams, DefaultTechnologyTreeComponent>()
         return skikoComponentFactory(
-            SkikoComponentParams(
+            TechnologyTreeComponentParams(
                 componentContext = componentContext,
                 onBack = { navigationExecutor.pop() }
             )
@@ -372,21 +375,6 @@ class DefaultRootComponent(
         )
     }
 
-    /**
-     * Создает компонент дерева развития
-     *
-     * @param componentContext Контекст для создаваемого компонента
-     * @return Компонент дерева развития
-     */
-    private fun treeComponent(componentContext: ComponentContext): DefaultTreeComponent {
-        val treeComponentFactory by factory<TreeComponentParams, DefaultTreeComponent>()
-        return treeComponentFactory(
-            TreeComponentParams(
-                componentContext = componentContext,
-                onBack = { navigationExecutor.pop() }
-            )
-        )
-    }
 
     /**
      * Переход на главный экран
@@ -427,7 +415,7 @@ class DefaultRootComponent(
      * Переход на экран дерева развития
      */
     override fun onTreeClicked() {
-        navigationExecutor.navigateTo(Config.Tree)
+//        navigationExecutor.navigateTo(Config.Tree)
     }
 
     private companion object {
@@ -475,7 +463,7 @@ class DefaultRootComponent(
                 Config.Skiko -> "/$WEB_PATH_SKIKO"
                 Config.Auth -> "/$WEB_PATH_AUTH"
                 Config.Room -> "/$WEB_PATH_ROOM"
-                Config.Tree -> "/$WEB_PATH_TREE"
+//                Config.Tree -> "/$WEB_PATH_TREE"
             }
 
         /**
@@ -530,11 +518,6 @@ class DefaultRootComponent(
         @Serializable
         data object Room : Config
 
-        /**
-         * Экран дерева развития
-         */
-        @Serializable
-        data object Tree : Config
     }
 
     /**

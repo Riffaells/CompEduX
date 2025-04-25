@@ -2,9 +2,8 @@
 """
 Configuration settings for Auth Service
 """
-from typing import List, Optional
+from typing import Optional
 
-from pydantic import AnyHttpUrl, field_validator
 from common.config import BaseServiceSettings
 
 

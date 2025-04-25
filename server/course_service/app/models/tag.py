@@ -3,13 +3,12 @@ Tag and TagTranslation models for storing course tags with multilingual support
 """
 import uuid
 from datetime import datetime, timezone
-from typing import Optional, List, Dict
-
-from sqlalchemy import Column, DateTime, ForeignKey, String, Table, Enum, UniqueConstraint, Boolean
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship, Session
+from typing import Optional
 
 from app.models.base import Base
+from sqlalchemy import Column, DateTime, ForeignKey, String, UniqueConstraint
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
 
 
 class TagTranslation(Base):
@@ -44,8 +43,9 @@ class Tag(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
 
     # Timestamps
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc),
+                        onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     translations = relationship("TagTranslation", back_populates="tag", cascade="all, delete-orphan")

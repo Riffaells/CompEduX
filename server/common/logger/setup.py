@@ -2,27 +2,47 @@
 Module for setting up logging in microservices
 """
 
-import logging
-import sys
-import os
-from functools import lru_cache
-from typing import Optional, Dict, Any
-from pathlib import Path
 import asyncio
+import logging
+import os
 from contextlib import asynccontextmanager
+from functools import lru_cache, wraps
+from typing import Optional, Dict, Any, Callable, TypeVar, cast
 
 from rich.console import Console
 from rich.logging import RichHandler
-from rich.theme import Theme
 
-from common.logger.config import LoggerConfig, get_default_theme, format_log_time
+from common.logger.config import get_default_theme, format_log_time, format_sql_error
 
+# Type variables for function annotations
+T = TypeVar('T')
+F = TypeVar('F', bound=Callable[..., Any])
 
 # Global console instance
 console = Console(theme=get_default_theme())
 
 # Cache for loggers to avoid recreation
 _loggers: Dict[str, logging.Logger] = {}
+
+
+class SqlFormattingLogger(logging.Logger):
+    """Logger that formats SQL errors for better readability"""
+
+    def error(self, msg: Any, *args, **kwargs):
+        """Format SQL error messages before logging"""
+        if isinstance(msg, str) and ('SQL:' in msg or 'sqlalchemy' in msg.lower()):
+            msg = format_sql_error(msg)
+        super().error(msg, *args, **kwargs)
+
+    def critical(self, msg: Any, *args, **kwargs):
+        """Format SQL error messages before logging"""
+        if isinstance(msg, str) and ('SQL:' in msg or 'sqlalchemy' in msg.lower()):
+            msg = format_sql_error(msg)
+        super().critical(msg, *args, **kwargs)
+
+
+# Register our custom logger class
+logging.setLoggerClass(SqlFormattingLogger)
 
 
 def get_logger(name: str) -> logging.Logger:
@@ -41,16 +61,42 @@ def get_logger(name: str) -> logging.Logger:
 
     # If logger is not in cache, create a new one
     logger = logging.getLogger(name)
-    _loggers[name] = logger
-    return logger
+
+    # Cast to SqlFormattingLogger to help type checking
+    if isinstance(logger, SqlFormattingLogger):
+        sql_logger = logger
+    else:
+        # Если стандартный логгер уже был создан до регистрации нашего класса,
+        # мы не можем изменить его тип, но можем подменить методы
+        original_error = logger.error
+        original_critical = logger.critical
+
+        @wraps(original_error)
+        def wrapped_error(msg, *args, **kwargs):
+            if isinstance(msg, str) and ('SQL:' in msg or 'sqlalchemy' in msg.lower()):
+                msg = format_sql_error(msg)
+            return original_error(msg, *args, **kwargs)
+
+        @wraps(original_critical)
+        def wrapped_critical(msg, *args, **kwargs):
+            if isinstance(msg, str) and ('SQL:' in msg or 'sqlalchemy' in msg.lower()):
+                msg = format_sql_error(msg)
+            return original_critical(msg, *args, **kwargs)
+
+        logger.error = wrapped_error
+        logger.critical = wrapped_critical
+        sql_logger = logger
+
+    _loggers[name] = sql_logger
+    return sql_logger
 
 
 @lru_cache
 def setup_rich_logger(
-    service_name: str,
-    log_level: int = logging.INFO,
-    log_file: Optional[str] = None,
-    **kwargs
+        service_name: str,
+        log_level: int = logging.INFO,
+        log_file: Optional[str] = None,
+        **kwargs
 ) -> logging.Logger:
     """
     Set up a Rich logger with the specified parameters.
@@ -76,24 +122,44 @@ def setup_rich_logger(
 
     # Disable logging for uvicorn and other libraries
     for name in ["uvicorn", "uvicorn.access", "uvicorn.error",
-                "fastapi", "httpx", "asyncio"]:
+                 "fastapi", "httpx", "asyncio"]:
         logger = logging.getLogger(name)
         logger.handlers = []
         logger.propagate = False
         logger.addHandler(logging.NullHandler())
 
     # Configure Rich handler for beautiful console output
-    rich_handler = RichHandler(
-        console=console,
-        show_time=True,
-        show_path=False,
-        show_level=True,
-        markup=True,
-        rich_tracebacks=True,
-        tracebacks_show_locals=False,
-        omit_repeated_times=False,
-        log_time_format="%H:%M:%S"
-    )
+    rich_kwargs = {
+        'console': console,
+        'show_time': True,
+        'show_path': False,
+        'show_level': True,
+        'markup': True,
+        'rich_tracebacks': True,
+        'tracebacks_show_locals': False,
+        'omit_repeated_times': False,
+        'log_time_format': "%d.%m.%Y %H:%M:%S",
+    }
+
+    # Проверяем поддержку дополнительных параметров
+    # для совместимости с разными версиями rich
+    import inspect
+
+    # Получаем сигнатуру конструктора RichHandler
+    rich_params = inspect.signature(RichHandler.__init__).parameters
+
+    # Проверяем наличие дополнительных параметров в сигнатуре
+    if 'highlighter' in rich_params:
+        rich_kwargs['highlighter'] = None
+
+    if 'enable_link_path' in rich_params:
+        rich_kwargs['enable_link_path'] = False
+
+    if 'word_wrap' in rich_params:
+        rich_kwargs['word_wrap'] = True
+
+    # Создаем handler с поддерживаемыми параметрами
+    rich_handler = RichHandler(**rich_kwargs)
 
     # Level for console output
     rich_handler.setLevel(log_level)
@@ -152,11 +218,11 @@ async def log_service_lifecycle(app_name: str, logger: logging.Logger):
         logger: Logger instance
     """
     try:
-        logger.info(f"[{format_log_time()}] [bold green]{app_name} starting up...[/bold green]")
+        logger.info(f"[bold green]{app_name} starting up...[/bold green]")
         yield
     except asyncio.CancelledError:
-        logger.info(f"[{format_log_time()}] [yellow]{app_name} shutdown initiated (cancel)[/yellow]")
+        logger.info(f"[yellow]{app_name} shutdown initiated (cancel)[/yellow]")
     except Exception as e:
-        logger.error(f"[{format_log_time()}] [bold red]{app_name} error: {str(e)}[/bold red]")
+        logger.error(f"[bold red]{app_name} error: {str(e)}[/bold red]")
     finally:
-        logger.info(f"[{format_log_time()}] [bold red]{app_name} shutting down...[/bold red]")
+        logger.info(f"[bold red]{app_name} shutting down...[/bold red]")

@@ -5,9 +5,7 @@ import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
 import component.app.auth.*
 import component.app.auth.login.DefaultLoginComponent
-import component.app.auth.login.LoginComponent
 import component.app.auth.register.DefaultRegisterComponent
-import component.app.auth.register.RegisterComponent
 import component.app.main.DefaultMainComponent
 import component.app.main.MainComponentParams
 import component.app.main.store.MainStoreFactory
@@ -22,13 +20,11 @@ import component.app.room.diagram.store.DiagramStoreFactory
 import component.app.room.store.RoomStoreFactory
 import component.app.settings.DefaultSettingsComponent
 import component.app.settings.SettingsComponentParams
-import component.app.skiko.DefaultSkikoComponent
-import component.app.skiko.SkikoComponentParams
+import component.DefaultTechnologyTreeComponent
+import component.TechnologyTreeComponentParams
 import component.root.DefaultRootComponent
 import component.root.RootComponentParams
 import component.root.store.RootStoreFactory
-import logging.Logger
-import repository.auth.AuthRepository
 import org.kodein.di.*
 
 /**
@@ -79,8 +75,8 @@ val componentModule = DI.Module("componentModule") {
         )
     }
 
-    bindFactory { params: SkikoComponentParams ->
-        DefaultSkikoComponent(
+    bindFactory { params: TechnologyTreeComponentParams ->
+        DefaultTechnologyTreeComponent(
             componentContext = params.componentContext,
             onBack = params.onBack,
             di = di
@@ -143,7 +139,7 @@ val componentModule = DI.Module("componentModule") {
         DefaultProfileComponent(
             di = di,
             componentContext = params.componentContext,
-            onLogout = params.onLogout,
+            onLogoutClicked = params.onLogout,
         )
     }
 }

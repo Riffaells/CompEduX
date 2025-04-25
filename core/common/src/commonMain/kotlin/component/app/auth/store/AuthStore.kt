@@ -74,7 +74,7 @@ class AuthStoreFactory(
             name = "AuthStore",
             initialState = AuthStore.State(),
             bootstrapper = SimpleBootstrapper(Unit),
-            executorFactory = { ExecutorImpl(authUseCases, authStateFlow, logger.withTag("AuthStore")) },
+            executorFactory = { ExecutorImpl(authUseCases, logger.withTag("AuthStore")) },
             reducer = ReducerImpl
         )
 
@@ -113,7 +113,6 @@ class AuthStoreFactory(
 
     private class ExecutorImpl(
         private val authUseCases: AuthUseCases,
-        private val authStateFlow: MutableStateFlow<AuthStateDomain>,
         private val logger: Logger
     ) : CoroutineExecutor<AuthStore.Intent, Unit, AuthStore.State, Msg, Nothing>(
         rDispatchers.main

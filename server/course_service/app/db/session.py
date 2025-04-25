@@ -1,15 +1,28 @@
-"""
-SQLAlchemy session configuration for Course Service
-"""
-from common.db import DatabaseManager
-from app.core.config import settings
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
-# Create database manager instance
-db_manager = DatabaseManager(settings, "course_service")
+from ..core.config import settings
 
-# Get engine and SessionLocal from manager
-engine = db_manager.engine
-SessionLocal = db_manager.SessionLocal
+# Create SQLAlchemy engine
+engine = create_engine(
+    settings.SQLALCHEMY_DATABASE_URI,
+    pool_pre_ping=True,  # Check connection before use
+)
 
-# Create a database dependency
-get_db = db_manager.get_db
+# Create session factory
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+# Dependency function for getting DB session
+def get_db():
+    """
+    Dependency function for obtaining a database session.
+
+    Yields:
+        Session: SQLAlchemy session for database operations.
+    """
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

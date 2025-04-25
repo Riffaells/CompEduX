@@ -21,6 +21,10 @@ import com.riffaells.compedux.BuildConfig
 import io.ktor.client.network.sockets.ConnectTimeoutException
 import io.ktor.client.network.sockets.SocketTimeoutException
 import kotlinx.io.IOException
+import io.ktor.client.call.*
+import model.auth.NetworkAuthResponse
+import model.auth.NetworkRefreshTokenRequest
+import kotlinx.coroutines.runBlocking
 
 /**
  * Factory for creating HTTP client
@@ -93,14 +97,39 @@ class HttpClientFactory(
                         val refreshToken = tokenStorage.getRefreshToken() ?: return@refreshTokens null
 
                         try {
-                            // In a real application, this would be an API request to refresh the token
-                            // This is just a placeholder
-                            BearerTokens(
-                                accessToken = "refreshed_access_token",
-                                refreshToken = refreshToken
-                            )
+                            // Получаем базовый URL API
+                            val baseApiUrl = runBlocking {
+                                networkConfig.getFullApiUrl()
+                            }
+
+                            // Выполняем запрос на обновление токена
+                            val response = client.post("$baseApiUrl/auth/refresh") {
+                                contentType(ContentType.Application.Json)
+                                setBody(NetworkRefreshTokenRequest(refreshToken = refreshToken))
+                            }
+
+                            if (response.status.isSuccess()) {
+                                // Получаем новые токены из ответа
+                                val authResponse = response.body<NetworkAuthResponse>()
+
+                                // Сохраняем новые токены в хранилище
+                                tokenStorage.saveAccessToken(authResponse.accessToken)
+                                tokenStorage.saveRefreshToken(authResponse.refreshToken)
+
+                                // Возвращаем новые токены для механизма аутентификации
+                                BearerTokens(
+                                    accessToken = authResponse.accessToken,
+                                    refreshToken = authResponse.refreshToken
+                                )
+                            } else {
+                                // При ошибке обновления - очистка токенов и выход
+                                logger.e("Failed to refresh token: ${response.status}")
+                                tokenStorage.clearTokens()
+                                null
+                            }
                         } catch (e: Exception) {
                             logger.e("Failed to refresh token", e)
+                            tokenStorage.clearTokens()
                             null
                         }
                     }

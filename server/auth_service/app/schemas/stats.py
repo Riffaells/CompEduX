@@ -1,5 +1,7 @@
-from typing import List, Dict, Any, Optional
+from typing import List
+
 from pydantic import BaseModel, Field
+
 
 class PlatformStatSchema(BaseModel):
     """Схема для статистики по платформам"""
@@ -7,11 +9,13 @@ class PlatformStatSchema(BaseModel):
     user_count: int = Field(..., description="Количество уникальных пользователей")
     request_count: int = Field(..., description="Общее количество запросов")
 
+
 class OSStatSchema(BaseModel):
     """Схема для статистики по операционным системам"""
     os: str = Field(..., description="Операционная система и версия")
     user_count: int = Field(..., description="Количество уникальных пользователей")
     request_count: int = Field(..., description="Общее количество запросов")
+
 
 class AppVersionStatSchema(BaseModel):
     """Схема для статистики по версиям приложения"""
@@ -19,6 +23,7 @@ class AppVersionStatSchema(BaseModel):
     client_version: str = Field(..., description="Версия клиента")
     user_count: int = Field(..., description="Количество уникальных пользователей")
     request_count: int = Field(..., description="Общее количество запросов")
+
 
 class ClientStatsResponse(BaseModel):
     """Комбинированная схема для полной статистики"""

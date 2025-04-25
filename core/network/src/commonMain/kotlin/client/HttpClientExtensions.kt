@@ -10,6 +10,7 @@ import logging.Logger
 import kotlinx.io.IOException
 import model.DomainError
 import model.DomainResult
+import model.auth.NetworkErrorResponse
 
 /**
  * Extension function for HttpClient that handles error cases and converts them to DomainResult
@@ -49,7 +50,7 @@ suspend inline fun <reified T> HttpClient.safeSend(
         DomainResult.Error(
             errorTransformer(e.response)
         )
-    } catch (e: ServerResponseException) {
+
         // Server errors (5xx)
         logger.e("Server error during request: ${e.response.status.value}", e)
         DomainResult.Error(
@@ -116,6 +117,25 @@ suspend inline fun <reified T, reified E> HttpClient.safeSendWithErrorBody(
                 logger.w("Request failed with status: ${response.status.value}")
                 DomainResult.Error(errorBodyToDomainError(errorBody))
             } catch (e: Exception) {
+                // Special case for NetworkErrorResponse if deserializing fails for common formats
+                if (E::class == NetworkErrorResponse::class) {
+                    try {
+                        // Try alternative format with just "detail" field
+                        val errorText = response.bodyAsText()
+                        logger.w("Parsing alternative error format: $errorText")
+
+                        // Create simple error response
+                        val errorResponse = NetworkErrorResponse(
+                            code = response.status.value,
+                            detail = errorText.takeIf { it.isNotBlank() }
+                        )
+                        val error = errorBodyToDomainError(errorResponse as E)
+                        return DomainResult.Error(error)
+                    } catch (e2: Exception) {
+                        logger.e("Failed to parse alternative error format", e2)
+                    }
+                }
+
                 // Failed to parse error body
                 logger.e("Failed to parse error body", e)
                 DomainResult.Error(
@@ -136,6 +156,25 @@ suspend inline fun <reified T, reified E> HttpClient.safeSendWithErrorBody(
                     val errorBody = e.response.body<E>()
                     DomainResult.Error(errorBodyToDomainError(errorBody))
                 } catch (parseException: Exception) {
+                    // Special case for NetworkErrorResponse if deserializing fails for common formats
+                    if (E::class == NetworkErrorResponse::class) {
+                        try {
+                            // Try alternative format with just "detail" field
+                            val errorText = e.response.bodyAsText()
+                            logger.w("Parsing alternative error format for exception: $errorText")
+
+                            // Create simple error response
+                            val errorResponse = NetworkErrorResponse(
+                                code = e.response.status.value,
+                                detail = errorText.takeIf { it.isNotBlank() }
+                            )
+                            val error = errorBodyToDomainError(errorResponse as E)
+                            return DomainResult.Error(error)
+                        } catch (e2: Exception) {
+                            logger.e("Failed to parse alternative error format for exception", e2)
+                        }
+                    }
+
                     DomainResult.Error(
                         DomainError.fromServerCode(
                             serverCode = e.response.status.value,

@@ -34,12 +34,14 @@ cp .env.example .env
 #### Режим разработки
 
 В Linux/macOS:
+
 ```bash
 chmod +x dev.sh
 ./dev.sh
 ```
 
 В Windows:
+
 ```cmd
 dev.bat
 ```
@@ -47,12 +49,14 @@ dev.bat
 #### Продакшен режим
 
 В Linux/macOS:
+
 ```bash
 chmod +x prod.sh
 ./prod.sh
 ```
 
 В Windows:
+
 ```cmd
 prod.bat
 ```
@@ -60,11 +64,13 @@ prod.bat
 ### 3. Запуск вручную с Docker Compose
 
 #### Режим разработки
+
 ```bash
 docker-compose -f docker-compose.dev.yml up -d
 ```
 
 #### Продакшен режим
+
 ```bash
 docker-compose -f docker-compose.prod.yml up -d
 ```
@@ -127,3 +133,120 @@ alembic upgrade head
 ## Лицензия
 
 MIT
+
+# CompEduX Database Initialization Tool
+
+Скрипт для инициализации пользователей и баз данных PostgreSQL для микросервисной архитектуры CompEduX.
+
+## Назначение
+
+Этот скрипт решает следующие задачи:
+
+1. **Централизованное создание пользователей БД**
+    - Создание пользователей PostgreSQL для каждого микросервиса
+    - Настройка прав доступа и привилегий
+
+2. **Инициализация баз данных**
+    - Создание баз данных с правильными настройками кодировки UTF-8
+    - Назначение владельцев и привилегий
+
+3. **Устранение проблем с кодировкой**
+    - Установка `lc_messages='C'` для предотвращения ошибок с кириллическими сообщениями об ошибках
+    - Выбор правильных параметров локали для баз данных
+
+## Использование
+
+### Требования
+
+Для работы скрипта необходимы:
+
+- Python 3.7 или выше
+- Библиотека psycopg2 (`pip install psycopg2-binary`)
+
+### Запуск
+
+Простой запуск с параметрами по умолчанию:
+
+```bash
+python init_db.py
+```
+
+С указанием параметров подключения:
+
+```bash
+python init_db.py --host localhost --port 5432 --user postgres --password secure_password
+```
+
+### Параметры командной строки
+
+| Параметр     | Описание                         | По умолчанию |
+|--------------|----------------------------------|--------------|
+| `--host`     | Хост PostgreSQL                  | localhost    |
+| `--port`     | Порт PostgreSQL                  | 5432         |
+| `--user`     | Имя администратора PostgreSQL    | postgres     |
+| `--password` | Пароль администратора PostgreSQL | postgres     |
+| `--retry`    | Количество попыток подключения   | 5            |
+| `--timeout`  | Таймаут подключения в секундах   | 10           |
+
+## Настройка сервисов
+
+По умолчанию скрипт создает следующие сервисы:
+
+1. **auth_service**
+    - Пользователь: `auth_user`
+    - База данных: `auth_db`
+
+2. **course_service**
+    - Пользователь: `course_user`
+    - База данных: `course_db`
+
+Для добавления новых сервисов отредактируйте массив `DEFAULT_SERVICES` в файле скрипта.
+
+## Решение проблемы с кодировкой
+
+Скрипт автоматически решает проблему с кириллическими сообщениями об ошибках PostgreSQL, которая вызывает ошибку:
+
+```
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0xc2 in position 61: invalid continuation byte
+```
+
+Эта ошибка возникает, когда PostgreSQL с русской локалью возвращает сообщения об ошибках на русском языке,
+закодированные в Windows-1251 (CP1251), а psycopg2 пытается интерпретировать их как UTF-8.
+
+Скрипт устанавливает параметр `lc_messages='C'` в PostgreSQL, что переключает все сообщения на английский язык с ASCII
+кодировкой.
+
+## Примеры использования
+
+### Локальный запуск
+
+```bash
+# С параметрами по умолчанию
+python init_db.py
+
+# С указанием хоста и пароля
+python init_db.py --host localhost --password my_secure_password
+
+# С указанием всех параметров
+python init_db.py --host db.example.com --port 5432 --user admin --password secret --retry 3 --timeout 5
+```
+
+### Запуск в Docker-окружении
+
+```bash
+# Если PostgreSQL запущен в Docker
+python init_db.py --host postgres --password postgres
+```
+
+### Использование в CI/CD пайплайне
+
+```yaml
+# Пример для GitLab CI
+init_database:
+  stage: deploy
+  script:
+    - pip install psycopg2-binary
+    - python init_db.py --host $DB_HOST --user $DB_USER --password $DB_PASSWORD
+  only:
+    - master
+```

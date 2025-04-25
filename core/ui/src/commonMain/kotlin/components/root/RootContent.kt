@@ -26,7 +26,7 @@ import components.auth.AuthContent
 import components.main.MainContent
 import components.room.RoomContent
 import components.settings.SettingsContent
-import components.skiko.SkikoContent
+import ui.TechnologyTreeContent
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import settings.AppearanceSettings
@@ -34,7 +34,6 @@ import ui.theme.AppTheme
 import utils.getScreenWidth
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
-import ui.TreeContent
 
 /**
  * Корневой композабл, который отображает текущий дочерний компонент
@@ -293,13 +292,9 @@ private fun RenderContent(
         when (val instance = child.instance) {
             is MainChild -> MainContent(modifier, instance.component)
             is SettingsChild -> SettingsContent(modifier, instance.component)
-            is SkikoChild -> SkikoContent(modifier, instance.component)
+            is SkikoChild -> TechnologyTreeContent(modifier, instance.component)
             is AuthChild -> AuthContent(instance.component)
             is RoomChild -> RoomContent(modifier, instance.component)
-            is TreeChild -> TreeContent(
-                component = instance.component,
-                modifier = Modifier
-            )
         }
 
     }

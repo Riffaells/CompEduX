@@ -2,6 +2,7 @@
 Инициализация маршрутов API
 """
 from fastapi import APIRouter
+
 from . import courses, enrollments, technology_tree, tags  # Используем относительные импорты
 
 # Создаем главный роутер для экспорта

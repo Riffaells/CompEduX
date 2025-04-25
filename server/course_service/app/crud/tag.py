@@ -1,15 +1,18 @@
 """
 CRUD operations for Tags
 """
-import logging
-from typing import Dict, List, Optional, Tuple, Union, Any
+from typing import Dict, List, Optional, Tuple
+
+from app.models.tag import Tag, TagTranslation
+from app.schemas.localization import LocalizationCreate
+from app.schemas.tag import TagCreate, TagUpdate, TagTranslationCreate
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, joinedload
 
-from app.models.tag import Tag, TagTranslation
-from app.schemas.tag import TagCreate, TagUpdate, TagTranslationCreate
+from common.logger import get_logger
 
-logger = logging.getLogger(__name__)
+# Создаем логгер для этого модуля
+logger = get_logger("course_service.crud.tag")
 
 
 def get_tag(db: Session, tag_id: int) -> Optional[Tag]:
@@ -239,7 +242,7 @@ def get_or_create_tag(db: Session, name: str, language: str = "en") -> Tuple[Tag
 
 
 def update_tag_translation(
-    db: Session, tag_id: int, language: str, name: str
+        db: Session, tag_id: int, language: str, name: str
 ) -> Optional[Tag]:
     """
     Update or add a specific translation for a tag
@@ -290,7 +293,7 @@ def update_tag_translation(
 
 
 def remove_tag_translation(
-    db: Session, tag_id: int, language: str
+        db: Session, tag_id: int, language: str
 ) -> Optional[Tag]:
     """
     Remove a specific translation from a tag

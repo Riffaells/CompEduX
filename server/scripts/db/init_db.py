@@ -5,14 +5,14 @@ CompEduX Database Initialization Script
 Скрипт для инициализации пользователей и баз данных PostgreSQL
 для микросервисов CompEduX.
 """
+import argparse
 import os
+import platform
+import subprocess
 import sys
 import time
-import argparse
-import subprocess
-import platform
 from typing import Dict, List, Optional, Tuple, Any
-from pathlib import Path
+
 from dotenv import load_dotenv
 
 # Добавляем путь к корневой директории проекта
@@ -25,11 +25,13 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 # Инициализируем логгер из общего модуля
 from common.logger import initialize_logging
+
 logger = initialize_logging("db-init", log_file="logs/db_init.log")
 
 # Константы в зависимости от ОС
 WINDOWS_LOCALE = "C"  # На Windows используем просто "C" локаль
 UNIX_LOCALE = "C.UTF-8"  # На UNIX используем "C.UTF-8"
+
 
 class DatabaseInitializer:
     """Класс для инициализации баз данных и пользователей PostgreSQL"""
@@ -629,7 +631,8 @@ class DatabaseInitializer:
             if not connected:
                 retry_count += 1
                 wait_time = retry_count * 2
-                self.logger.warning(f"Не удалось подключиться к PostgreSQL. Повторная попытка через {wait_time} секунд... ({retry_count}/{self.retry_count})")
+                self.logger.warning(
+                    f"Не удалось подключиться к PostgreSQL. Повторная попытка через {wait_time} секунд... ({retry_count}/{self.retry_count})")
                 time.sleep(wait_time)
 
         if not connected:
@@ -646,6 +649,7 @@ class DatabaseInitializer:
 
         return success
 
+
 def main():
     # Создаем директорию для логов, если её нет
     os.makedirs("logs", exist_ok=True)
@@ -656,6 +660,7 @@ def main():
 
     # Возвращаем код выхода
     return 0 if success else 1
+
 
 if __name__ == "__main__":
     sys.exit(main())

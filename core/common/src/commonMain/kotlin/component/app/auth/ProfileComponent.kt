@@ -32,7 +32,7 @@ interface ProfileComponent {
 class DefaultProfileComponent(
     override val di: DI,
     componentContext: ComponentContext,
-    private val onLogout: () -> Unit,
+    private val onLogoutClicked: () -> Unit,
 ) : ProfileComponent, DIAware, ComponentContext by componentContext {
 
     private val authUseCases: AuthUseCases by instance()
@@ -63,7 +63,7 @@ class DefaultProfileComponent(
     override fun onLogout() {
         profileStore.accept(ProfileStore.Intent.Logout)
         scope.launch {
-            onLogout()
+            onLogoutClicked()
         }
     }
 }

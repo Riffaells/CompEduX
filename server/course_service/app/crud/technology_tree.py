@@ -1,16 +1,20 @@
 """
 CRUD operations for technology tree model
 """
-import logging
-from typing import Dict, List, Any, Optional, Union, Tuple
+import uuid
+from typing import Dict, Any, Optional, Tuple
 from uuid import UUID
+
+from ..models.course import Course
+from ..models.technology_tree import TechnologyTree
+from ..schemas.technology_tree import TechnologyTreeCreate, TechnologyTreeUpdate
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.models.technology_tree import TechnologyTree
-from app.models.course import Course
+from common.logger import get_logger
 
-logger = logging.getLogger(__name__)
+# Создаем логгер для этого модуля
+logger = get_logger("course_service.crud.technology_tree")
 
 
 def get_technology_tree(db: Session, technology_tree_id: UUID) -> Optional[TechnologyTree]:
@@ -88,7 +92,7 @@ def create_technology_tree(db: Session, course_id: UUID, data: Dict = None) -> T
 
 
 def update_technology_tree(
-    db: Session, technology_tree_id: UUID, data: Dict[str, Any]
+        db: Session, technology_tree_id: UUID, data: Dict[str, Any]
 ) -> Optional[TechnologyTree]:
     """
     Update technology tree data
@@ -161,7 +165,7 @@ def delete_technology_tree(db: Session, technology_tree_id: UUID) -> bool:
 
 
 def update_tree_node(
-    db: Session, technology_tree_id: UUID, node_id: str, node_data: Dict[str, Any]
+        db: Session, technology_tree_id: UUID, node_id: str, node_data: Dict[str, Any]
 ) -> Optional[TechnologyTree]:
     """
     Update a specific node in the technology tree
@@ -222,7 +226,7 @@ def update_tree_node(
 
 
 def add_tree_node(
-    db: Session, technology_tree_id: UUID, node_data: Dict[str, Any]
+        db: Session, technology_tree_id: UUID, node_data: Dict[str, Any]
 ) -> Tuple[Optional[TechnologyTree], str]:
     """
     Add a new node to the technology tree
@@ -242,7 +246,6 @@ def add_tree_node(
     node_id = node_data.get("id")
     if not node_id:
         # Generate a random ID if not provided
-        import uuid
         node_id = f"node_{str(uuid.uuid4())[:8]}"
         node_data["id"] = node_id
 
@@ -298,7 +301,7 @@ def get_by_course_id(db: Session, course_id: UUID) -> Optional[TechnologyTree]:
 
 
 def add_tree_connection(
-    db: Session, technology_tree_id: UUID, connection_data: Dict[str, Any]
+        db: Session, technology_tree_id: UUID, connection_data: Dict[str, Any]
 ) -> Tuple[Optional[TechnologyTree], str]:
     """
     Add a new connection between nodes in the technology tree
@@ -318,7 +321,6 @@ def add_tree_connection(
     connection_id = connection_data.get("id")
     if not connection_id:
         # Generate a random ID if not provided
-        import uuid
         connection_id = f"conn_{str(uuid.uuid4())[:8]}"
         connection_data["id"] = connection_id
 
@@ -388,7 +390,7 @@ def add_tree_connection(
 
 
 def update_tree_connection(
-    db: Session, technology_tree_id: UUID, connection_id: str, connection_data: Dict[str, Any]
+        db: Session, technology_tree_id: UUID, connection_id: str, connection_data: Dict[str, Any]
 ) -> Optional[TechnologyTree]:
     """
     Update a connection in the technology tree
@@ -457,7 +459,7 @@ def update_tree_connection(
 
 
 def delete_tree_connection(
-    db: Session, technology_tree_id: UUID, connection_id: str
+        db: Session, technology_tree_id: UUID, connection_id: str
 ) -> Optional[TechnologyTree]:
     """
     Delete a connection from the technology tree
@@ -512,7 +514,7 @@ def delete_tree_connection(
 
 
 def delete_tree_node(
-    db: Session, technology_tree_id: UUID, node_id: str
+        db: Session, technology_tree_id: UUID, node_id: str
 ) -> Optional[TechnologyTree]:
     """
     Delete a node from the technology tree and all its connections

@@ -1,23 +1,25 @@
 """
 TechnologyTree API endpoints
 """
-from typing import Dict, Any, Optional, List
 import uuid
-from fastapi import APIRouter, HTTPException, status, Depends, Body
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import SQLAlchemyError
 
+from app.crud import technology_tree as technology_tree_crud
 from app.db.session import get_db
 from app.schemas.technology_tree import TechnologyTree as TechnologyTreeSchema
-from app.schemas.technology_tree import TechnologyTreeCreate, TechnologyTreeUpdate, TechnologyTreeNodeCreate, TechnologyTreeNodeUpdate
 from app.schemas.technology_tree import TechnologyTreeConnectionCreate, TechnologyTreeConnectionUpdate
-from app.crud import technology_tree as technology_tree_crud
+from app.schemas.technology_tree import TechnologyTreeCreate, TechnologyTreeUpdate, TechnologyTreeNodeCreate, \
+    TechnologyTreeNodeUpdate
+from fastapi import APIRouter, HTTPException, status, Depends
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
+
 from common.logger import initialize_logging
 
 # Initialize logger
 logger = initialize_logging("course_service.api.technology_tree")
 
 router = APIRouter()
+
 
 @router.get("/{technology_tree_id}", response_model=TechnologyTreeSchema)
 async def get_technology_tree(technology_tree_id: uuid.UUID, db: Session = Depends(get_db)):
@@ -34,6 +36,7 @@ async def get_technology_tree(technology_tree_id: uuid.UUID, db: Session = Depen
         )
     return technology_tree
 
+
 @router.get("/course/{course_id}", response_model=TechnologyTreeSchema)
 async def get_technology_tree_by_course(course_id: uuid.UUID, db: Session = Depends(get_db)):
     """
@@ -48,6 +51,7 @@ async def get_technology_tree_by_course(course_id: uuid.UUID, db: Session = Depe
             detail=f"Technology tree for course ID {course_id} not found"
         )
     return technology_tree
+
 
 @router.post("/", response_model=TechnologyTreeSchema, status_code=status.HTTP_201_CREATED)
 async def create_technology_tree(tech_tree: TechnologyTreeCreate, db: Session = Depends(get_db)):
@@ -70,11 +74,12 @@ async def create_technology_tree(tech_tree: TechnologyTreeCreate, db: Session = 
             detail="Database error occurred while creating technology tree"
         )
 
+
 @router.put("/{technology_tree_id}", response_model=TechnologyTreeSchema)
 async def update_technology_tree(
-    technology_tree_id: uuid.UUID,
-    tech_tree: TechnologyTreeUpdate,
-    db: Session = Depends(get_db)
+        technology_tree_id: uuid.UUID,
+        tech_tree: TechnologyTreeUpdate,
+        db: Session = Depends(get_db)
 ):
     """
     Update a technology tree
@@ -102,6 +107,7 @@ async def update_technology_tree(
             detail="Database error occurred while updating technology tree"
         )
 
+
 @router.delete("/{technology_tree_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_technology_tree(technology_tree_id: uuid.UUID, db: Session = Depends(get_db)):
     """
@@ -124,11 +130,12 @@ async def delete_technology_tree(technology_tree_id: uuid.UUID, db: Session = De
             detail="Database error occurred while deleting technology tree"
         )
 
+
 @router.post("/{technology_tree_id}/nodes", response_model=TechnologyTreeSchema)
 async def add_node_to_tree(
-    technology_tree_id: uuid.UUID,
-    node_data: TechnologyTreeNodeCreate,
-    db: Session = Depends(get_db)
+        technology_tree_id: uuid.UUID,
+        node_data: TechnologyTreeNodeCreate,
+        db: Session = Depends(get_db)
 ):
     """
     Add a new node to a technology tree
@@ -156,19 +163,21 @@ async def add_node_to_tree(
             detail="Database error occurred while adding node to technology tree"
         )
 
+
 @router.put("/{technology_tree_id}/nodes/{node_id}", response_model=TechnologyTreeSchema)
 async def update_tree_node(
-    technology_tree_id: uuid.UUID,
-    node_id: str,
-    node_data: TechnologyTreeNodeUpdate,
-    db: Session = Depends(get_db)
+        technology_tree_id: uuid.UUID,
+        node_id: str,
+        node_data: TechnologyTreeNodeUpdate,
+        db: Session = Depends(get_db)
 ):
     """
     Update a node in a technology tree
     """
     logger.info(f"Request to update node {node_id} in technology tree ID: {technology_tree_id}")
     try:
-        updated_tree = technology_tree_crud.update_tree_node(db, technology_tree_id, node_id, node_data.dict(exclude_unset=True))
+        updated_tree = technology_tree_crud.update_tree_node(db, technology_tree_id, node_id,
+                                                             node_data.dict(exclude_unset=True))
         if updated_tree is None:
             logger.warning(f"Technology tree with ID {technology_tree_id} not found")
             raise HTTPException(
@@ -189,11 +198,12 @@ async def update_tree_node(
             detail="Database error occurred while updating node in technology tree"
         )
 
+
 @router.delete("/{technology_tree_id}/nodes/{node_id}", response_model=TechnologyTreeSchema)
 async def delete_tree_node(
-    technology_tree_id: uuid.UUID,
-    node_id: str,
-    db: Session = Depends(get_db)
+        technology_tree_id: uuid.UUID,
+        node_id: str,
+        db: Session = Depends(get_db)
 ):
     """
     Delete a node from the technology tree and all its connections
@@ -221,11 +231,12 @@ async def delete_tree_node(
             detail="Database error occurred while deleting node from technology tree"
         )
 
+
 @router.post("/{technology_tree_id}/connections", response_model=TechnologyTreeSchema)
 async def add_connection_to_tree(
-    technology_tree_id: uuid.UUID,
-    connection_data: TechnologyTreeConnectionCreate,
-    db: Session = Depends(get_db)
+        technology_tree_id: uuid.UUID,
+        connection_data: TechnologyTreeConnectionCreate,
+        db: Session = Depends(get_db)
 ):
     """
     Add a new connection between nodes in the technology tree
@@ -253,12 +264,13 @@ async def add_connection_to_tree(
             detail="Database error occurred while adding connection to technology tree"
         )
 
+
 @router.put("/{technology_tree_id}/connections/{connection_id}", response_model=TechnologyTreeSchema)
 async def update_tree_connection(
-    technology_tree_id: uuid.UUID,
-    connection_id: str,
-    connection_data: TechnologyTreeConnectionUpdate,
-    db: Session = Depends(get_db)
+        technology_tree_id: uuid.UUID,
+        connection_id: str,
+        connection_data: TechnologyTreeConnectionUpdate,
+        db: Session = Depends(get_db)
 ):
     """
     Update a connection in the technology tree
@@ -288,11 +300,12 @@ async def update_tree_connection(
             detail="Database error occurred while updating connection in technology tree"
         )
 
+
 @router.delete("/{technology_tree_id}/connections/{connection_id}", response_model=TechnologyTreeSchema)
 async def delete_tree_connection(
-    technology_tree_id: uuid.UUID,
-    connection_id: str,
-    db: Session = Depends(get_db)
+        technology_tree_id: uuid.UUID,
+        connection_id: str,
+        db: Session = Depends(get_db)
 ):
     """
     Delete a connection from the technology tree

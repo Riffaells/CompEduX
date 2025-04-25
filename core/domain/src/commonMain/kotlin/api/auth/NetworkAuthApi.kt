@@ -42,6 +42,14 @@ interface NetworkAuthApi {
     suspend fun getCurrentUser(token: String): DomainResult<UserDomain>
 
     /**
+     * Verifies token validity and gets user information
+     * This is a standalone function that doesn't affect automatic token verification
+     * @param token access token to verify
+     * @return operation result with user data
+     */
+    suspend fun verifyToken(token: String): DomainResult<UserDomain>
+
+    /**
      * Выход из системы
      * @param token токен доступа
      * @return результат операции

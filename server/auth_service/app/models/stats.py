@@ -1,9 +1,11 @@
-from datetime import datetime, UTC
 import uuid
+from datetime import datetime
+
 from sqlalchemy import Column, String, DateTime, Integer, BigInteger, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 
 from .base import Base
+
 
 class ClientStatModel(Base):
     """
@@ -33,13 +35,14 @@ class ClientStatModel(Base):
     request_ip = Column(String, nullable=True)
 
     # Временные метки
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
-    last_seen_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now())
+    last_seen_at = Column(DateTime(timezone=True), default=lambda: datetime.now(),
+                          onupdate=lambda: datetime.now())
 
     # Счетчик активности
     request_count = Column(Integer, default=1)
 
     def update_last_seen(self):
         """Обновляет время последнего запроса и увеличивает счетчик запросов"""
-        self.last_seen_at = datetime.now(UTC)
+        self.last_seen_at = datetime.now()
         self.request_count += 1

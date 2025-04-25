@@ -1,18 +1,18 @@
 """
-PostgreSQL database module for async operations
+Модуль для работы с PostgreSQL через asyncpg
 """
 import databases
 
-from app.core.config import settings
 from common.logger import get_logger
+from ..core.config import settings
 
-# Get logger
-logger = get_logger("course_service.db")
+# Получаем логгер
+logger = get_logger(__name__)
 
-# Get database URL
+# Получаем URL подключения
 db_url = settings.SQLALCHEMY_DATABASE_URI
 
-# Create database instance for async PostgreSQL operations
+# Создаем экземпляр базы данных для асинхронной работы с PostgreSQL
 database = databases.Database(db_url, force_rollback=settings.ENV == "testing")
 
-logger.info(f"Initialized PostgreSQL database: {db_url.replace(settings.POSTGRES_PASSWORD, '****')}")
+logger.info(f"Инициализирована PostgreSQL база данных: {db_url}")

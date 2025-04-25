@@ -1,12 +1,12 @@
 from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException, status, Security
 from fastapi.security import APIKeyHeader
 from sqlalchemy import func, distinct
 from sqlalchemy.orm import Session
 
-from ...db.session import get_db
 from ...core.config import settings
-from ...services.stats import get_platform_stats, get_os_stats, get_app_version_stats
+from ...db.session import get_db
 from ...models.stats import ClientStatModel
 from ...schemas.stats import (
     PlatformStatSchema,
@@ -14,11 +14,13 @@ from ...schemas.stats import (
     AppVersionStatSchema,
     ClientStatsResponse
 )
+from ...services.stats import get_platform_stats, get_os_stats, get_app_version_stats
 
 router = APIRouter()
 
 # Защита API ключом для админского доступа
 admin_key_header = APIKeyHeader(name="X-Admin-Key", auto_error=False)
+
 
 async def verify_admin_access(api_key: str = Security(admin_key_header)):
     """Проверка прав администратора по API-ключу"""
@@ -29,20 +31,24 @@ async def verify_admin_access(api_key: str = Security(admin_key_header)):
         )
     return True
 
+
 @router.get("/platforms", response_model=List[PlatformStatSchema], dependencies=[Depends(verify_admin_access)])
 async def read_platform_stats(db: Session = Depends(get_db)):
     """Получить статистику по платформам клиентов"""
     return get_platform_stats(db)
+
 
 @router.get("/os", response_model=List[OSStatSchema], dependencies=[Depends(verify_admin_access)])
 async def read_os_stats(db: Session = Depends(get_db)):
     """Получить статистику по операционным системам клиентов"""
     return get_os_stats(db)
 
+
 @router.get("/versions", response_model=List[AppVersionStatSchema], dependencies=[Depends(verify_admin_access)])
 async def read_app_version_stats(db: Session = Depends(get_db)):
     """Получить статистику по версиям приложения"""
     return get_app_version_stats(db)
+
 
 @router.get("/summary", response_model=ClientStatsResponse, dependencies=[Depends(verify_admin_access)])
 async def read_stats_summary(db: Session = Depends(get_db)):

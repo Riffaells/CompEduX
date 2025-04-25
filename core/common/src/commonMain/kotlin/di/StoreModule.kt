@@ -9,8 +9,6 @@ import component.app.auth.store.RegisterStore
 import component.app.auth.store.RegisterStoreFactory
 import component.app.auth.store.ProfileStore
 import component.app.auth.store.ProfileStoreFactory
-import component.app.skiko.store.SkikoStore
-import component.app.skiko.store.SkikoStoreFactory
 import component.root.store.RootStore
 import component.root.store.RootStoreFactory
 import org.kodein.di.DI
@@ -61,19 +59,7 @@ val storeModule = DI.Module("storeModule") {
         ).create()
     }
 
-    // Bind для SkikoStoreFactory
-    bindProvider<SkikoStoreFactory> {
-        SkikoStoreFactory(
-            storeFactory = instance(),
-            di = di
-        )
-    }
 
-    // Bind для SkikoStore
-    bindProvider<SkikoStore> {
-        SkikoStoreFactory(
-            storeFactory = instance(),
-            di= di
-        ).create()
-    }
+
+
 }

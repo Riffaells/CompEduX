@@ -1,16 +1,12 @@
-from datetime import datetime
 import re
-from typing import Dict, List, Optional, Union, Any
+from datetime import datetime
+from typing import Dict, List, Optional, Any
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator, ConfigDict
 
-from .base import UserBaseSchema
-from .privacy import PrivacySettingsSchema
 # Temporarily commented out UserRoomSchema for troubleshooting
-from .associations import UserOAuthProviderSchema  # , UserRoomSchema
 from ..models.enums import UserRole, PrivacyLevel, OAuthProvider, BeveragePreference
-
 
 # Username validation pattern: letters, numbers, underscore, hyphen
 USERNAME_PATTERN = re.compile(r'^[a-zA-Z0-9_-]+$')
@@ -101,8 +97,8 @@ class UserRatingSchema(BaseModel):
     """
     # Different rating types
     contribution_rating: float = 0.0  # Platform contribution
-    bot_score: float = 0.0           # Bot likelihood (0.0-1.0)
-    expertise_rating: float = 0.0    # Subject matter expertise
+    bot_score: float = 0.0  # Bot likelihood (0.0-1.0)
+    expertise_rating: float = 0.0  # Subject matter expertise
     competition_rating: float = 0.0  # Competition performance
 
     # Additional ratings

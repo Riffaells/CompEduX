@@ -1,17 +1,18 @@
-from fastapi import Request, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi.security.utils import get_authorization_scheme_param
-from typing import Optional, Dict, Any, Tuple
-import jwt
-from jwt.exceptions import PyJWTError
-import logging
-import httpx
 import time
-import asyncio
+from typing import Optional, Dict, Any, Tuple
+
+import jwt
 from app.core.config import settings, SERVICE_ROUTES
 from app.core.proxy import get_http_client
+from fastapi import Request
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security.utils import get_authorization_scheme_param
+from jwt.exceptions import PyJWTError
 
-logger = logging.getLogger(__name__)
+from common.logger import get_logger
+
+# Create base logger
+logger = get_logger(__name__)
 
 # Кэш для проверки токенов
 # Структура: {token: (timestamp, user_info)}
@@ -20,6 +21,7 @@ _TOKEN_CACHE_TTL = 60  # секунды, сколько хранить токе�
 
 # Создаем объект для проверки Bearer токена
 security = HTTPBearer(auto_error=False)
+
 
 class AuthMiddleware:
     """

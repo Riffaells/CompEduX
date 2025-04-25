@@ -15,3 +15,4 @@ python-dotenv
 PyJWT>=2.8.0
 rich>=13.6.0
 databases[postgresql]>=0.8.0
+slowapi

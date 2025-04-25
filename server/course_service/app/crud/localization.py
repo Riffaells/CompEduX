@@ -1,17 +1,18 @@
 """
 CRUD operations for Localization model
 """
-import logging
 import uuid
-from typing import Any, Dict, List, Optional, Set, Union
-
-from fastapi.encoders import jsonable_encoder
-from sqlalchemy.orm import Session
+from typing import Dict, List, Optional, Any, Union, Set
 
 from app.models.localization import Localization
 from app.schemas.localization import LocalizationCreate, LocalizationUpdate
+from fastapi.encoders import jsonable_encoder
+from sqlalchemy.orm import Session
 
-logger = logging.getLogger(__name__)
+from common.logger import get_logger
+
+# Создаем логгер для этого модуля
+logger = get_logger("course_service.crud.localization")
 
 
 class CRUDLocalization:
@@ -44,7 +45,7 @@ class CRUDLocalization:
         return db.query(Localization).filter(Localization.namespace == namespace).first()
 
     def get_multi(
-        self, db: Session, *, skip: int = 0, limit: int = 100
+            self, db: Session, *, skip: int = 0, limit: int = 100
     ) -> List[Localization]:
         """
         Get multiple localizations with pagination
@@ -85,7 +86,7 @@ class CRUDLocalization:
         return db_obj
 
     def update(
-        self, db: Session, *, db_obj: Localization, obj_in: Union[LocalizationUpdate, Dict[str, Any]]
+            self, db: Session, *, db_obj: Localization, obj_in: Union[LocalizationUpdate, Dict[str, Any]]
     ) -> Localization:
         """
         Update a localization
@@ -169,7 +170,7 @@ class CRUDLocalization:
         return languages
 
     def get_translation(
-        self, db: Session, namespace: str, key: str, lang: str, default: str = ""
+            self, db: Session, namespace: str, key: str, lang: str, default: str = ""
     ) -> str:
         """
         Get a specific translation

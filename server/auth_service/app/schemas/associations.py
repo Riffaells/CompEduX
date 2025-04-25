@@ -23,7 +23,6 @@ class UserOAuthProviderSchema(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-
 # Temporarily commented out for troubleshooting
 # class UserRoomSchema(BaseModel):
 #     """

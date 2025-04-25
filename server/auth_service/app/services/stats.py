@@ -3,17 +3,18 @@
 Statistics service module for auth_service
 """
 import re
-import logging
-from datetime import datetime, UTC
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Optional, Dict, Any, List
 from uuid import UUID
+
 from fastapi import Request
-from sqlalchemy import func, desc, distinct, text
+from sqlalchemy import func, desc, distinct
 from sqlalchemy.orm import Session
 
+from common.logger import get_logger
 from ..models.stats import ClientStatModel
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
+
 
 def parse_user_agent(user_agent: str) -> Dict[str, str]:
     """
@@ -51,6 +52,7 @@ def parse_user_agent(user_agent: str) -> Dict[str, str]:
         result["java_version"] = java_match.group(1).strip()
 
     return result
+
 
 async def collect_client_stats(request: Request, user_id: Optional[UUID] = None, db: Session = None) -> None:
     """
@@ -138,12 +140,13 @@ async def collect_client_stats(request: Request, user_id: Optional[UUID] = None,
             db.add(new_stat)
             db.commit()
             logger.debug(f"Created new client stats record for platform {client_platform}" +
-                      (f", user {user_id}" if user_id else ""))
+                         (f", user {user_id}" if user_id else ""))
 
     except Exception as e:
         logger.exception(f"Error collecting client stats: {str(e)}")
         if db:
             db.rollback()
+
 
 def get_platform_stats(db: Session) -> List[Dict[str, Any]]:
     """
@@ -175,6 +178,7 @@ def get_platform_stats(db: Session) -> List[Dict[str, Any]]:
     except Exception as e:
         logger.exception(f"Error getting platform stats: {str(e)}")
         return []
+
 
 def get_os_stats(db: Session) -> List[Dict[str, Any]]:
     """
@@ -208,6 +212,7 @@ def get_os_stats(db: Session) -> List[Dict[str, Any]]:
     except Exception as e:
         logger.exception(f"Error getting OS stats: {str(e)}")
         return []
+
 
 def get_app_version_stats(db: Session) -> List[Dict[str, Any]]:
     """

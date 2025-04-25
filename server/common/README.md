@@ -94,11 +94,13 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 ### 2. Through Environment Variable
 
 Windows (cmd):
+
 ```
 set PYTHONPATH=%PYTHONPATH%;C:\path\to\CompEduX\server
 ```
 
 Linux/Mac:
+
 ```
 export PYTHONPATH=$PYTHONPATH:/path/to/CompEduX/server
 ```
@@ -133,7 +135,7 @@ setup_request_logging(
 When using Uvicorn in reload mode, you may want to disable the change detection logs:
 
 ```python
-import logging
+from common.logger import get_logger
 
 # Disable Uvicorn reload logs
 loggers_to_silence = [

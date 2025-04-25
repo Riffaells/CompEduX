@@ -4,18 +4,20 @@
 Модуль содержит функции для проксирования запросов к микросервисам,
 проверки их доступности и управления кэшем состояния.
 """
-from fastapi import Request, Response, HTTPException
-import httpx
-import time
-import logging
 import asyncio
-from typing import Dict, Tuple, Optional, Any, List
-from datetime import datetime, UTC
+import json
+import time
+from datetime import UTC
+from typing import Dict, Tuple, Optional
 
+import httpx
 from app.core.config import SERVICE_ROUTES, settings
+from fastapi import Request, Response, HTTPException
+
+from common.logger import get_logger
 
 # Настраиваем логгер
-logger = logging.getLogger("proxy")
+logger = get_logger("proxy")
 
 # Глобальный клиент для повторного использования соединений
 http_client: Optional[httpx.AsyncClient] = None
@@ -24,6 +26,7 @@ http_client: Optional[httpx.AsyncClient] = None
 # Структура: {service_name: (timestamp, is_healthy)}
 _service_health_cache: Dict[str, Tuple[float, bool]] = {}
 _HEALTH_CHECK_INTERVAL = 30  # секунды между проверками
+
 
 async def get_http_client() -> httpx.AsyncClient:
     """
@@ -45,113 +48,65 @@ async def get_http_client() -> httpx.AsyncClient:
         logger.debug("Создан новый HTTP клиент")
     return http_client
 
-async def proxy_request(service_url: str, path: str, request: Request) -> Response:
+
+async def proxy_request(base_url: str, path: str, request: Request) -> Response:
     """
-    Универсальная функция для проксирования запросов к любому микросервису.
-
-    Args:
-        service_url: Базовый URL микросервиса
-        path: Путь запроса (включая префикс сервиса)
-        request: Оригинальный запрос от клиента
-
-    Returns:
-        Response от микросервиса
+    Проксирует запрос к указанному сервису и возвращает ответ.
+    Обеспечивает передачу всех заголовков, включая Authorization.
     """
-    # Нормализуем URL сервиса
-    if service_url.endswith("/"):
-        service_url = service_url[:-1]
+    # Формируем URL для запроса к сервису
+    target_url = f"{base_url.rstrip('/')}/{path.lstrip('/')}"
 
-    # Извлекаем только путь эндпоинта без префикса сервиса
-    # Например, из "auth/login" получаем только "login"
-    # Это позволяет сервисам регистрировать маршруты без префиксов
-    endpoint_path = path
-    for service_name, config in SERVICE_ROUTES.items():
-        prefix = config.get("prefix", "").strip("/")
-        if prefix and path.startswith(f"{prefix}/"):
-            # Удаляем префикс сервиса из пути
-            endpoint_path = path[len(prefix)+1:]
-            break
+    logger.debug(f"Proxy request - Base URL: {base_url}, Path: {path}, Target URL: {target_url}")
 
-    # Формируем финальный URL для запроса
-    url = f"{service_url}/{endpoint_path}"
+    # Логируем информацию о запросе
+    if 'health' in path:
+        logger.debug(f"Proxying health request to: {target_url}")
 
-    logger.info(f"Proxying request: {request.method} {path} -> {url}")
+    # Получаем метод запроса
+    method = request.method
+    logger.debug(f"Request method: {method}")
 
-    # Инициализируем start_time до try блока, чтобы она была доступна в блоке except
-    start_time = time.time()
+    # Получаем заголовки запроса
+    headers = dict(request.headers)
+    # Удаляем заголовки, которые могут вызвать проблемы при проксировании
+    headers.pop('host', None)
 
-    try:
-        # Получаем тело и заголовки запроса
-        body = await request.body()
+    # Получаем тело запроса
+    body = await request.body()
 
-        # Копируем заголовки
-        headers = dict(request.headers)
-        # Удаляем заголовки, которые будут автоматически установлены клиентом
-        headers.pop("host", None)
-        headers.pop("content-length", None)
-
-        # Добавляем служебные заголовки
-        headers["x-forwarded-for"] = request.client.host if request.client else "unknown"
-        headers["x-forwarded-proto"] = request.url.scheme
-        headers["x-gateway-timestamp"] = str(int(time.time()))
-
-        # Получаем HTTP-клиент
-        client = await get_http_client()
-
-        # Выполняем запрос к сервису
-        service_response = await client.request(
-            method=request.method,
-            url=url,
-            headers=headers,
-            content=body,
-            params=request.query_params,
-            follow_redirects=True
-        )
-
-        elapsed = time.time() - start_time
-
-        # Логируем информацию о запросе
-        if service_response.status_code >= 400:
-            logger.warning(
-                f"Service error: {service_response.status_code} for {url} "
-                f"({elapsed:.2f}s)"
+    # Выполняем запрос к сервису
+    async with httpx.AsyncClient() as client:
+        try:
+            logger.debug(f"Отправка {method} запроса на {target_url}")
+            response = await client.request(
+                method=method,
+                url=target_url,
+                headers=headers,
+                content=body,
+                timeout=10.0  # Устанавливаем таймаут
             )
-        else:
-            logger.info(
-                f"Proxied {request.method} {url} -> {service_response.status_code} "
-                f"({elapsed:.2f}s)"
+            logger.debug(f"Получен ответ от {target_url}: статус={response.status_code}")
+
+            if 'health' in path:
+                logger.debug(f"Health proxy response from {target_url}: status={response.status_code}")
+
+            # Создаем ответ FastAPI
+            return Response(
+                content=response.content,
+                status_code=response.status_code,
+                headers=dict(response.headers)
+            )
+        except Exception as e:
+            # Логируем ошибку
+            logger.error(f"Error proxying request to {target_url}: {str(e)}")
+            # Возвращаем ошибку сервера
+            return Response(
+                content=json.dumps({"detail": "Service unavailable"}),
+                status_code=503,
+                media_type="application/json"
             )
 
-        # Получаем заголовки ответа
-        response_headers = dict(service_response.headers)
-
-        # Возвращаем ответ клиенту
-        return Response(
-            content=service_response.content,
-            status_code=service_response.status_code,
-            headers=response_headers
-        )
-
-    except httpx.RequestError as exc:
-        elapsed = time.time() - start_time
-        logger.error(
-            f"Error proxying to service: {str(exc)} for {url} "
-            f"({elapsed:.2f}s)"
-        )
-        raise HTTPException(
-            status_code=503,
-            detail=f"Ошибка связи с сервисом: {str(exc)}"
-        )
-    except Exception as exc:
-        elapsed = time.time() - start_time
-        logger.error(
-            f"Unexpected error during proxy: {str(exc)} for {url} "
-            f"({elapsed:.2f}s)", exc_info=True
-        )
-        raise HTTPException(
-            status_code=500,
-            detail="Внутренняя ошибка API Gateway при проксировании запроса"
-        )
 
 async def retry_with_backoff(func, *args, max_retries=3, base_delay=0.5, **kwargs):
     """
@@ -183,7 +138,7 @@ async def retry_with_backoff(func, *args, max_retries=3, base_delay=0.5, **kwarg
             delay = base_delay * (2 ** attempt) * (0.5 + random.random())
 
             logger.warning(
-                f"Попытка {attempt+1}/{max_retries} не удалась: {str(e)}. "
+                f"Попытка {attempt + 1}/{max_retries} не удалась: {str(e)}. "
                 f"Повторная попытка через {delay:.2f} секунд"
             )
 
@@ -197,12 +152,13 @@ async def retry_with_backoff(func, *args, max_retries=3, base_delay=0.5, **kwarg
         logger.error(f"Все попытки подключения ({max_retries}) не удались: {str(last_exception)}")
         raise last_exception
 
+
 async def check_service_health(
-    service_name: str,
-    service_url: Optional[str] = None,
-    health_endpoint: Optional[str] = None,
-    force: bool = False,
-    timeout: float = 3.0
+        service_name: str,
+        service_url: Optional[str] = None,
+        health_endpoint: Optional[str] = None,
+        force: bool = False,
+        timeout: float = 3.0
 ) -> bool:
     """
     Проверяет доступность микросервиса с кэшированием результатов.
@@ -235,6 +191,11 @@ async def check_service_health(
         service_url = service_url or service_config.get("base_url")
         health_endpoint = health_endpoint or service_config.get("health_endpoint", "/health")
 
+    # Добавляем подробное логирование
+    logger.debug(f"Проверка здоровья сервиса {service_name}:")
+    logger.debug(f"  - URL: {service_url}")
+    logger.debug(f"  - Endpoint: {health_endpoint}")
+
     # Пропускаем проверку, если URL сервиса не указан
     if not service_url:
         logger.warning(f"Сервис {service_name} не сконфигурирован (URL не указан)")
@@ -266,6 +227,8 @@ async def check_service_health(
     else:
         health_url = f"{service_url}/{health_endpoint}"
 
+    logger.debug(f"Полный URL для проверки здоровья: {health_url}")
+
     try:
         # Получаем HTTP-клиент
         client = await get_http_client()
@@ -273,6 +236,7 @@ async def check_service_health(
         # Для Windows используем повторные попытки подключения
         if settings.IS_WINDOWS:
             async def _check_health():
+                logger.debug(f"Отправка GET-запроса на {health_url}")
                 return await client.get(
                     health_url,
                     timeout=timeout,
@@ -290,6 +254,7 @@ async def check_service_health(
             )
         else:
             # Для других платформ делаем обычный запрос
+            logger.debug(f"Отправка GET-запроса на {health_url}")
             response = await client.get(
                 health_url,
                 timeout=timeout,
@@ -299,6 +264,7 @@ async def check_service_health(
                 }
             )
 
+        logger.debug(f"Получен ответ от {health_url}, статус {response.status_code}")
         if response.status_code == 200:
             logger.debug(f"Сервис {service_name} доступен")
             _service_health_cache[cache_key] = (current_time, True)
@@ -388,6 +354,7 @@ async def check_service_health(
             detail=f"Сервис {service_name} временно недоступен"
         )
 
+
 async def get_all_services_health() -> Dict:
     """
     Возвращает статус здоровья всех сервисов
@@ -459,7 +426,8 @@ async def get_all_services_health() -> Dict:
             }
         except HTTPException as e:
             # Вычисляем время ответа, если проверка заняла какое-то время
-            response_time_ms = int((time.time() - service_check_start) * 1000) if 'service_check_start' in locals() else None
+            response_time_ms = int(
+                (time.time() - service_check_start) * 1000) if 'service_check_start' in locals() else None
 
             services_status[service_name] = {
                 "status": "error",
@@ -538,9 +506,78 @@ async def get_all_services_health() -> Dict:
         }
     }
 
+
 async def close_http_client():
     """Закрывает HTTP-клиент при завершении работы"""
     global http_client
     if http_client and not http_client.is_closed:
         await http_client.aclose()
         http_client = None
+
+
+async def proxy_docs_request(base_url: str, docs_path: str, request: Request) -> Response:
+    """
+    Проксирует запрос к документации сервиса.
+    Специально оптимизирован для Swagger UI и ReDoc.
+
+    Args:
+        base_url: Базовый URL сервиса
+        docs_path: Путь к документации (docs, redoc, openapi.json)
+        request: Оригинальный FastAPI запрос
+
+    Returns:
+        Response: Ответ от сервиса
+    """
+    # Формируем URL для запроса к сервису
+    target_url = f"{base_url.rstrip('/')}/{docs_path.lstrip('/')}"
+
+    logger.debug(f"Proxying docs request to: {target_url}")
+
+    # Получаем метод запроса
+    method = request.method
+
+    # Получаем заголовки запроса
+    headers = dict(request.headers)
+    # Удаляем заголовки, которые могут вызвать проблемы при проксировании
+    headers.pop('host', None)
+    headers.pop('content-length', None)
+
+    # Для запросов к документации добавляем заголовок, чтобы сервер не сжимал ответ
+    headers['Accept-Encoding'] = 'identity'
+
+    # Получаем параметры запроса
+    params = dict(request.query_params)
+
+    # Получаем тело запроса
+    body = await request.body()
+
+    # Выполняем запрос к сервису
+    async with httpx.AsyncClient(follow_redirects=True) as client:
+        try:
+            logger.debug(f"Отправка {method} запроса на {target_url}")
+            response = await client.request(
+                method=method,
+                url=target_url,
+                headers=headers,
+                params=params,
+                content=body,
+                timeout=10.0  # Устанавливаем таймаут
+            )
+            logger.debug(f"Получен ответ от {target_url}: статус={response.status_code}")
+
+            # Создаем ответ FastAPI
+            return Response(
+                content=response.content,
+                status_code=response.status_code,
+                headers=dict(response.headers),
+                media_type=response.headers.get('content-type')
+            )
+        except Exception as e:
+            # Логируем ошибку
+            logger.error(f"Error proxying docs request to {target_url}: {str(e)}")
+            # Возвращаем ошибку сервера
+            return Response(
+                content=json.dumps({"detail": f"Documentation unavailable: {str(e)}"}),
+                status_code=503,
+                media_type="application/json"
+            )

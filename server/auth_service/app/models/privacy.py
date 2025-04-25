@@ -1,6 +1,7 @@
-from sqlalchemy import Column, ForeignKey, Enum as SQLAlchemyEnum
+from sqlalchemy import Column, ForeignKey, Enum as SQLAlchemyEnum, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
+from datetime import datetime, timezone
 
 from .base import Base
 from .enums import PrivacyLevel
@@ -21,5 +22,10 @@ class UserPrivacyModel(Base):
     achievements_privacy = Column(SQLAlchemyEnum(PrivacyLevel), default=PrivacyLevel.PUBLIC)
     rooms_privacy = Column(SQLAlchemyEnum(PrivacyLevel), default=PrivacyLevel.PUBLIC)
     rating_privacy = Column(SQLAlchemyEnum(PrivacyLevel), default=PrivacyLevel.PUBLIC)
+
+    # Timestamps с поддержкой часовых поясов
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc),
+                        onupdate=lambda: datetime.now(timezone.utc))
 
     user = relationship("UserModel", back_populates="privacy_settings")

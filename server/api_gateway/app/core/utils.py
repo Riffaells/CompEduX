@@ -1,11 +1,15 @@
-import httpx
-import logging
 import asyncio
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional
 
+import httpx
 from app.core.config import settings
+from fastapi import APIRouter, Request, Response, Depends
+from fastapi.responses import RedirectResponse
 
-logger = logging.getLogger("api_gateway.utils")
+from common.logger import get_logger
+
+logger = get_logger("api_gateway.utils")
+
 
 async def check_service_health(service_url: str, service_name: str) -> Dict[str, Any]:
     """
@@ -76,6 +80,7 @@ async def check_service_health(service_url: str, service_name: str) -> Dict[str,
         logger.error(f"Error checking {service_name}: {str(e)}")
         return {"status": "error", "message": f"Error: {str(e)}"}
 
+
 async def check_auth_service() -> Optional[Dict[str, Any]]:
     """
     Проверяет доступность сервиса авторизации.
@@ -88,3 +93,58 @@ async def check_auth_service() -> Optional[Dict[str, Any]]:
         return None
 
     return await check_service_health(settings.AUTH_SERVICE_URL, "auth_service")
+
+
+def add_docs_routes_to_router(
+    router: APIRouter,
+    service_url_setting: str,
+    service_name: str,
+    health_check_dependency
+) -> None:
+    """
+    Добавляет маршруты для документации к роутеру.
+
+    Args:
+        router: Роутер FastAPI для добавления маршрутов
+        service_url_setting: URL сервиса (настройка из config)
+        service_name: Имя сервиса для отображения в логах и сообщениях
+        health_check_dependency: Зависимость для проверки здоровья сервиса
+    """
+    @router.get(
+        "/docs",
+        include_in_schema=True,
+        summary=f"Документация сервиса {service_name}",
+        description=f"Перенаправляет на Swagger UI документацию сервиса {service_name}"
+    )
+    async def service_docs():
+        """Перенаправление на документацию сервиса"""
+        docs_url = f"{service_url_setting}/docs"
+        logger.info(f"Redirecting to {service_name} service docs: {docs_url}")
+        return RedirectResponse(url=docs_url)
+
+    @router.get(
+        "/redoc",
+        include_in_schema=True,
+        summary=f"ReDoc документация сервиса {service_name}",
+        description=f"Перенаправляет на ReDoc документацию сервиса {service_name}"
+    )
+    async def service_redoc():
+        """Перенаправление на ReDoc документацию сервиса"""
+        redoc_url = f"{service_url_setting}/redoc"
+        logger.info(f"Redirecting to {service_name} service redoc: {redoc_url}")
+        return RedirectResponse(url=redoc_url)
+
+    @router.get(
+        "/openapi.json",
+        include_in_schema=True,
+        summary=f"OpenAPI спецификация сервиса {service_name}",
+        description=f"Возвращает OpenAPI JSON схему сервиса {service_name}"
+    )
+    async def service_openapi(request: Request, _: bool = Depends(health_check_dependency)):
+        """Проксирование OpenAPI JSON схемы сервиса"""
+        logger.info(f"Proxying {service_name} service OpenAPI schema")
+        # В будущем здесь можно добавить модификацию схемы OpenAPI
+        return await request  # Здесь должна быть логика проксирования
+
+    # Для простоты добавил заглушку вместо реальной логики проксирования
+    # Это просто шаблон функции

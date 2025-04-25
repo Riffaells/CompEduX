@@ -1,44 +1,38 @@
 # Add path to the root directory at the beginning of the file
-import sys
 import os
+import sys
+
 # Get the absolute path to the project's root directory
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
-from fastapi import FastAPI, Request, Response, Depends, HTTPException
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-import logging
-import time
-import asyncio
+
 from contextlib import asynccontextmanager
-from typing import Dict, Any
 from datetime import datetime
 
-# Import common/logger module
-try:
-    from common.logger import get_logger
-    from common.logger.middleware import setup_request_logging
-    from common.logger.config import format_log_time
-    # Get the pre-configured logger
-    logger = get_logger("api_gateway")
-except ImportError:
-    # If import fails, use the standard logger
-    logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger("api_gateway")
+from common.logger import initialize_logging
 
-from common.logger.setup import log_service_lifecycle
+# Initialize the service logger
+logger = initialize_logging("api_gateway")
 
-from app.core.config import settings, SERVICE_ROUTES
-from app.core.proxy import get_http_client, close_http_client, get_all_services_health
-from app.api.routes import api_router
-from app.middleware.auth import AuthMiddleware
+# Import app-specific modules
+from .core.config import settings, SERVICE_ROUTES
+from .core.proxy import close_http_client, get_all_services_health
+from .api.routes import api_router
+from .middleware.auth import AuthMiddleware
+from .core.errors import register_exception_handlers
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Executed when the application starts
     logger.info("[bold green]API Gateway starting up...[/bold green]")
+    logger.info(f"Environment: {settings.ENV}, Debug mode: {settings.DEBUG}")
+    logger.info(f"API Gateway listening on: {settings.API_GATEWAY_HOST}:{settings.API_GATEWAY_PORT}")
     logger.info(f"Configured services: {list(SERVICE_ROUTES.keys())}")
 
     # Check service availability at startup
@@ -60,12 +54,28 @@ async def lifespan(app: FastAPI):
     await close_http_client()
     logger.info("[bold red]API Gateway shutting down...[/bold red]")
 
+
 app = FastAPI(
     title="CompEduX API Gateway",
-    description="API Gateway for CompEduX microservices",
-    version="0.1.0",
+    description="CompEduX API Gateway",
+    version=settings.VERSION,
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
-    lifespan=lifespan
+    docs_url=f"{settings.API_V1_STR}/docs",
+    redoc_url=f"{settings.API_V1_STR}/redoc",
+    lifespan=lifespan,
+    # Настройки для улучшения документации
+    swagger_ui_parameters={
+        "docExpansion": "list",  # Показывать только заголовки методов
+        "deepLinking": True,  # Для удобной навигации по документации
+        "defaultModelsExpandDepth": 0,  # Не показывать модели по умолчанию
+        "displayOperationId": False,  # Не показывать operation ID
+        "filter": True,  # Включить строку поиска
+        "operationsSorter": "alpha",  # Сортировать операции по алфавиту
+        "showExtensions": False,  # Не показывать расширения
+        "showCommonExtensions": False,  # Не показывать общие расширения
+        "tryItOutEnabled": True,  # Включить Try it out по умолчанию
+        "persistAuthorization": True  # Сохранять авторизацию между перезагрузками
+    }
 )
 
 # Configure CORS
@@ -83,34 +93,21 @@ app.middleware("http")(AuthMiddleware())
 
 # Configure middleware for request and response logging
 try:
+    from common.logger.middleware import setup_request_logging
+
     setup_request_logging(
         app=app,
         logger=logger,
-        exclude_paths=['/docs', '/redoc', '/openapi.json', '/healthz', '/health'],
+        exclude_paths=['/docs', '/redoc', '/openapi.json', '/healthz', '/health',
+                       '/api/v1/auth/health', '/api/v1/courses/health',
+                       '/api/v1/health'],
         log_request_headers=False
     )
 except Exception as e:
     logger.error(f"Error setting up request logging middleware: {str(e)}")
 
-# Error handlers
-
-@app.exception_handler(HTTPException)
-async def http_exception_handler(request: Request, exc: HTTPException):
-    """Central handler for HTTP exceptions"""
-    logger.warning(f"HTTP Exception: {exc.status_code} - {exc.detail}")
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"detail": exc.detail}
-    )
-
-@app.exception_handler(Exception)
-async def general_exception_handler(request: Request, exc: Exception):
-    """Handler for unexpected exceptions"""
-    logger.error(f"Unexpected error: {str(exc)}", exc_info=True)
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "Internal server error"}
-    )
+# Регистрируем обработчики ошибок
+register_exception_handlers(app)
 
 # Endpoint to check the health of the API Gateway and all services
 @app.get("/health", include_in_schema=True, tags=["health"])
@@ -121,6 +118,7 @@ async def health_check():
     """
     return await get_all_services_health()
 
+
 # Simple endpoint to check only the API Gateway health
 @app.get("/healthz", include_in_schema=False)
 async def healthz():
@@ -130,11 +128,14 @@ async def healthz():
     return {
         "status": "ok",
         "timestamp": datetime.utcnow().isoformat(),
-        "service": "api_gateway"
+        "service": "api_gateway",
+        "version": settings.VERSION
     }
+
 
 # Connecting API routers with prefix
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
 
 # Add root routes for basic authentication operations
 # This is for convenience of use without having to specify the full path
@@ -144,16 +145,19 @@ async def root():
     from fastapi.responses import RedirectResponse
     return RedirectResponse(url=f"{settings.API_V1_STR}/docs")
 
+
 # Add direct links to documentation
 @app.get("/docs", include_in_schema=False)
 async def get_swagger_documentation():
     from fastapi.responses import RedirectResponse
     return RedirectResponse(url=f"{settings.API_V1_STR}/docs")
 
+
 @app.get("/redoc", include_in_schema=False)
 async def get_redoc_documentation():
     from fastapi.responses import RedirectResponse
     return RedirectResponse(url=f"{settings.API_V1_STR}/redoc")
+
 
 if __name__ == "__main__":
     import uvicorn

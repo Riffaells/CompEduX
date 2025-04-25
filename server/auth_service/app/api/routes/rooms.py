@@ -2,8 +2,8 @@ from typing import List
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 from ...db.session import get_db
 from ...models.associations import RoomModel
@@ -16,10 +16,10 @@ router = APIRouter()
 
 @router.get("/", response_model=List[RoomSchema])
 async def read_rooms(
-    skip: int = 0,
-    limit: int = 100,
-    current_user: UserModel = Depends(get_current_user),
-    db: Session = Depends(get_db)
+        skip: int = 0,
+        limit: int = 100,
+        current_user: UserModel = Depends(get_current_user),
+        db: Session = Depends(get_db)
 ):
     """Get a list of all rooms"""
     rooms = db.query(RoomModel).offset(skip).limit(limit).all()
@@ -28,9 +28,9 @@ async def read_rooms(
 
 @router.get("/{room_id}", response_model=RoomSchema)
 async def read_room(
-    room_id: UUID,
-    current_user: UserModel = Depends(get_current_user),
-    db: Session = Depends(get_db)
+        room_id: UUID,
+        current_user: UserModel = Depends(get_current_user),
+        db: Session = Depends(get_db)
 ):
     """Get room information by ID"""
     room = db.query(RoomModel).filter(RoomModel.id == room_id).first()
@@ -55,9 +55,9 @@ class RoomCreateSchema(BaseModel):
 
 @router.post("/", response_model=RoomSchema, status_code=status.HTTP_201_CREATED)
 async def create_room(
-    room: RoomCreateSchema,
-    current_user: UserModel = Depends(get_current_user),
-    db: Session = Depends(get_db)
+        room: RoomCreateSchema,
+        current_user: UserModel = Depends(get_current_user),
+        db: Session = Depends(get_db)
 ):
     """Create a new room"""
     db_room = RoomModel(

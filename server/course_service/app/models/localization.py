@@ -2,14 +2,11 @@
 Localization model for multilingual text support
 """
 import uuid
-from datetime import datetime, timezone
-from typing import Dict, List, Optional
-
-from sqlalchemy import Column, DateTime, ForeignKey, String, Table, JSON
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
+from datetime import datetime
 
 from app.models.base import Base
+from sqlalchemy import Column, DateTime, String, JSON
+from sqlalchemy.dialects.postgresql import UUID
 
 
 class Localization(Base):

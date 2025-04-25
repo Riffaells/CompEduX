@@ -1,7 +1,6 @@
 """
 Base configuration settings for all CompEduX services
 """
-import os
 from typing import List, Optional, Dict, Any
 
 from pydantic import field_validator

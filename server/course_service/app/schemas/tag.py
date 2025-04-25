@@ -3,6 +3,8 @@ Pydantic schemas for tags and translations
 """
 from datetime import datetime
 from typing import Dict, List, Optional
+from uuid import UUID
+
 from pydantic import BaseModel, Field, validator
 
 
@@ -25,8 +27,8 @@ class TagTranslationUpdate(TagTranslationBase):
 
 class TagTranslation(TagTranslationBase):
     """Schema for tag translation response"""
-    id: int
-    tag_id: int
+    id: UUID
+    tag_id: UUID
 
     class Config:
         from_attributes = True
@@ -49,7 +51,7 @@ class TagUpdate(BaseModel):
 
 class Tag(BaseModel):
     """Schema for tag response"""
-    id: int
+    id: UUID
     created_at: datetime
     updated_at: datetime
     translations: List[TagTranslation] = []
@@ -63,7 +65,7 @@ class TagWithName(BaseModel):
     Schema for tag response with name dictionary for convenience
     This is useful for API responses where we want to return a flat structure
     """
-    id: int
+    id: UUID
     name: Dict[str, str] = Field(default_factory=dict, description="Dictionary of language codes to tag names")
 
     class Config:

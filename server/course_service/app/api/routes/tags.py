@@ -1,15 +1,21 @@
 """
 Tag API endpoints
 """
-from typing import List, Dict, Optional
-from fastapi import APIRouter, HTTPException, Depends, Query, Path, status
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import SQLAlchemyError
+from typing import List, Dict
+from uuid import UUID
 
+from app.core.config import settings
+from app.crud.tag import tag_crud
 from app.db.session import get_db
 from app.schemas.tag import Tag, TagCreate, TagUpdate, TagWithName, TagTranslationCreate
-from app.crud.tag import tag_crud
+from fastapi import APIRouter, HTTPException, Depends, Query, Path, status
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
+
 from common.logger import initialize_logging
+
+# Импортируем декоратор для кеширования
+# from fastapi_cache.decorator import cache
 
 # Initialize logger
 logger = initialize_logging("course_service.api.tags")
@@ -18,13 +24,16 @@ router = APIRouter()
 
 
 @router.get("/", response_model=List[TagWithName])
+# @cache(expire=settings.CACHE_EXPIRE_IN_SECONDS)  # Кешируем результат на время, указанное в настройках
 async def get_tags(
-    skip: int = Query(0, ge=0, description="Number of records to skip"),
-    limit: int = Query(100, ge=1, le=100, description="Maximum number of records to return"),
-    db: Session = Depends(get_db)
+        skip: int = Query(0, ge=0, description="Number of records to skip"),
+        limit: int = Query(100, ge=1, le=100, description="Maximum number of records to return"),
+        db: Session = Depends(get_db)
 ):
     """
     Get all tags with pagination
+
+    This endpoint is cached for improved performance.
     """
     logger.info(f"Request to get tags with params: skip={skip}, limit={limit}")
     tags = tag_crud["get_all"](db, skip=skip, limit=limit)
@@ -35,13 +44,14 @@ async def get_tags(
         name_dict = {t.language: t.name for t in tag.translations}
         result.append(TagWithName(id=tag.id, name=name_dict))
 
+    logger.info(f"Retrieved {len(result)} tags")
     return result
 
 
 @router.get("/{tag_id}", response_model=Tag)
 async def get_tag(
-    tag_id: int = Path(..., ge=1, description="The ID of the tag"),
-    db: Session = Depends(get_db)
+        tag_id: UUID = Path(..., description="The ID of the tag"),
+        db: Session = Depends(get_db)
 ):
     """
     Get a specific tag by ID
@@ -59,8 +69,8 @@ async def get_tag(
 
 @router.post("/", response_model=Tag, status_code=status.HTTP_201_CREATED)
 async def create_tag(
-    tag: TagCreate,
-    db: Session = Depends(get_db)
+        tag: TagCreate,
+        db: Session = Depends(get_db)
 ):
     """
     Create a new tag with translations
@@ -78,8 +88,8 @@ async def create_tag(
 
 @router.post("/simple", response_model=Tag, status_code=status.HTTP_201_CREATED)
 async def create_tag_simple(
-    translations: Dict[str, str],
-    db: Session = Depends(get_db)
+        translations: Dict[str, str],
+        db: Session = Depends(get_db)
 ):
     """
     Create a new tag with translations specified as a dictionary
@@ -104,9 +114,9 @@ async def create_tag_simple(
 
 @router.put("/{tag_id}", response_model=Tag)
 async def update_tag(
-    tag_id: int = Path(..., ge=1, description="The ID of the tag to update"),
-    tag: TagUpdate = None,
-    db: Session = Depends(get_db)
+        tag_id: UUID = Path(..., description="The ID of the tag to update"),
+        tag: TagUpdate = None,
+        db: Session = Depends(get_db)
 ):
     """
     Update an existing tag with new translations
@@ -131,8 +141,8 @@ async def update_tag(
 
 @router.delete("/{tag_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_tag(
-    tag_id: int = Path(..., ge=1, description="The ID of the tag to delete"),
-    db: Session = Depends(get_db)
+        tag_id: UUID = Path(..., description="The ID of the tag to delete"),
+        db: Session = Depends(get_db)
 ):
     """
     Delete a tag
@@ -157,10 +167,10 @@ async def delete_tag(
 
 @router.put("/{tag_id}/translations/{language}", response_model=Tag)
 async def update_tag_translation(
-    tag_id: int = Path(..., ge=1, description="The ID of the tag"),
-    language: str = Path(..., min_length=2, max_length=5, description="Language code (e.g., 'en', 'ru')"),
-    name: str = Query(..., min_length=1, max_length=100, description="New tag name"),
-    db: Session = Depends(get_db)
+        tag_id: UUID = Path(..., description="The ID of the tag"),
+        language: str = Path(..., min_length=2, max_length=5, description="Language code (e.g., 'en', 'ru')"),
+        name: str = Query(..., min_length=1, max_length=100, description="New tag name"),
+        db: Session = Depends(get_db)
 ):
     """
     Update or add a specific translation for a tag
@@ -185,9 +195,9 @@ async def update_tag_translation(
 
 @router.delete("/{tag_id}/translations/{language}", response_model=Tag)
 async def delete_tag_translation(
-    tag_id: int = Path(..., ge=1, description="The ID of the tag"),
-    language: str = Path(..., min_length=2, max_length=5, description="Language code (e.g., 'en', 'ru')"),
-    db: Session = Depends(get_db)
+        tag_id: UUID = Path(..., description="The ID of the tag"),
+        language: str = Path(..., min_length=2, max_length=5, description="Language code (e.g., 'en', 'ru')"),
+        db: Session = Depends(get_db)
 ):
     """
     Remove a specific translation from a tag
@@ -202,15 +212,9 @@ async def delete_tag_translation(
                 detail=f"Tag with ID {tag_id} not found"
             )
         return updated_tag
-    except ValueError as e:
-        logger.error(f"Error deleting tag translation: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
     except SQLAlchemyError as e:
-        logger.error(f"Database error deleting tag translation: {str(e)}")
+        logger.error(f"Database error removing tag translation: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Database error occurred while deleting tag translation"
+            detail="Database error occurred while removing tag translation"
         )

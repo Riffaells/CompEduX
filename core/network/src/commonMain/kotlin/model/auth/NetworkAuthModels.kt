@@ -53,10 +53,36 @@ data class NetworkServerStatusResponse(
 
 /**
  * Объект ошибки с сервера (сетевая модель)
+ *
+ * Поддерживает несколько форматов ошибок API:
+ * 1. { "code": 400, "message": "Error message" }
+ * 2. { "detail": "Error message" }
+ * 3. { "code": 400, "message": "Error message", "details": "Additional info" }
  */
 @Serializable
 data class NetworkErrorResponse(
-    @SerialName("code") val code: Int,
-    @SerialName("message") val message: String,
+    @SerialName("code") val code: Int? = null,
+    @SerialName("message") val message: String? = null,
+    @SerialName("detail") val detail: String? = null,
     @SerialName("details") val details: String? = null
+) {
+    /**
+     * Возвращает сообщение об ошибке, используя message или detail
+     */
+    fun getErrorMessage(): String {
+        return message ?: detail ?: "Unknown error"
+    }
+
+    /**
+     * Возвращает код ошибки или стандартный код 400
+     */
+    fun getErrorCode(): Int {
+        return code ?: 400
+    }
+}
+
+
+@Serializable
+data class NetworkLogoutResponse(
+    @SerialName("message") val message: String
 )

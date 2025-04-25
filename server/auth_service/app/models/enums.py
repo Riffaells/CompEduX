@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class UserRole(str, Enum):
     """
     User roles in the system.
@@ -37,9 +38,9 @@ class PrivacyLevel(str, Enum):
         FRIENDS: Data is visible only to user's friends.
         PRIVATE: Data is visible only to the user themselves.
     """
-    PUBLIC = "public"      # Visible to everyone
-    FRIENDS = "friends"    # Visible only to friends
-    PRIVATE = "private"    # Visible only to the user
+    PUBLIC = "public"  # Visible to everyone
+    FRIENDS = "friends"  # Visible only to friends
+    PRIVATE = "private"  # Visible only to the user
 
 
 class BeveragePreference(str, Enum):

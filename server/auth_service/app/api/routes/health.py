@@ -1,11 +1,12 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
-from sqlalchemy.sql import text
 from typing import Dict, Any
 
 from app.db.session import get_db
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+from sqlalchemy.sql import text
 
 router = APIRouter()
+
 
 @router.get("/", summary="Проверка состояния сервиса")
 async def health_check(db: Session = Depends(get_db)) -> Dict[str, Any]:
@@ -16,8 +17,8 @@ async def health_check(db: Session = Depends(get_db)) -> Dict[str, Any]:
     db_message = "Could not connect to database"
 
     try:
-        # Проверяем соединение с базой данных
-        result = db.execute(text("SELECT 1"))
+        # Проверяем соединение с базой данных асинхронно
+        result = await db.execute(text("SELECT 1"))
         if result.scalar() == 1:
             db_status = "ok"
             db_message = "Connected to database"

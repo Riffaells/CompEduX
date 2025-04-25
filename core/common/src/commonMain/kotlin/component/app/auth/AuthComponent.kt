@@ -289,7 +289,7 @@ class DefaultAuthComponent(
             ProfileComponentParams(
                 componentContext = componentContext,
                 onLogout = {
-                    _store.accept(AuthStore.Intent.Logout)
+//                    _store.accept(AuthStore.Intent.Logout)
                     navigationExecutor.navigateTo(Config.Login)
                 }
             )

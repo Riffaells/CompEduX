@@ -1,8 +1,10 @@
-from fastapi import Request, status
-from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError
-from pydantic import BaseModel
 from typing import Any, Dict, Optional, List, Union
+
+from fastapi import Request, status
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+
 
 class ErrorResponse(BaseModel):
     """Model for error response"""
@@ -13,12 +15,13 @@ class ErrorResponse(BaseModel):
 
 class APIException(Exception):
     """Base exception for API errors"""
+
     def __init__(
-        self,
-        status_code: int,
-        error: str,
-        message: str,
-        detailed: Optional[Union[str, Dict[str, Any], List[Dict[str, Any]]]] = None
+            self,
+            status_code: int,
+            error: str,
+            message: str,
+            detailed: Optional[Union[str, Dict[str, Any], List[Dict[str, Any]]]] = None
     ):
         self.status_code = status_code
         self.error = error
@@ -28,6 +31,7 @@ class APIException(Exception):
 
 class BadRequestException(APIException):
     """400 Bad Request Exception"""
+
     def __init__(self, message: str = "Bad Request", detailed: Optional[Any] = None):
         super().__init__(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -39,6 +43,7 @@ class BadRequestException(APIException):
 
 class UnauthorizedException(APIException):
     """401 Unauthorized Exception"""
+
     def __init__(self, message: str = "Authentication required", detailed: Optional[Any] = None):
         super().__init__(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -50,6 +55,7 @@ class UnauthorizedException(APIException):
 
 class ForbiddenException(APIException):
     """403 Forbidden Exception"""
+
     def __init__(self, message: str = "Access forbidden", detailed: Optional[Any] = None):
         super().__init__(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -61,6 +67,7 @@ class ForbiddenException(APIException):
 
 class NotFoundException(APIException):
     """404 Not Found Exception"""
+
     def __init__(self, message: str = "Resource not found", detailed: Optional[Any] = None):
         super().__init__(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -72,6 +79,7 @@ class NotFoundException(APIException):
 
 class ConflictException(APIException):
     """409 Conflict Exception"""
+
     def __init__(self, message: str = "Resource conflict", detailed: Optional[Any] = None):
         super().__init__(
             status_code=status.HTTP_409_CONFLICT,
@@ -83,6 +91,7 @@ class ConflictException(APIException):
 
 class InternalServerErrorException(APIException):
     """500 Internal Server Error Exception"""
+
     def __init__(self, message: str = "Internal server error", detailed: Optional[Any] = None):
         super().__init__(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

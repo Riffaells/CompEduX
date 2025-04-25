@@ -1,107 +1,93 @@
 """
-Pydantic schemas for TechnologyTree
+Schemas for technology tree
 """
+from datetime import datetime
 from typing import Dict, Any, Optional, List
 from uuid import UUID
 from pydantic import BaseModel, Field
 
 
-# Base TechnologyTree schema with common attributes
 class TechnologyTreeBase(BaseModel):
-    """Base schema for technology tree"""
-    data: Dict[str, Any] = Field(default_factory=dict, description="Technology tree structure data")
-
-
-# Schema for creating a TechnologyTree
-class TechnologyTreeCreate(TechnologyTreeBase):
-    """Schema for creating a technology tree"""
-    course_id: UUID = Field(..., description="ID of the course this technology tree belongs to")
-
-
-# Schema for updating a TechnologyTree
-class TechnologyTreeUpdate(BaseModel):
-    """Schema for updating a technology tree"""
-    data: Optional[Dict[str, Any]] = Field(None, description="Technology tree structure data")
-
-
-# Schema for TechnologyTree in DB
-class TechnologyTreeInDBBase(TechnologyTreeBase):
-    """Base schema for technology tree in database"""
-    id: UUID
+    """Base schema for technology tree data"""
     course_id: UUID
+    data: Optional[Dict[str, Any]] = Field(default=None, description="Technology tree structure")
+
+
+class TechnologyTreeCreate(TechnologyTreeBase):
+    """Schema for creating a new technology tree"""
+    pass
+
+
+class TechnologyTreeUpdate(BaseModel):
+    """Schema for updating an existing technology tree"""
+    data: Optional[Dict[str, Any]] = Field(None, description="Technology tree structure")
+
+
+class TechnologyTree(TechnologyTreeBase):
+    """Schema for a complete technology tree with metadata"""
+    id: UUID
+    created_at: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True
 
+    def get_localized_content(self, language: str = 'en', fallback: bool = True) -> Dict[str, Any]:
+        """
+        Get technology tree content localized for a specific language
 
-# Schema for returning TechnologyTree
-class TechnologyTree(TechnologyTreeInDBBase):
-    """Schema for returning technology tree"""
-    pass
+        Args:
+            language: Language code (e.g., 'en', 'ru')
+            fallback: Whether to fall back to another language if requested language not found
 
+        Returns:
+            Dictionary containing localized tree content
+        """
+        if not self.data:
+            return {}
 
-# Schema for detailed TechnologyTree information
-class TechnologyTreeDetail(TechnologyTree):
-    """Schema for returning detailed technology tree information"""
-    pass
+        # Clone the data to avoid modifying the original
+        localized_data = dict(self.data)
 
+        # Process nodes if they exist
+        if 'nodes' in localized_data:
+            for node_id, node in localized_data['nodes'].items():
+                # Localize node titles
+                if 'title' in node and isinstance(node['title'], dict):
+                    if language in node['title']:
+                        node['title_localized'] = node['title'][language]
+                    elif fallback and node['title']:
+                        # Fallback to first available language
+                        node['title_localized'] = next(iter(node['title'].values()), "")
+                    else:
+                        node['title_localized'] = ""
 
-# Base schema for node attributes
-class TechnologyTreeNodeBase(BaseModel):
-    """Base schema for technology tree node"""
-    id: Optional[str] = Field(None, description="Unique ID of the node. If not provided, will be auto-generated")
-    titleKey: Optional[str] = Field(None, description="Key for localized title text")
-    descriptionKey: Optional[str] = Field(None, description="Key for localized description text")
-    position: Optional[Dict[str, int]] = Field(None, description="Position of the node in the tree. Example: {x: 100, y: 150}")
-    style: Optional[str] = Field(None, description="Style of the node (circular, hexagon, etc.)")
-    styleClass: Optional[str] = Field(None, description="Style class (beginner, intermediate, advanced)")
-    state: Optional[str] = Field("locked", description="State of the node (available, locked, completed)")
-    difficulty: Optional[int] = Field(None, description="Difficulty level from 1-5")
-    estimatedTime: Optional[int] = Field(None, description="Estimated time to complete in minutes")
-    children: Optional[List[str]] = Field(default_factory=list, description="List of node IDs that are children of this node")
-    contentId: Optional[str] = Field(None, description="ID of associated content")
-    requirements: Optional[List[str]] = Field(default_factory=list, description="List of node IDs that must be completed before this node is available")
+                # Localize node descriptions
+                if 'description' in node and isinstance(node['description'], dict):
+                    if language in node['description']:
+                        node['description_localized'] = node['description'][language]
+                    elif fallback and node['description']:
+                        # Fallback to first available language
+                        node['description_localized'] = next(iter(node['description'].values()), "")
+                    else:
+                        node['description_localized'] = ""
 
-
-# Schema for creating a new node
-class TechnologyTreeNodeCreate(TechnologyTreeNodeBase):
-    """Schema for creating a new node in a technology tree"""
-    pass
-
-
-# Schema for updating a node
-class TechnologyTreeNodeUpdate(TechnologyTreeNodeBase):
-    """Schema for updating a node in a technology tree"""
-    id: Optional[str] = Field(None, description="ID of the node (cannot be changed)")
-    position: Optional[Dict[str, int]] = Field(None, description="Position of the node")
-
-    class Config:
-        extra = "allow"  # Allow additional fields for maximum flexibility
+        return localized_data
 
 
-# Base schema for connection attributes
-class TechnologyTreeConnectionBase(BaseModel):
-    """Base schema for technology tree connection"""
-    id: Optional[str] = Field(None, description="Unique ID of the connection. If not provided, will be auto-generated")
-    from_node: str = Field(..., description="ID of the source node")
-    to_node: str = Field(..., description="ID of the target node")
-    style: Optional[str] = Field("solid_arrow", description="Style of the connection (solid_arrow, dashed_line, etc.)")
-    styleClass: Optional[str] = Field(None, description="Style class (required, optional)")
-    label: Optional[str] = Field(None, description="Label text for the connection")
-
-
-# Schema for creating a new connection
-class TechnologyTreeConnectionCreate(TechnologyTreeConnectionBase):
-    """Schema for creating a new connection in a technology tree"""
-    pass
-
-
-# Schema for updating a connection
-class TechnologyTreeConnectionUpdate(BaseModel):
-    """Schema for updating a connection in a technology tree"""
-    style: Optional[str] = Field(None, description="Style of the connection")
-    styleClass: Optional[str] = Field(None, description="Style class")
-    label: Optional[str] = Field(None, description="Label text for the connection")
+class TechnologyTreeWithLocalizedContent(TechnologyTree):
+    """Technology tree with content localized for a specific language"""
+    localized_data: Optional[Dict[str, Any]] = None
 
     class Config:
-        extra = "allow"  # Allow additional fields for maximum flexibility
+        from_attributes = True
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        language = data.get('language', 'en')
+        self.localized_data = self.get_localized_content(language)
+
+
+class TechnologyTreeLanguages(BaseModel):
+    """Schema for technology tree languages response"""
+    languages: List[str] = Field(..., description="List of available languages in the technology tree")

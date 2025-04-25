@@ -80,4 +80,10 @@ object RIcons {
     val Public = Icons.Default.Public
     val Work = Icons.Default.Work
     val Chat = Icons.Default.Chat
+
+    // Иконки для TechnologyTreeContent
+    val Warning = Icons.Outlined.Warning
+    val Error = Icons.Outlined.Error
+    val PlayArrow = Icons.Default.PlayArrow
+    val Refresh = Icons.Default.Refresh
 }

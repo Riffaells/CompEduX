@@ -2,13 +2,14 @@
 Module for unified logging initialization when starting services.
 Prevents double initialization of loggers.
 """
+import logging
 import os
 import sys
-import logging
 
 # Flag for tracking logging initialization
 _logging_initialized = {}
 _pythonpath_warned = False  # Флаг для отслеживания сообщения о PYTHONPATH
+
 
 def initialize_logging(service_name, log_file=None):
     """
@@ -28,7 +29,7 @@ def initialize_logging(service_name, log_file=None):
 
     # Prevent re-initialization for the same service
     if service_name in _logging_initialized:
-        from common.logger import get_logger
+        from common.logger.setup import get_logger
         return get_logger(service_name)
 
     # Check if this is a uvicorn reload process
@@ -39,7 +40,7 @@ def initialize_logging(service_name, log_file=None):
         "uvicorn", "uvicorn.access", "uvicorn.error",
         "uvicorn.watchgram", "uvicorn.watchgram.watcher",
         "uvicorn.reload", "uvicorn.statreload",  # For reload mode
-        "watchfiles", "watchfiles.main",         # File watching library
+        "watchfiles", "watchfiles.main",  # File watching library
         "fastapi", "httpx", "asyncio"
     ]
 
@@ -72,7 +73,7 @@ def initialize_logging(service_name, log_file=None):
         _pythonpath_warned = True
 
     # Import logging modules - if there's an error here, the application will terminate immediately
-    from common.logger import setup_rich_logger
+    from common.logger.setup import setup_rich_logger
 
     # Initialize common logger for the entire process
     logger = setup_rich_logger(

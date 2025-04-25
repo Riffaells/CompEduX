@@ -7,18 +7,15 @@ all microservices, including:
 - Database initialization utilities
 - Common database operation patterns
 """
-import sys
 import traceback
-import logging
-from contextlib import contextmanager
-from typing import Generator, Dict, Any, Optional, Callable
-from urllib.parse import quote_plus, unquote
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator, Dict, Any, Optional, Callable, List
+from urllib.parse import urlparse, parse_qs, urlunparse, urlencode
 
 import psycopg2
-from sqlalchemy import create_engine, text, inspect, MetaData
-from sqlalchemy.exc import OperationalError
+from sqlalchemy import inspect, text
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, Session
 
 from common.logger import get_logger
 
@@ -29,381 +26,208 @@ logger = get_logger("common.db")
 Base = declarative_base()
 
 
-class DatabaseManager:
+class AsyncDatabaseManager:
     """
-    Base database manager for SQLAlchemy integration.
-
-    This class handles common database operations like:
-    - Creating engine and session
-    - Connection testing
-    - Schema initialization
-    - Database and user creation (if needed)
+    Manager for async database operations.
+    Provides unified interface for database connections.
     """
 
-    def __init__(self, settings, service_name: str):
+    def __init__(self, settings, service_name: str, required_tables: List[str] = None):
         """
-        Initialize database manager with service settings.
+        Initialize database manager.
 
         Args:
-            settings: Service configuration with database settings
+            settings: Application settings with SQLALCHEMY_DATABASE_URI
             service_name: Name of the service for logging
+            required_tables: List of table names that must exist
         """
         self.settings = settings
         self.service_name = service_name
         self.logger = get_logger(f"{service_name}.db")
+        self.required_tables = required_tables or []
 
-        # Log database connection info (masking password)
-        connection_info = f"PostgreSQL connection info: host={settings.POSTGRES_HOST}, port={settings.POSTGRES_PORT}, " \
-                         f"user={settings.POSTGRES_USER}, db={settings.POSTGRES_DB}, python={sys.version}"
-        self.logger.info(connection_info)
+        # Get DB_ECHO from settings or use default value (False)
+        db_echo = getattr(settings, "DB_ECHO", False)
 
-        # Examine URI for any potential issues
-        safe_uri = settings.SQLALCHEMY_DATABASE_URI.replace(settings.POSTGRES_PASSWORD, "****")
-        self.logger.info(f"Database URI: {safe_uri}")
+        # Ensure we're using the asyncpg driver for async operations
+        db_url = settings.SQLALCHEMY_DATABASE_URI
 
-        # Manually construct URI with proper escaping to avoid encoding issues
-        user = quote_plus(settings.POSTGRES_USER)
-        password = quote_plus(settings.POSTGRES_PASSWORD)
-        host = quote_plus(settings.POSTGRES_HOST)
-        port = settings.POSTGRES_PORT
-        db_name = quote_plus(settings.POSTGRES_DB)
+        # Parse URL to clean parameters not supported by asyncpg
+        parsed_url = urlparse(db_url)
+        query_params = parse_qs(parsed_url.query)
 
-        # Ensure proper escaping for special characters
-        safe_uri_constructed = f"postgresql://{user}:****@{host}:{port}/{db_name}"
-        self.logger.info(f"Constructed URI (safe): {safe_uri_constructed}")
+        # Remove client_encoding from parameters
+        if 'client_encoding' in query_params:
+            del query_params['client_encoding']
 
-        # Log encoding info
-        self.logger.info(f"Default encoding: {sys.getdefaultencoding()}, "
-                         f"Filesystem encoding: {sys.getfilesystemencoding()}")
+        # Rebuild URL without the client_encoding parameter
+        new_query = urlencode(query_params, doseq=True)
+        parsed_url = parsed_url._replace(query=new_query)
+        clean_db_url = urlunparse(parsed_url)
 
-        # Print encoding of each individual component for debugging
-        self.logger.debug(f"User encoding: {settings.POSTGRES_USER!r}")
-        self.logger.debug(f"Host encoding: {settings.POSTGRES_HOST!r}")
-        self.logger.debug(f"DB name encoding: {settings.POSTGRES_DB!r}")
+        # Replace postgresql:// with postgresql+asyncpg://
+        if clean_db_url.startswith('postgresql://') and '+asyncpg' not in clean_db_url:
+            clean_db_url = clean_db_url.replace('postgresql://', 'postgresql+asyncpg://')
+            self.logger.info(f"Changed database URL to use asyncpg driver: {clean_db_url}")
 
-        # Create connection arguments with explicit encoding settings
-        connect_args = {
-            "options": "-c client_encoding=utf8",
-            "client_encoding": "utf8"
-        }
-        self.logger.info(f"Connection arguments: {connect_args}")
-
-        # Create engine with UTF-8 encoding settings to prevent encoding issues
-        try:
-            self.engine = create_engine(
-                settings.SQLALCHEMY_DATABASE_URI,
-                pool_pre_ping=True,
-                connect_args=connect_args,
-                echo=settings.DEBUG  # Enable SQLAlchemy logging in debug mode
-            )
-            self.logger.info("SQLAlchemy engine created successfully")
-        except Exception as e:
-            self.logger.error(f"Error creating SQLAlchemy engine: {str(e)}")
-            self.logger.error(f"Engine traceback: {traceback.format_exc()}")
-            # Re-raise to prevent initialization with a broken engine
-            raise
+        # Create async engine
+        self.engine = create_async_engine(
+            clean_db_url,
+            echo=db_echo,
+            pool_pre_ping=True,
+            pool_recycle=3600,
+        )
 
         # Create session factory
-        self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
+        self.AsyncSessionLocal = async_sessionmaker(
+            autocommit=False,
+            autoflush=False,
+            bind=self.engine,
+            expire_on_commit=False
+        )
 
-    @contextmanager
-    def get_db(self) -> Generator[Session, None, None]:
+    @asynccontextmanager
+    async def get_db(self) -> AsyncGenerator[AsyncSession, None]:
         """
-        Dependency for obtaining a database session.
+        Get database session as async context manager
 
         Yields:
-            Session: SQLAlchemy session for database operations
+            AsyncSession: SQLAlchemy async session
         """
-        db = self.SessionLocal()
+        session = self.AsyncSessionLocal()
         try:
-            yield db
+            yield session
+            await session.commit()
+        except Exception as e:
+            await session.rollback()
+            self.logger.error(f"Session error: {str(e)}")
+            raise
         finally:
-            db.close()
+            await session.close()
 
-    def init_db(self, create_tables_func: Optional[Callable[[Session], None]] = None) -> bool:
+    async def test_connection(self) -> bool:
         """
-        Initialize database for the service.
+        Test database connection
 
-        This function:
-        1. Checks database connection
-        2. Creates all tables
-        3. Loads initial data if provided
+        Returns:
+            bool: True if connection successful
+        """
+        try:
+            async with self.engine.begin() as conn:
+                await conn.execute(text("SELECT 1"))
+            return True
+        except Exception as e:
+            self.logger.error(f"Database connection test failed: {str(e)}")
+            return False
+
+    async def init_db(self, init_data_func: Optional[Callable[[AsyncSession], Any]] = None) -> bool:
+        """
+        Initialize the database with tables and optional initial data
 
         Args:
-            create_tables_func: Optional function to create test/initial data
+            init_data_func: Optional function to initialize data after tables created
 
         Returns:
-            bool: Success or failure
+            bool: True if initialization successful
         """
         try:
-            # Test direct psycopg2 connection first for detailed diagnostics
-            self.logger.info("Testing direct psycopg2 connection...")
-            try:
-                # Try direct connection with psycopg2 first
-                conn = psycopg2.connect(
-                    host=self.settings.POSTGRES_HOST,
-                    port=self.settings.POSTGRES_PORT,
-                    user=self.settings.POSTGRES_USER,
-                    password=self.settings.POSTGRES_PASSWORD,
-                    dbname=self.settings.POSTGRES_DB,
-                    client_encoding='utf8'
-                )
-                self.logger.info("Direct psycopg2 connection successful!")
+            self.logger.info(f"Initializing database for {self.service_name}...")
 
-                # Check server encoding
-                cursor = conn.cursor()
-                cursor.execute("SHOW server_encoding;")
-                server_encoding = cursor.fetchone()[0]
-                cursor.execute("SHOW client_encoding;")
-                client_encoding = cursor.fetchone()[0]
-                self.logger.info(f"PostgreSQL encodings - Server: {server_encoding}, Client: {client_encoding}")
+            # Test connection
+            async with self.engine.begin() as conn:
+                await conn.execute(text("SELECT 1"))
+            self.logger.info("Database connection test successful")
 
-                # Close direct connection
-                cursor.close()
-                conn.close()
-            except Exception as e:
-                self.logger.error(f"Direct psycopg2 connection failed: {str(e)}")
-                self.logger.error(f"Connection traceback: {traceback.format_exc()}")
-                # Continue with SQLAlchemy connection attempt
+            # For inspection, we need to use run_sync with a connection
+            async with self.engine.begin() as conn:
+                # Use run_sync to perform inspection in a sync context
+                def inspect_tables(connection):
+                    inspector = inspect(connection)
+                    return inspector.get_table_names()
 
-            # Check database connection using SQLAlchemy
-            self.logger.info("Testing SQLAlchemy connection...")
-            with self.engine.connect() as conn:
-                result = conn.execute(text("SELECT 1"))
-                value = result.scalar()
-                self.logger.info(f"SQLAlchemy connection test result: {value}")
-            self.logger.info("Database connection established successfully")
+                existing_tables = await conn.run_sync(inspect_tables)
 
-            # Import models and create tables
-            self.logger.info("Preparing to create tables...")
+                # Check if tables need to be created
+                if not self.required_tables or not all(table in existing_tables for table in self.required_tables):
+                    # Create tables if they don't exist
+                    await conn.run_sync(Base.metadata.create_all)
+                    self.logger.info("Database tables created successfully")
+                else:
+                    self.logger.info("All required tables already exist")
 
-            # Information about detected models
-            inspector = inspect(self.engine)
-            existing_tables = inspector.get_table_names()
-            self.logger.info(f"Existing tables before creation: {existing_tables}")
-
-            # Drop and recreate tables in development mode
-            if self.settings.ENV == "development":
-                self.logger.info("Development mode: dropping and recreating all tables")
-                Base.metadata.drop_all(bind=self.engine)
-                self.logger.info("Tables dropped successfully")
-
-            # Create tables
-            self.logger.info("Creating tables with Base.metadata.create_all...")
-            Base.metadata.create_all(bind=self.engine)
-
-            # Log tables after creation
-            inspector = inspect(self.engine)
-            tables_after = inspector.get_table_names()
-            self.logger.info(f"Tables after creation: {tables_after}")
-            self.logger.info("Database tables created successfully")
-
-            # Create test data in development mode
-            if create_tables_func and self.settings.ENV == "development":
-                db = self.SessionLocal()
-                try:
-                    self.logger.info("Creating test data for development")
-                    create_tables_func(db)
-                    self.logger.info("Test data created successfully")
-                finally:
-                    db.close()
+            # Initialize data if function provided
+            if init_data_func:
+                self.logger.info("Initializing test data...")
+                async with self.AsyncSessionLocal() as session:
+                    await init_data_func(session)
+                self.logger.info("Test data initialized")
 
             return True
-
-        except OperationalError as e:
-            self.logger.error(f"Database connection error: {e}")
-
-            # Provide more specific error information
-            error_str = str(e)
-            self.logger.error(f"Full error details: {error_str!r}")  # Use !r to see raw string with escapes
-
-            # Log connection details for diagnosis
-            db_details = (f"Connection attempted with: host={self.settings.POSTGRES_HOST}, "
-                         f"port={self.settings.POSTGRES_PORT}, user={self.settings.POSTGRES_USER}, "
-                         f"dbname={self.settings.POSTGRES_DB}")
-            self.logger.error(f"Connection details: {db_details}")
-
-            # Try to create user and database if authentication failed
-            if "password authentication failed" in error_str or "role" in error_str and "does not exist" in error_str:
-                self.logger.warning(f"Authentication problem. Trying to create user...")
-                self.logger.warning(
-                    f"Current settings: POSTGRES_USER={self.settings.POSTGRES_USER}, "
-                    f"POSTGRES_DB={self.settings.POSTGRES_DB}"
-                )
-
-                return self._create_user_and_database()
-            return False
-
         except Exception as e:
-            # Log detailed error information
-            exc_info = traceback.format_exc()
-            self.logger.error(f"Unknown error initializing database: {e}")
+            self.logger.error(f"Unknown error initializing database: {str(e)}")
             self.logger.error(f"Error type: {type(e).__name__}")
-            self.logger.error(f"Traceback: {exc_info}")
-
-            # For encoding errors, log the raw values
-            if isinstance(e, UnicodeError):
-                self.logger.error(f"Unicode error details: {e.reason}, object: {repr(e.object)}, "
-                                 f"start: {e.start}, end: {e.end}")
-
-                # Log all database connection parameters as raw bytes for inspection
-                self.logger.error(f"Raw POSTGRES_USER: {repr(self.settings.POSTGRES_USER)}")
-                self.logger.error(f"Raw POSTGRES_PASSWORD: {'*' * len(self.settings.POSTGRES_PASSWORD)}")
-                self.logger.error(f"Raw POSTGRES_DB: {repr(self.settings.POSTGRES_DB)}")
-                self.logger.error(f"Raw POSTGRES_HOST: {repr(self.settings.POSTGRES_HOST)}")
-                self.logger.error(f"Raw POSTGRES_PORT: {repr(self.settings.POSTGRES_PORT)}")
-
-                # Attempt to connect with explicitly encoded values
-                self.logger.info("Attempting connection with explicitly encoded parameters...")
-                try:
-                    encoded_uri = (
-                        f"postgresql://{self.settings.POSTGRES_USER.encode('ascii', 'replace').decode('ascii')}:"
-                        f"{self.settings.POSTGRES_PASSWORD.encode('ascii', 'replace').decode('ascii')}@"
-                        f"{self.settings.POSTGRES_HOST.encode('ascii', 'replace').decode('ascii')}:"
-                        f"{self.settings.POSTGRES_PORT}/"
-                        f"{self.settings.POSTGRES_DB.encode('ascii', 'replace').decode('ascii')}"
-                    )
-                    self.logger.info(f"Encoded URI (safe): {encoded_uri.replace(self.settings.POSTGRES_PASSWORD.encode('ascii', 'replace').decode('ascii'), '****')}")
-
-                    test_engine = create_engine(
-                        encoded_uri,
-                        connect_args={"client_encoding": "utf8"}
-                    )
-                    with test_engine.connect() as conn:
-                        conn.execute(text("SELECT 1"))
-                    self.logger.info("Connection successful with encoded parameters!")
-                except Exception as inner_e:
-                    self.logger.error(f"Encoded parameters connection failed: {inner_e}")
-
+            self.logger.error(f"Traceback: {traceback.format_exc()}")
             return False
 
-    def _create_user_and_database(self) -> bool:
+    async def _create_user_and_database(self) -> bool:
         """
-        Create PostgreSQL user and database as administrator.
+        Create PostgreSQL user and database if they don't exist.
+        This requires a connection with superuser privileges.
 
         Returns:
-            bool: Success or failure
+            bool: True if successful, False otherwise
         """
-        try:
-            # Connect to PostgreSQL as administrator
-            self.logger.info(f"Connecting to PostgreSQL as administrator")
-            self.logger.info(f"Admin connection params: host={self.settings.POSTGRES_HOST}, "
-                           f"port={self.settings.POSTGRES_PORT}, user=postgres")
+        self.logger.info("Attempting to create database user and database...")
 
+        # Connect to default postgres database as superuser
+        try:
+            # Use psycopg2 for admin operations
             conn = psycopg2.connect(
                 host=self.settings.POSTGRES_HOST,
                 port=self.settings.POSTGRES_PORT,
-                user="postgres",
-                password=self.settings.POSTGRES_ADMIN_PASSWORD,
-                dbname="postgres",
-                client_encoding='utf8'
+                user="postgres",  # Superuser
+                password=self.settings.POSTGRES_SUPERUSER_PASSWORD,
+                dbname="postgres"  # Default database
             )
             conn.autocommit = True
             cursor = conn.cursor()
 
-            # Check server encoding
-            cursor.execute("SHOW server_encoding;")
-            server_encoding = cursor.fetchone()[0]
-            cursor.execute("SHOW client_encoding;")
-            client_encoding = cursor.fetchone()[0]
-            self.logger.info(f"Admin connection encodings - Server: {server_encoding}, Client: {client_encoding}")
-
             # Create user if not exists
-            self.logger.info(f"Attempting to create user: {self.settings.POSTGRES_USER}")
-            sql_query = f"""
-            DO $$
-            BEGIN
-                IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = '{self.settings.POSTGRES_USER}') THEN
-                    CREATE USER {self.settings.POSTGRES_USER} WITH PASSWORD '{self.settings.POSTGRES_PASSWORD}';
-                ELSE
-                    ALTER USER {self.settings.POSTGRES_USER} WITH PASSWORD '{self.settings.POSTGRES_PASSWORD}';
-                END IF;
-            END $$;
-            """
-            cursor.execute(sql_query)
-            self.logger.info("User created/updated successfully")
+            cursor.execute(f"SELECT 1 FROM pg_roles WHERE rolname = '{self.settings.POSTGRES_USER}'")
+            if not cursor.fetchone():
+                self.logger.info(f"Creating database user: {self.settings.POSTGRES_USER}")
+                cursor.execute(
+                    f"CREATE USER {self.settings.POSTGRES_USER} WITH PASSWORD '{self.settings.POSTGRES_PASSWORD}'"
+                )
+                self.logger.info(f"User {self.settings.POSTGRES_USER} created successfully")
+            else:
+                self.logger.info(f"User {self.settings.POSTGRES_USER} already exists")
 
             # Create database if not exists
-            self.logger.info(f"Attempting to create database: {self.settings.POSTGRES_DB}")
-            sql_query = f"""
-            SELECT 'CREATE DATABASE {self.settings.POSTGRES_DB} OWNER {self.settings.POSTGRES_USER} ENCODING ''UTF8'' LC_COLLATE ''C.UTF-8'' LC_CTYPE ''C.UTF-8'' TEMPLATE template0'
-            WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '{self.settings.POSTGRES_DB}')
-            """
-            cursor.execute(sql_query)
-
-            result = cursor.fetchone()
-            if result:
-                self.logger.info(f"Executing query: {result[0]}")
-                cursor.execute(result[0])
+            cursor.execute(f"SELECT 1 FROM pg_database WHERE datname = '{self.settings.POSTGRES_DB}'")
+            if not cursor.fetchone():
+                self.logger.info(f"Creating database: {self.settings.POSTGRES_DB}")
+                cursor.execute(f"CREATE DATABASE {self.settings.POSTGRES_DB} OWNER {self.settings.POSTGRES_USER}")
                 self.logger.info(f"Database {self.settings.POSTGRES_DB} created successfully")
             else:
                 self.logger.info(f"Database {self.settings.POSTGRES_DB} already exists")
 
             # Grant privileges
-            self.logger.info(f"Granting privileges on database to user {self.settings.POSTGRES_USER}")
-            cursor.execute(f"GRANT ALL PRIVILEGES ON DATABASE {self.settings.POSTGRES_DB} TO {self.settings.POSTGRES_USER}")
-            conn.close()
-
-            # Connect to the created database to set up schema privileges
-            self.logger.info(f"Connecting to the created database {self.settings.POSTGRES_DB} to set privileges")
-            conn = psycopg2.connect(
-                host=self.settings.POSTGRES_HOST,
-                port=self.settings.POSTGRES_PORT,
-                user="postgres",
-                password=self.settings.POSTGRES_ADMIN_PASSWORD,
-                dbname=self.settings.POSTGRES_DB,
-                client_encoding='utf8'
+            cursor.execute(
+                f"GRANT ALL PRIVILEGES ON DATABASE {self.settings.POSTGRES_DB} TO {self.settings.POSTGRES_USER}"
             )
-            conn.autocommit = True
-            cursor = conn.cursor()
+            self.logger.info(f"Granted privileges to {self.settings.POSTGRES_USER}")
 
-            # Grant schema privileges
-            self.logger.info("Granting schema privileges")
-            cursor.execute(f"GRANT ALL PRIVILEGES ON SCHEMA public TO {self.settings.POSTGRES_USER}")
-            cursor.execute(f"GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO {self.settings.POSTGRES_USER}")
-            cursor.execute(f"GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO {self.settings.POSTGRES_USER}")
+            cursor.close()
             conn.close()
 
-            self.logger.info(f"User {self.settings.POSTGRES_USER} and database {self.settings.POSTGRES_DB} created successfully")
+            # Try to initialize again
+            self.logger.info("Retrying database initialization...")
+            return await self.init_db()
 
-            # Try to locate the Base model from the app
-            try:
-                self.logger.info("Importing app-specific Base model for table creation")
-                # Prefer absolute imports when dealing with app models
-                try:
-                    from app.models.base import Base as AppBase
-                    self.logger.info("Successfully imported Base model using absolute import")
-                except ImportError:
-                    self.logger.warning("Absolute import failed, trying relative import")
-                    # Fallback to relative import if absolute fails
-                    from ..models.base import Base as AppBase
-                    self.logger.info("Successfully imported Base model using relative import")
-
-                # Retry creating tables
-                if self.settings.ENV == "development":
-                    self.logger.info("Dropping existing tables before recreation")
-                    AppBase.metadata.drop_all(bind=self.engine)
-
-                self.logger.info("Creating tables")
-                AppBase.metadata.create_all(bind=self.engine)
-                self.logger.info("Database tables created successfully after user setup")
-            except ImportError as import_err:
-                self.logger.error(f"Error importing Base model: {import_err}")
-                # Try with regular Base as fallback
-                self.logger.info("Attempting to create tables with common Base model as fallback")
-                Base.metadata.create_all(bind=self.engine)
-                self.logger.info("Tables created with fallback Base model")
-            except Exception as table_err:
-                self.logger.error(f"Error creating tables: {table_err}")
-                self.logger.error(f"Table creation traceback: {traceback.format_exc()}")
-                # Continue anyway as we have created the user and database, which might be enough
-                # for the application to attempt its own schema creation
-
-            return True
-
-        except Exception as ex:
-            self.logger.error(f"Failed to create database user: {ex}")
-            self.logger.error(f"Traceback: {traceback.format_exc()}")
+        except Exception as e:
+            self.logger.error(f"Failed to create user and database: {str(e)}")
+            self.logger.error(traceback.format_exc())
             return False
 
 

@@ -1,10 +1,20 @@
-from fastapi import APIRouter, HTTPException
-import httpx
 from typing import Dict, Any
 
+import httpx
 from app.core.config import settings
+from fastapi import APIRouter
+
+from common.logger import get_logger
+
+# Создаем логгер для health-модуля
+logger = get_logger("api_gateway.health")
 
 router = APIRouter()
+
+
+######################################################################
+# ПРОВЕРКА ЗДОРОВЬЯ СЕРВИСОВ
+######################################################################
 
 @router.get("/", summary="Проверка состояния всех сервисов")
 async def health_check() -> Dict[str, Any]:
@@ -12,6 +22,7 @@ async def health_check() -> Dict[str, Any]:
     Проверяет состояние всех микросервисов.
     Возвращает статус каждого сервиса.
     """
+    logger.info("API Gateway health check called")
     services = {
         "auth": settings.AUTH_SERVICE_URL,
         "course": settings.COURSE_SERVICE_URL,
@@ -36,6 +47,7 @@ async def health_check() -> Dict[str, Any]:
             for path in api_paths:
                 try:
                     full_url = f"{service_url}{path}"
+                    logger.debug(f"Checking health of {service_name} at {full_url}")
                     response = await client.get(full_url, timeout=3.0)
                     if response.status_code == 200:
                         results[service_name] = {

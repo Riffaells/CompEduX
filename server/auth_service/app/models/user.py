@@ -1,13 +1,14 @@
-from datetime import UTC, datetime
 import uuid
+from datetime import datetime, timezone
+
 from sqlalchemy import (Boolean, Column, DateTime, Enum as SQLAlchemyEnum,
                         ForeignKey, Integer, String, Text, JSON, Float)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
+from .associations import user_oauth_providers
 from .base import Base
-from .enums import UserRole, OAuthProvider, PrivacyLevel, BeveragePreference
-from .associations import user_oauth_providers, UserOAuthProviderModel
+from .enums import UserRole, OAuthProvider, BeveragePreference
 from .privacy import UserPrivacyModel
 
 
@@ -41,9 +42,10 @@ class UserPreferencesModel(Base):
     # Relationship with user
     user = relationship("UserModel", back_populates="preferences")
 
-    # Timestamps
-    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
-    updated_at = Column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
+    # Timestamps с поддержкой часовых поясов
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc),
+                       onupdate=lambda: datetime.now(timezone.utc))
 
 
 class UserProfileModel(Base):
@@ -78,9 +80,10 @@ class UserProfileModel(Base):
     # Relationship with user
     user = relationship("UserModel", back_populates="profile")
 
-    # Timestamps
-    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
-    updated_at = Column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
+    # Timestamps с поддержкой часовых поясов
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc),
+                        onupdate=lambda: datetime.now(timezone.utc))
 
 
 class UserRatingModel(Base):
@@ -99,8 +102,8 @@ class UserRatingModel(Base):
 
     # Different rating types
     contribution_rating = Column(Float, default=0.0)  # Platform contribution
-    bot_score = Column(Float, default=0.0)           # Bot likelihood (0.0-1.0)
-    expertise_rating = Column(Float, default=0.0)    # Subject matter expertise
+    bot_score = Column(Float, default=0.0)  # Bot likelihood (0.0-1.0)
+    expertise_rating = Column(Float, default=0.0)  # Subject matter expertise
     competition_rating = Column(Float, default=0.0)  # Competition performance
 
     # Additional ratings stored as JSON for flexibility
@@ -109,9 +112,10 @@ class UserRatingModel(Base):
     # Relationship with user
     user = relationship("UserModel", back_populates="ratings")
 
-    # Timestamps
-    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
-    updated_at = Column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
+    # Timestamps с поддержкой часовых поясов
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc),
+                        onupdate=lambda: datetime.now(timezone.utc))
 
 
 class UserModel(Base):
@@ -150,26 +154,26 @@ class UserModel(Base):
     # Main authentication provider
     auth_provider = Column(SQLAlchemyEnum(OAuthProvider), default=OAuthProvider.EMAIL)
 
-    # Timestamps
-    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
-    updated_at = Column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
-    last_login_at = Column(DateTime, nullable=True)
+    # Timestamps с поддержкой часовых поясов
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc),
+                        onupdate=lambda: datetime.now(timezone.utc))
+    last_login_at = Column(DateTime(timezone=True), nullable=True)
 
     # Relationships with other tables
     refresh_tokens = relationship("RefreshTokenModel", back_populates="user", cascade="all, delete-orphan")
 
     # User's OAuth providers
-    oauth_providers = relationship(
-        "UserOAuthProviderModel",
-        secondary=user_oauth_providers,
-        back_populates="users",
-        collection_class=list,
-    )
+    # Due to database structure mismatch, we're not using this relationship directly
+    # Instead, we'll handle OAuth providers in the API layer
+    oauth_providers = []  # This will be populated manually in the API layer
 
     # Related models
     profile = relationship("UserProfileModel", uselist=False, back_populates="user", cascade="all, delete-orphan")
-    preferences = relationship("UserPreferencesModel", uselist=False, back_populates="user", cascade="all, delete-orphan")
-    privacy_settings = relationship("UserPrivacyModel", uselist=False, back_populates="user", cascade="all, delete-orphan")
+    preferences = relationship("UserPreferencesModel", uselist=False, back_populates="user",
+                               cascade="all, delete-orphan")
+    privacy_settings = relationship("UserPrivacyModel", uselist=False, back_populates="user",
+                                    cascade="all, delete-orphan")
     ratings = relationship("UserRatingModel", uselist=False, back_populates="user", cascade="all, delete-orphan")
 
     # Settings preserved for backward compatibility - will be deprecated

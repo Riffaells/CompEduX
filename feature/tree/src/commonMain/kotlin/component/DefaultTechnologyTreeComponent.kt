@@ -1,10 +1,8 @@
-package component.app.skiko
+package component
 
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
-import component.app.skiko.store.SkikoStore
-import component.app.skiko.store.SkikoStoreFactory
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.StateFlow
 import org.kodein.di.DI
@@ -14,36 +12,36 @@ import org.kodein.di.instance
 /**
  * Параметры для создания компонента Skiko
  */
-data class SkikoComponentParams(
+data class TechnologyTreeComponentParams(
     val componentContext: ComponentContext,
     val onBack: () -> Unit
 )
 
 
-interface SkikoComponent {
-    val state: StateFlow<SkikoStore.State>
+interface TechnologyTreeComponent {
+    val state: StateFlow<TechnologyTreeStore.State>
 
-    fun onEvent(event: SkikoStore.Intent)
+    fun onEvent(event: TechnologyTreeStore.Intent)
     fun onBackClicked()
 }
 
-class DefaultSkikoComponent(
+class DefaultTechnologyTreeComponent(
     componentContext: ComponentContext,
     private val onBack: () -> Unit,
     override val di: DI
-) : SkikoComponent, DIAware, ComponentContext by componentContext {
+) : TechnologyTreeComponent, DIAware, ComponentContext by componentContext {
 
-    private val skikoStoreFactory by instance<SkikoStoreFactory>()
+    private val technologyTreeStoreFactory by instance<TechnologyTreeStoreFactory>()
 
     private val store = instanceKeeper.getStore {
-        skikoStoreFactory.create()
+        technologyTreeStoreFactory.create()
     }
 
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    override val state: StateFlow<SkikoStore.State> = store.stateFlow
+    override val state: StateFlow<TechnologyTreeStore.State> = store.stateFlow
 
-    override fun onEvent(event: SkikoStore.Intent) {
+    override fun onEvent(event: TechnologyTreeStore.Intent) {
         store.accept(event)
     }
 

@@ -2,11 +2,10 @@
 """
 Test script for course, tag, technology tree, and localization models
 """
-import logging
 import os
 import sys
-import uuid
-from pathlib import Path
+
+from common.logger import get_logger
 
 # Configuring paths properly
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -22,8 +21,9 @@ from app.models.localization import Localization
 from app.models.technology_tree import TechnologyTree
 
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+
+# Создаем логгер для тестов
+logger = get_logger("course_service.tests.models")
 
 
 def test_slug_generation():
@@ -108,7 +108,6 @@ def test_models():
 
     finally:
         db.close()
-
 
 if __name__ == "__main__":
     logger.info("Testing slug generation...")
