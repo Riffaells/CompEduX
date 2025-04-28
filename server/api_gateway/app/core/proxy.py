@@ -49,63 +49,111 @@ async def get_http_client() -> httpx.AsyncClient:
     return http_client
 
 
-async def proxy_request(base_url: str, path: str, request: Request) -> Response:
+async def proxy_request(base_url: str, path: str, request: Request, use_request_params: bool = True) -> Response:
     """
     Проксирует запрос к указанному сервису и возвращает ответ.
     Обеспечивает передачу всех заголовков, включая Authorization.
+
+    Args:
+        base_url: Базовый URL сервиса
+        path: Путь к API (может содержать параметры запроса)
+        request: Оригинальный FastAPI запрос
+        use_request_params: Использовать ли параметры запроса из Request.
+                         Если False, будут использоваться только параметры из path.
+
+    Returns:
+        Response: Ответ от сервиса
     """
+    # Разделяем путь и строку запроса, если они есть в path
+    target_path = path
+    query_string = ""
+
+    if '?' in path:
+        target_path, query_string = path.split('?', 1)
+
     # Формируем URL для запроса к сервису
-    target_url = f"{base_url.rstrip('/')}/{path.lstrip('/')}"
+    target_url = f"{base_url.rstrip('/')}/{target_path.lstrip('/')}"
 
-    logger.debug(f"Proxy request - Base URL: {base_url}, Path: {path}, Target URL: {target_url}")
+    # Добавляем параметры запроса
+    params = {}
+    if use_request_params and request is not None:
+        # Получаем параметры из запроса
+        params.update(dict(request.query_params))
 
-    # Логируем информацию о запросе
-    if 'health' in path:
-        logger.debug(f"Proxying health request to: {target_url}")
+    # Если в path есть параметры запроса, добавляем их или заменяем параметры из request
+    if query_string:
+        # Используем стандартную библиотеку для парсинга параметров
+        from urllib.parse import parse_qsl
+        path_params = dict(parse_qsl(query_string))
+        for key, value in path_params.items():
+            params[key] = value
+
+    logger.debug(f"Proxy request - Target URL: {target_url}")
+    logger.debug(f"Proxy request - Parameters: {params}")
 
     # Получаем метод запроса
-    method = request.method
-    logger.debug(f"Request method: {method}")
+    method = request.method if request else "GET"
 
     # Получаем заголовки запроса
-    headers = dict(request.headers)
+    headers = dict(request.headers) if request else {}
+
     # Удаляем заголовки, которые могут вызвать проблемы при проксировании
     headers.pop('host', None)
+    headers.pop('content-length', None)
 
     # Получаем тело запроса
-    body = await request.body()
+    body = await request.body() if request else b""
 
     # Выполняем запрос к сервису
-    async with httpx.AsyncClient() as client:
-        try:
-            logger.debug(f"Отправка {method} запроса на {target_url}")
-            response = await client.request(
-                method=method,
-                url=target_url,
-                headers=headers,
-                content=body,
-                timeout=10.0  # Устанавливаем таймаут
-            )
-            logger.debug(f"Получен ответ от {target_url}: статус={response.status_code}")
+    client = await get_http_client()
+    try:
+        response = await client.request(
+            method=method,
+            url=target_url,
+            params=params,
+            headers=headers,
+            content=body,
+            timeout=10.0
+        )
+        logger.debug(f"Получен ответ от {target_url}: статус={response.status_code}")
 
-            if 'health' in path:
-                logger.debug(f"Health proxy response from {target_url}: status={response.status_code}")
+        # Если сервис вернул ошибку, логируем подробности
+        if response.status_code >= 400:
+            # Пытаемся получить подробности ошибки из тела ответа
+            try:
+                error_details = response.json()
+                logger.error(f"Сервис вернул ошибку {response.status_code}: {error_details}")
+            except Exception:
+                logger.error(f"Сервис вернул ошибку {response.status_code}, тело: {response.text[:200]}")
 
-            # Создаем ответ FastAPI
-            return Response(
-                content=response.content,
-                status_code=response.status_code,
-                headers=dict(response.headers)
-            )
-        except Exception as e:
-            # Логируем ошибку
-            logger.error(f"Error proxying request to {target_url}: {str(e)}")
-            # Возвращаем ошибку сервера
-            return Response(
-                content=json.dumps({"detail": "Service unavailable"}),
-                status_code=503,
-                media_type="application/json"
-            )
+        # Создаем ответ FastAPI
+        return Response(
+            content=response.content,
+            status_code=response.status_code,
+            headers=dict(response.headers),
+            media_type=response.headers.get('content-type')
+        )
+    except httpx.TimeoutException as e:
+        logger.error(f"Таймаут при запросе к {target_url}: {str(e)}")
+        return Response(
+            content=json.dumps({"detail": f"Сервис недоступен: превышено время ожидания"}),
+            status_code=504,  # Gateway Timeout
+            media_type="application/json"
+        )
+    except httpx.ConnectError as e:
+        logger.error(f"Ошибка соединения с {target_url}: {str(e)}")
+        return Response(
+            content=json.dumps({"detail": f"Сервис недоступен: ошибка подключения"}),
+            status_code=503,  # Service Unavailable
+            media_type="application/json"
+        )
+    except Exception as e:
+        logger.error(f"Ошибка при проксировании запроса к {target_url}: {str(e)}", exc_info=True)
+        return Response(
+            content=json.dumps({"detail": f"Сервис недоступен: {str(e)}"}),
+            status_code=503,
+            media_type="application/json"
+        )
 
 
 async def retry_with_backoff(func, *args, max_retries=3, base_delay=0.5, **kwargs):

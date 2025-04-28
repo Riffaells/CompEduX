@@ -2,7 +2,7 @@
 Утилиты для работы с базой данных
 """
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator, TypeVar, Generic
+from typing import AsyncGenerator, TypeVar
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -65,7 +65,7 @@ async def execute_with_retry(db: AsyncSession, operation, max_retries: int = 3):
                 return result
         except Exception as e:
             last_error = e
-            logger.warning(f"Database operation failed (attempt {attempt+1}/{max_retries}): {str(e)}")
+            logger.warning(f"Database operation failed (attempt {attempt + 1}/{max_retries}): {str(e)}")
 
     # Все попытки неудачны
     logger.error(f"All database operation attempts failed: {str(last_error)}")

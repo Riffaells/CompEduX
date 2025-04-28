@@ -7,8 +7,8 @@ from typing import Optional, Dict, Any, List
 from uuid import UUID
 
 from fastapi import Request
-from sqlalchemy import func, desc, distinct
-from sqlalchemy.orm import Session
+from sqlalchemy import func, desc, distinct, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.logger import get_logger
 from ..models.stats import ClientStatModel
@@ -54,7 +54,7 @@ def parse_user_agent(user_agent: str) -> Dict[str, str]:
     return result
 
 
-async def collect_client_stats(request: Request, user_id: Optional[UUID] = None, db: Session = None) -> None:
+async def collect_client_stats(request: Request, user_id: Optional[UUID] = None, db: AsyncSession = None) -> None:
     """
     Собирает статистику о клиентском приложении из заголовков запроса
     и сохраняет в базу данных
@@ -103,12 +103,15 @@ async def collect_client_stats(request: Request, user_id: Optional[UUID] = None,
         existing_stat = None
         if user_id:
             # Если пользователь авторизован, ищем по ID пользователя и платформе
-            existing_stat = db.query(ClientStatModel).filter(
-                ClientStatModel.user_id == user_id,
-                ClientStatModel.client_platform == client_platform,
-                ClientStatModel.app_name == app_name,
-                ClientStatModel.client_version == client_version
-            ).first()
+            existing_stat = await db.execute(
+                select(ClientStatModel).filter(
+                    ClientStatModel.user_id == user_id,
+                    ClientStatModel.client_platform == client_platform,
+                    ClientStatModel.app_name == app_name,
+                    ClientStatModel.client_version == client_version
+                )
+            )
+            existing_stat = existing_stat.scalars().first()
 
         if existing_stat:
             # Обновляем существующую запись
@@ -118,7 +121,7 @@ async def collect_client_stats(request: Request, user_id: Optional[UUID] = None,
                 existing_stat.app_version = app_version
             if client_build and existing_stat.client_build != client_build:
                 existing_stat.client_build = client_build
-            db.commit()
+            await db.commit()
             logger.debug(f"Updated client stats for user {user_id}, platform {client_platform}")
         else:
             # Создаем новую запись
@@ -138,17 +141,17 @@ async def collect_client_stats(request: Request, user_id: Optional[UUID] = None,
                 request_ip=client_ip
             )
             db.add(new_stat)
-            db.commit()
+            await db.commit()
             logger.debug(f"Created new client stats record for platform {client_platform}" +
                          (f", user {user_id}" if user_id else ""))
 
     except Exception as e:
         logger.exception(f"Error collecting client stats: {str(e)}")
         if db:
-            db.rollback()
+            await db.rollback()
 
 
-def get_platform_stats(db: Session) -> List[Dict[str, Any]]:
+async def get_platform_stats(db: AsyncSession) -> List[Dict[str, Any]]:
     """
     Получает статистику по платформам
 
@@ -157,15 +160,18 @@ def get_platform_stats(db: Session) -> List[Dict[str, Any]]:
     """
     try:
         # Группируем по платформе и считаем количество пользователей
-        stats = db.query(
-            ClientStatModel.client_platform,
-            func.count(distinct(ClientStatModel.user_id)).label("user_count"),
-            func.count(ClientStatModel.id).label("request_count")
-        ).group_by(
-            ClientStatModel.client_platform
-        ).order_by(
-            desc("user_count")
-        ).all()
+        result = await db.execute(
+            select(
+                ClientStatModel.client_platform,
+                func.count(distinct(ClientStatModel.user_id)).label("user_count"),
+                func.count(ClientStatModel.id).label("request_count")
+            ).group_by(
+                ClientStatModel.client_platform
+            ).order_by(
+                desc("user_count")
+            )
+        )
+        stats = result.all()
 
         return [
             {
@@ -180,7 +186,7 @@ def get_platform_stats(db: Session) -> List[Dict[str, Any]]:
         return []
 
 
-def get_os_stats(db: Session) -> List[Dict[str, Any]]:
+async def get_os_stats(db: AsyncSession) -> List[Dict[str, Any]]:
     """
     Получает статистику по операционным системам
 
@@ -189,21 +195,25 @@ def get_os_stats(db: Session) -> List[Dict[str, Any]]:
     """
     try:
         # Группируем по ОС и версии, считаем количество пользователей
-        stats = db.query(
-            ClientStatModel.os_name,
-            ClientStatModel.os_version,
-            func.count(distinct(ClientStatModel.user_id)).label("user_count"),
-            func.count(ClientStatModel.id).label("request_count")
-        ).group_by(
-            ClientStatModel.os_name,
-            ClientStatModel.os_version
-        ).order_by(
-            desc("user_count")
-        ).all()
+        result = await db.execute(
+            select(
+                ClientStatModel.os_name,
+                ClientStatModel.os_version,
+                func.count(distinct(ClientStatModel.user_id)).label("user_count"),
+                func.count(ClientStatModel.id).label("request_count")
+            ).group_by(
+                ClientStatModel.os_name,
+                ClientStatModel.os_version
+            ).order_by(
+                desc("user_count")
+            )
+        )
+        stats = result.all()
 
         return [
             {
-                "os": f"{stat.os_name or 'Unknown'} {stat.os_version or ''}".strip(),
+                "os": stat.os_name or "Unknown",
+                "version": stat.os_version or "Unknown",
                 "user_count": stat.user_count,
                 "request_count": stat.request_count
             }
@@ -214,30 +224,33 @@ def get_os_stats(db: Session) -> List[Dict[str, Any]]:
         return []
 
 
-def get_app_version_stats(db: Session) -> List[Dict[str, Any]]:
+async def get_app_version_stats(db: AsyncSession) -> List[Dict[str, Any]]:
     """
     Получает статистику по версиям приложения
 
     Returns:
-        Список словарей с статистикой по версиям
+        Список словарей с статистикой по версиям приложения
     """
     try:
         # Группируем по версии приложения, считаем количество пользователей
-        stats = db.query(
-            ClientStatModel.app_version,
-            ClientStatModel.client_version,
-            func.count(distinct(ClientStatModel.user_id)).label("user_count"),
-            func.count(ClientStatModel.id).label("request_count")
-        ).group_by(
-            ClientStatModel.app_version,
-            ClientStatModel.client_version
-        ).order_by(
-            desc("user_count")
-        ).all()
+        result = await db.execute(
+            select(
+                ClientStatModel.app_version,
+                ClientStatModel.client_version,
+                func.count(distinct(ClientStatModel.user_id)).label("user_count"),
+                func.count(ClientStatModel.id).label("request_count")
+            ).group_by(
+                ClientStatModel.app_version,
+                ClientStatModel.client_version
+            ).order_by(
+                desc("user_count")
+            )
+        )
+        stats = result.all()
 
         return [
             {
-                "app_version": stat.app_version or "Unknown",
+                "version": stat.app_version or "Unknown",
                 "client_version": stat.client_version or "Unknown",
                 "user_count": stat.user_count,
                 "request_count": stat.request_count

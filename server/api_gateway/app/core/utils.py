@@ -3,7 +3,7 @@ from typing import Dict, Any, Optional
 
 import httpx
 from app.core.config import settings
-from fastapi import APIRouter, Request, Response, Depends
+from fastapi import APIRouter, Request, Depends
 from fastapi.responses import RedirectResponse
 
 from common.logger import get_logger
@@ -96,10 +96,10 @@ async def check_auth_service() -> Optional[Dict[str, Any]]:
 
 
 def add_docs_routes_to_router(
-    router: APIRouter,
-    service_url_setting: str,
-    service_name: str,
-    health_check_dependency
+        router: APIRouter,
+        service_url_setting: str,
+        service_name: str,
+        health_check_dependency
 ) -> None:
     """
     Добавляет маршруты для документации к роутеру.
@@ -110,6 +110,7 @@ def add_docs_routes_to_router(
         service_name: Имя сервиса для отображения в логах и сообщениях
         health_check_dependency: Зависимость для проверки здоровья сервиса
     """
+
     @router.get(
         "/docs",
         include_in_schema=True,

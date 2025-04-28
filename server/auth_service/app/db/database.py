@@ -7,7 +7,7 @@ from urllib.parse import urlparse, parse_qs, urlunparse, urlencode
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.logger import get_logger
-from .session import db_manager, get_db
+from .session import db_manager, AsyncSessionLocal
 from ..core.config import settings
 
 # Get logger
@@ -36,11 +36,22 @@ async def get_database() -> AsyncGenerator[AsyncSession, None]:
     """
     Dependency for getting async database connection.
 
+    Sets expire_on_commit=False to prevent greenlet_spawn errors in async contexts
+    when accessing ORM attributes after commit.
+
     Yields:
         AsyncSession: Async database session
     """
-    async for session in get_db():
-        yield session
+    async with AsyncSessionLocal() as session:
+        # Set expire_on_commit to False to prevent greenlet spawn errors
+        session.expire_on_commit = False
+        try:
+            yield session
+            await session.commit()
+        except Exception as e:
+            await session.rollback()
+            logger.error(f"Database session error: {str(e)}")
+            raise
 
 
 # Startup and shutdown event handlers

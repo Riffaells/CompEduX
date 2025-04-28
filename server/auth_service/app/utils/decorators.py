@@ -2,10 +2,10 @@
 Декораторы для функций сервиса аутентификации
 """
 import functools
-from typing import Any, Callable, TypeVar
+from typing import Callable, TypeVar
 
 from fastapi import HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.logger import get_logger
 
@@ -27,18 +27,19 @@ def handle_sqlalchemy_errors(func: Callable[..., T]) -> Callable[..., T]:
     Returns:
         Обёрнутая функция с обработкой ошибок
     """
+
     @functools.wraps(func)
     async def wrapper(*args, **kwargs):
         # Находим параметр db в аргументах
         db = None
         for arg in args:
-            if isinstance(arg, Session):
+            if isinstance(arg, AsyncSession):
                 db = arg
                 break
 
         if db is None:
             for key, value in kwargs.items():
-                if isinstance(value, Session):
+                if isinstance(value, AsyncSession):
                     db = value
                     break
 

@@ -2,7 +2,8 @@ from typing import List
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status, Path
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from ..utils import prepare_user_response
 from ...db.session import get_db
@@ -28,18 +29,19 @@ async def read_users(
         skip: int = 0,
         limit: int = 100,
         current_user: UserModel = Depends(get_current_admin_user),
-        db: Session = Depends(get_db)
+        db: AsyncSession = Depends(get_db)
 ):
     """Get a list of users (admin only)"""
-    users = db.query(UserModel).offset(skip).limit(limit).all()
-    return [prepare_user_response(user) for user in users]
+    result = await db.execute(select(UserModel).offset(skip).limit(limit))
+    users = result.scalars().all()
+    return [await prepare_user_response(user) for user in users]
 
 
 @router.get("/id/{user_id}", response_model=UserResponseSchema)
 async def read_user(
         user_id: UUID,
         current_user: UserModel = Depends(get_current_user),
-        db: Session = Depends(get_db)
+        db: AsyncSession = Depends(get_db)
 ):
     """Get user information by ID"""
     # Regular users can only get information about themselves
@@ -49,7 +51,7 @@ async def read_user(
             detail="Not enough permissions"
         )
 
-    user = get_user_by_id(db, user_id)
+    user = await get_user_by_id(db, user_id)
 
     if user is None:
         raise HTTPException(
@@ -57,63 +59,66 @@ async def read_user(
             detail="User not found"
         )
 
-    return prepare_user_response(user)
+    return await prepare_user_response(user)
 
 
-@router.patch("/id/{user_id}", response_model=UserResponseSchema)
+@router.put("/id/{user_id}", response_model=UserResponseSchema)
 async def update_user(
         user_id: UUID,
-        user_data: UserUpdateSchema,
+        user_update: UserUpdateSchema,
         current_user: UserModel = Depends(get_current_user),
-        db: Session = Depends(get_db)
+        db: AsyncSession = Depends(get_db)
 ):
     """Update user information"""
-    # Regular users can only update their own information
-    # and cannot change their role
+    # Regular users can only update their own profile
     if current_user.id != user_id and current_user.role != UserRole.ADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not enough permissions"
         )
 
-    if current_user.role != UserRole.ADMIN and user_data.role is not None:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions to change role"
-        )
-
-    user = get_user_by_id(db, user_id)
-
+    user = await get_user_by_id(db, user_id)
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
         )
 
-    # Update user fields
-    user_data_dict = user_data.model_dump(exclude_unset=True)
+    # Update core user fields
+    for field in ["username", "email"]:
+        if hasattr(user_update, field) and getattr(user_update, field) is not None:
+            setattr(user, field, getattr(user_update, field))
 
-    for key, value in user_data_dict.items():
-        if key == "password" and value:
-            from ...services.auth import get_password_hash
-            setattr(user, "hashed_password", get_password_hash(value))
-        elif hasattr(user, key):
-            setattr(user, key, value)
+    # Update profile
+    if user.profile:
+        for field in ["first_name", "last_name", "avatar_url", "bio", "location"]:
+            if hasattr(user_update, field) and getattr(user_update, field) is not None:
+                setattr(user.profile, field, getattr(user_update, field))
 
-    db.commit()
-    db.refresh(user)
+    # Update preferences
+    if user.preferences and hasattr(user_update, "beverage_preference") and user_update.beverage_preference is not None:
+        user.preferences.beverage_preference = user_update.beverage_preference
 
-    return prepare_user_response(user)
+    # Update password if provided
+    if user_update.password:
+        from ...services.auth import get_password_hash
+        user.hashed_password = get_password_hash(user_update.password)
+
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+
+    return await prepare_user_response(user)
 
 
 @router.delete("/id/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(
         user_id: UUID,
         current_user: UserModel = Depends(get_current_admin_user),
-        db: Session = Depends(get_db)
+        db: AsyncSession = Depends(get_db)
 ):
     """Delete a user (admin only)"""
-    user = get_user_by_id(db, user_id)
+    user = await get_user_by_id(db, user_id)
 
     if user is None:
         raise HTTPException(
@@ -129,7 +134,7 @@ async def delete_user(
         )
 
     db.delete(user)
-    db.commit()
+    await db.commit()
 
     return None
 
@@ -137,7 +142,7 @@ async def delete_user(
 @router.get("/username/{username}", response_model=UserPublicProfileSchema)
 async def get_user_profile(
         username: str = Path(..., min_length=3, max_length=30),
-        db: Session = Depends(get_db),
+        db: AsyncSession = Depends(get_db),
         current_user: UserModel = Depends(get_current_user)
 ):
     """
@@ -146,7 +151,7 @@ async def get_user_profile(
     Returns the public profile of the user with the specified username.
     Only authenticated users can view profiles.
     """
-    user = get_user_by_username(db, username)
+    user = await get_user_by_username(db, username)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

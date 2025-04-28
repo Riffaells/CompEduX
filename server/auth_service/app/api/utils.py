@@ -3,10 +3,48 @@ Utility functions for API routes.
 
 This module contains helper functions that are used across multiple API routes.
 """
-from sqlalchemy.orm import selectinload
+from typing import Optional, Dict, Any
+
+import jwt
+from fastapi import Request
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
+
+from ..core.config import settings
 from ..models.user import UserModel
 from ..schemas import UserResponseSchema
+
+
+def get_user_from_token(request: Request) -> Optional[Dict[str, Any]]:
+    """
+    Получает информацию о пользователе из JWT токена в заголовке Authorization.
+
+    Args:
+        request: FastAPI Request объект
+
+    Returns:
+        Dict с информацией о пользователе или None если токен отсутствует/недействителен
+    """
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return None
+
+    token = auth_header.replace('Bearer ', '').strip()
+    if not token:
+        return None
+
+    try:
+        # Декодируем токен без проверки подписи - нам только нужна информация
+        # Для полной проверки токена используйте verify_token middleware
+        payload = jwt.decode(
+            token,
+            settings.AUTH_SECRET_KEY,
+            algorithms=["HS256"],
+            options={"verify_signature": False}
+        )
+        return payload
+    except Exception:
+        return None
 
 
 async def prepare_user_response(user: UserModel) -> UserResponseSchema:

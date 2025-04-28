@@ -3,7 +3,6 @@ from datetime import datetime, timezone
 
 from sqlalchemy import Column, DateTime, ForeignKey, String, Enum as SQLAlchemyEnum, Table
 from sqlalchemy.dialects.postgresql import UUID, JSONB
-from sqlalchemy.orm import relationship
 
 from .base import Base
 from .enums import OAuthProvider
@@ -13,7 +12,8 @@ user_oauth_providers = Table(
     "user_oauth_providers",
     Base.metadata,
     Column("user_id", UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
-    Column("oauth_provider_id", UUID(as_uuid=True), ForeignKey("oauth_providers.id", ondelete="CASCADE"), primary_key=True),
+    Column("oauth_provider_id", UUID(as_uuid=True), ForeignKey("oauth_providers.id", ondelete="CASCADE"),
+           primary_key=True),
     Column("provider", String, nullable=True),
     Column("provider_user_id", String, nullable=True),
     Column("provider_user_login", String, nullable=True),
@@ -54,7 +54,7 @@ class UserOAuthProviderModel(Base):
     expires_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc),
-                       onupdate=lambda: datetime.now(timezone.utc))
+                        onupdate=lambda: datetime.now(timezone.utc))
 
     # Define the relationship with users - commented out due to schema mismatch
     # users = relationship(

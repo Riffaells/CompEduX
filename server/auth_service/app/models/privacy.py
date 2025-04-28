@@ -1,7 +1,8 @@
+from datetime import datetime, timezone
+
 from sqlalchemy import Column, ForeignKey, Enum as SQLAlchemyEnum, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-from datetime import datetime, timezone
 
 from .base import Base
 from .enums import PrivacyLevel

@@ -1,21 +1,21 @@
+import uuid
 from datetime import timedelta, datetime, timezone
 from typing import Optional, Tuple, Dict, Any
 
-import uuid
 from fastapi import APIRouter, Depends, HTTPException, status, Request, FastAPI
 from pydantic import BaseModel
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-from sqlalchemy.orm import Session
 from sqlalchemy import update, select, func, text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.logger import get_logger
 from ..utils import prepare_user_response
 from ...core import settings
 from ...db.session import get_db
 from ...models.auth import RefreshTokenModel
-from ...models.user import UserModel
 from ...models.enums import UserRole
+from ...models.user import UserModel
 from ...schemas import (
     TokenSchema,
     TokenRefreshSchema,
@@ -60,81 +60,87 @@ class TokenVerifyResponse(BaseModel):
 
 
 @router.post("/register", response_model=TokenSchema)
-async def register(user_in: UserCreateSchema, db: Session = Depends(get_db)):
+async def register(user_in: UserCreateSchema,
+                   db: AsyncSession = Depends(get_db)):
     """
     Register a new user and get access token.
 
     Handles regular users and test accounts with special email formats.
     Test accounts use format: test+anything@test.com
     """
+    logger.info(f"Starting registration for email: {user_in.email}")
     try:
+        # Ensure the session won't expire objects after commit
+        db.expire_on_commit = False
+
         # Check if this is a test account
         is_test_account = user_in.email and user_in.email.startswith("test+") and user_in.email.endswith("@test.com")
 
         if is_test_account:
             logger.info(f"Processing test account registration: {user_in.email}")
 
-        # Создаем пользователя - включая логику для тестового аккаунта
-        try:
-            user = await create_user(db, user_in)
-        except Exception as e:
-            # Перехватываем ошибку уровня SQL и выбрасываем HTTP-исключение
-            logger.error(f"Database error during user creation: {str(e)}")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Database error: {str(e)}"
-            )
+        # Create user with proper lazy loading handling
+        logger.debug("Calling create_user function")
+        user = await create_user(db, user_in)
+        logger.debug(f"create_user completed successfully, user id: {user.id}")
 
-        if is_test_account:
-            logger.info(f"Test account created/updated successfully: {user.email} (ID: {user.id})")
-
-        # Генерируем access token - логика JWT-авторизации
+        # Generate tokens (no database access needed for access token)
+        logger.debug("Generating access token")
         access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = create_access_token(
             data={"sub": str(user.id)},
             expires_delta=access_token_expires
         )
+        logger.debug("Access token generated")
 
-        # Генерируем refresh token
-        try:
-            refresh_token = await create_refresh_token(user.id, db)
-        except Exception as e:
-            logger.error(f"Error creating refresh token: {str(e)}")
-            # Откатываем транзакцию в случае ошибки
-            await db.rollback()
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Error creating refresh token: {str(e)}"
-            )
+        # Create refresh token
+        logger.debug("Generating refresh token")
+        refresh_token = await create_refresh_token(user.id, db)
+        logger.debug("Refresh token generated")
 
+        if is_test_account:
+            logger.info(f"Test account created/updated successfully: {user.email} (ID: {user.id})")
+
+        logger.info(f"Registration successful for: {user.email}")
         return {
             "access_token": access_token,
             "refresh_token": refresh_token,
             "token_type": "bearer"
         }
-    except HTTPException as http_ex:
-        # Properly catch and re-raise HTTPExceptions from create_user
-        logger.error(f"Error during user registration: {http_ex.status_code}: {http_ex.detail}")
-        # Re-raise the HTTPException to maintain the original status code
-        raise http_ex
     except Exception as e:
-        # Перехват всех прочих исключений с откатом транзакции
-        try:
-            await db.rollback()  # Proper async rollback of transaction
-        except Exception as rollback_error:
-            logger.error(f"Error during transaction rollback: {str(rollback_error)}")
-
+        # Handle errors, with special handling for greenlet_spawn errors
         logger.error(f"Error during user registration: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Registration failed: {str(e)}"
-        )
+        logger.error(f"Error type: {type(e)}")
+
+        # Specific handling for transaction errors
+        if "transaction is already begun" in str(e):
+            logger.error("Transaction conflict detected")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Database transaction error. Please try again."
+            )
+        # Specific handling for greenlet_spawn errors
+        elif "greenlet_spawn has not been called" in str(e):
+            logger.error("Detected greenlet_spawn error in async context")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Database access error in async context. This is usually caused by trying to access lazy-loaded attributes."
+            )
+        elif isinstance(e, HTTPException):
+            # Re-raise HTTPExceptions as-is
+            raise e
+        else:
+            # Generic error handling
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Registration failed: {str(e)}"
+            )
 
 
 @router.post("/login", response_model=TokenSchema)
 async def login(
         login_data: LoginRequest,
-        db: Session = Depends(get_db)
+        db: AsyncSession = Depends(get_db)
 ):
     """
     Authenticate user and get tokens.
@@ -182,7 +188,7 @@ async def login(
 @router.post("/refresh", response_model=TokenSchema)
 async def refresh(
         token_data: TokenRefreshSchema,
-        db: Session = Depends(get_db)
+        db: AsyncSession = Depends(get_db)
 ):
     """
     Refresh access token using refresh token.
@@ -205,9 +211,11 @@ async def get_current_user_info(
 
 
 @router.post("/logout")
-async def logout(request: Request, db: Session = Depends(get_db)):
+@router.get("/logout")
+async def logout(request: Request, db: AsyncSession = Depends(get_db)):
     """
     Выход пользователя из системы путем отзыва всех refresh токенов.
+    Поддерживает как GET, так и POST запросы.
     """
     # Извлечение токена
     token, error = extract_token_from_request(request)
@@ -234,17 +242,21 @@ async def logout(request: Request, db: Session = Depends(get_db)):
 
         # Update operation
         if tokens_count > 0:
+            # Прямое обновление данных без контекстного менеджера
             await db.execute(
                 update(RefreshTokenModel)
                 .where(RefreshTokenModel.user_id == user.id)
                 .where(RefreshTokenModel.revoked == False)
                 .values(revoked=True)
             )
+            # Коммит изменений
             await db.commit()
+            logger.debug(f"Revoked {tokens_count} tokens for user {user.id}")
 
         logger.info(f"Successfully logged out user {user.id}, revoked {tokens_count} tokens")
         return {"message": "Successfully logged out", "revoked_tokens": tokens_count}
     except Exception as e:
+        # Откатываем транзакцию при ошибке
         await db.rollback()
         logger.error(f"Failed to revoke tokens for user {user.id}: {str(e)}")
         raise HTTPException(
@@ -255,7 +267,7 @@ async def logout(request: Request, db: Session = Depends(get_db)):
 
 @router.post("/verify-token", response_model=TokenVerifyResponse)
 @router.get("/verify-token", response_model=TokenVerifyResponse)
-async def verify_token(request: Request, db: Session = Depends(get_db)):
+async def verify_token(request: Request, db: AsyncSession = Depends(get_db)):
     """
     Проверяет токен и возвращает информацию о пользователе.
     Принимает токен из заголовка Authorization или из тела запроса.
@@ -284,7 +296,7 @@ async def verify_token(request: Request, db: Session = Depends(get_db)):
     if not token:
         logger.warning("Токен не найден ни в заголовке, ни в теле запроса")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                           detail="Токен не предоставлен")
+                            detail="Токен не предоставлен")
 
     # Проверка токена и получение пользователя
     user, error = await validate_token_and_get_user(token, db)
@@ -325,7 +337,7 @@ def extract_token_from_request(request: Request) -> Tuple[Optional[str], Optiona
     return token, None
 
 
-async def validate_token_and_get_user(token: str, db: Session) -> Tuple[Optional[UserModel], Optional[str]]:
+async def validate_token_and_get_user(token: str, db: AsyncSession) -> Tuple[Optional[UserModel], Optional[str]]:
     """
     Проверяет токен и возвращает пользователя или сообщение об ошибке.
     """
@@ -357,7 +369,7 @@ async def validate_token_and_get_user(token: str, db: Session) -> Tuple[Optional
 
 @router.get("/stats", response_model=Dict[str, Any])
 async def get_auth_stats(
-        db: Session = Depends(get_db),
+        db: AsyncSession = Depends(get_db),
         current_user: UserModel = Depends(get_current_user)
 ):
     """
@@ -405,7 +417,7 @@ async def get_auth_stats(
 
 
 @router.get("/health")
-async def health_check(db: Session = Depends(get_db)):
+async def health_check(db: AsyncSession = Depends(get_db)):
     """
     Проверка здоровья сервиса аутентификации.
     """

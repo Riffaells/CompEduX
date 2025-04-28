@@ -6,7 +6,6 @@ from sqlalchemy import (Boolean, Column, DateTime, Enum as SQLAlchemyEnum,
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
-from .associations import user_oauth_providers
 from .base import Base
 from .enums import UserRole, OAuthProvider, BeveragePreference
 from .privacy import UserPrivacyModel
@@ -45,7 +44,7 @@ class UserPreferencesModel(Base):
     # Timestamps с поддержкой часовых поясов
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc),
-                       onupdate=lambda: datetime.now(timezone.utc))
+                        onupdate=lambda: datetime.now(timezone.utc))
 
 
 class UserProfileModel(Base):

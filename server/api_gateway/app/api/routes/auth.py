@@ -3,7 +3,6 @@ import json
 from app.core.config import settings
 from app.core.proxy import check_service_health, proxy_request, proxy_docs_request, get_http_client
 from fastapi import APIRouter, Request, Response, Depends
-from fastapi.responses import RedirectResponse
 
 from common.logger import get_logger
 

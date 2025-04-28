@@ -2,14 +2,14 @@ from typing import Dict, Any
 
 from app.db.session import get_db
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import text
 
 router = APIRouter()
 
 
 @router.get("/", summary="Проверка состояния сервиса")
-async def health_check(db: Session = Depends(get_db)) -> Dict[str, Any]:
+async def health_check(db: AsyncSession = Depends(get_db)) -> Dict[str, Any]:
     """
     Проверяет состояние сервиса авторизации и соединение с базой данных.
     """

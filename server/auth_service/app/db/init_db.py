@@ -56,8 +56,16 @@ async def create_test_data(db: AsyncSession) -> None:
             competition_rating=4.2
         )
 
-        db.add(test_user)
-        await db.commit()
+        # Используем контекстный менеджер для транзакции
+        try:
+            async with db.begin():
+                db.add(test_user)
+                logger.info("Test user transaction committed")
+        except Exception as e:
+            logger.error(f"Error creating test user: {str(e)}")
+            raise
+
+        # Обновление объекта после завершения транзакции
         await db.refresh(test_user)
         logger.info(f"Test user created: {test_user.email} (ID: {test_user.id})")
 

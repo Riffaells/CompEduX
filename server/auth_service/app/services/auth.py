@@ -4,7 +4,6 @@ Authentication service module for auth_service
 """
 import random
 import string
-import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Optional, Dict, Any
 from uuid import UUID
@@ -15,14 +14,12 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import selectinload
 
 from common.logger import get_logger
 from ..core.config import settings
 from ..core.constants import (
-    JWT_ALGORITHM, TEST_MAIN_EMAIL, TEST_MAIN_USERNAME, TEST_DEFAULT_PASSWORD,
-    TEST_PLUS_DOMAIN, TEST_PLUS_PREFIX, DEFAULT_BEVERAGE, MIN_USERNAME_LENGTH,
-    MAX_USERNAME_LENGTH
+    JWT_ALGORITHM
 )
 from ..db.session import get_db
 from ..models.auth import RefreshTokenModel
@@ -97,7 +94,7 @@ def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta]
     return encoded_jwt
 
 
-async def create_refresh_token(user_id: UUID, db: Session) -> str:
+async def create_refresh_token(user_id: UUID, db: AsyncSession) -> str:
     """
     Create a refresh token for a user and store it in the database
 
@@ -108,6 +105,12 @@ async def create_refresh_token(user_id: UUID, db: Session) -> str:
     Returns:
         Refresh token string
     """
+    logger = get_logger(__name__)
+    logger.debug(f"Creating refresh token for user {user_id}")
+
+    # Ensure the session won't expire objects after commit
+    db.expire_on_commit = False
+
     # Use consistent timezone-aware datetime objects with UTC timezone
     now = datetime.now(UTC)
     expires_at = now + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
@@ -120,6 +123,7 @@ async def create_refresh_token(user_id: UUID, db: Session) -> str:
         "iat": int(now.timestamp())  # Convert to integer timestamp
     }
     refresh_token = jwt.encode(token_data, settings.AUTH_SECRET_KEY, algorithm=ALGORITHM)
+    logger.debug("JWT token encoded successfully")
 
     # Создаем запись о токене обновления в БД
     db_token = RefreshTokenModel(
@@ -127,18 +131,37 @@ async def create_refresh_token(user_id: UUID, db: Session) -> str:
         token=refresh_token,
         expires_at=expires_at  # Using timezone-aware datetime
     )
-    db.add(db_token)
+
+    # Add token to database
     try:
-        await db.commit()
-        await db.refresh(db_token)
+        # Add to session
+        db.add(db_token)
+
+        # Try to commit - will raise an exception if there's a transaction already
+        try:
+            await db.commit()
+            logger.debug("Refresh token committed to database")
+        except Exception as commit_error:
+            if "transaction is already begun" in str(commit_error):
+                # We're in a transaction already - that's ok
+                logger.debug("Refresh token added to session but not committed (in existing transaction)")
+            else:
+                # Some other error occurred
+                logger.error(f"Error committing refresh token: {str(commit_error)}")
+                raise
+
         return refresh_token
     except Exception as e:
-        await db.rollback()
-        logger.error(f"Error creating refresh token: {str(e)}")
+        try:
+            await db.rollback()
+        except:
+            # Rollback may fail if we're already in a transaction
+            pass
+        logger.error(f"Error during refresh token creation: {str(e)}")
         raise
 
 
-async def get_user_by_email(db: Session, email: str) -> Optional[UserModel]:
+async def get_user_by_email(db: AsyncSession, email: str) -> Optional[UserModel]:
     """
     Get user by email.
 
@@ -149,19 +172,59 @@ async def get_user_by_email(db: Session, email: str) -> Optional[UserModel]:
     Returns:
         UserModel or None if not found
     """
-    # В SQLAlchemy 2.0 с AsyncSession используем select вместо query
-    result = await db.execute(select(UserModel).filter(UserModel.email == email))
-    return result.scalars().first()
+    logger = get_logger(__name__)
+    logger.debug(f"get_user_by_email: Looking up user with email: {email}")
+
+    try:
+        # Создаем запрос, не выполняя его
+        query = select(UserModel).filter(UserModel.email == email)
+        logger.debug(f"get_user_by_email: Created query: {query}")
+
+        # Выполняем запрос
+        result = await db.execute(query)
+        logger.debug("get_user_by_email: Query executed successfully")
+
+        # Получаем первый результат
+        user = result.scalars().first()
+        logger.debug(f"get_user_by_email: User found: {user is not None}")
+        return user
+    except Exception as e:
+        logger.error(f"get_user_by_email: Error querying user: {str(e)}, {type(e)}")
+        logger.error(f"get_user_by_email: Error details: {e.__traceback__}")
+        raise
 
 
-async def get_user_by_username(db: Session, username: str) -> Optional[UserModel]:
+async def get_user_by_username(db: AsyncSession, username: str) -> Optional[UserModel]:
     """Get user by username"""
-    result = await db.execute(select(UserModel).filter(UserModel.username == username))
-    return result.scalars().first()
+    logger = get_logger(__name__)
+    logger.debug(f"get_user_by_username: Looking up user with username: {username}")
+
+    try:
+        # В SQLAlchemy 2.0 с AsyncSession используем select вместо query
+        logger.debug("get_user_by_username: Creating select query")
+        query = select(UserModel).filter(UserModel.username == username)
+        logger.debug(f"get_user_by_username: Query: {query}")
+
+        logger.debug("get_user_by_username: Executing query")
+        result = await db.execute(query)
+        logger.debug("get_user_by_username: Query executed successfully")
+
+        user = result.scalars().first()
+        logger.debug(f"get_user_by_username: User found: {user is not None}")
+        return user
+    except Exception as e:
+        logger.error(f"get_user_by_username: Error querying user: {str(e)}, {type(e)}")
+        logger.error(f"get_user_by_username: Error details: {e.__traceback__}")
+        raise
 
 
-async def get_user_by_id(db: Session, user_id: UUID) -> Optional[UserModel]:
-    """Get user by ID"""
+async def get_user_by_id(db: AsyncSession, user_id: UUID) -> Optional[UserModel]:
+    """
+    Get user by ID with all related models using eager loading
+    to prevent greenlet_spawn errors in async context
+    """
+    # Use selectinload to eagerly load all relationships and prevent
+    # lazy loading which can cause greenlet_spawn errors
     result = await db.execute(
         select(UserModel)
         .filter(UserModel.id == user_id)
@@ -174,7 +237,7 @@ async def get_user_by_id(db: Session, user_id: UUID) -> Optional[UserModel]:
     return result.scalars().first()
 
 
-async def authenticate_user(db: Session, login: str, password: str) -> Optional[UserModel]:
+async def authenticate_user(db: AsyncSession, login: str, password: str) -> Optional[UserModel]:
     """
     Authenticate user by email or username
 
@@ -198,9 +261,9 @@ async def authenticate_user(db: Session, login: str, password: str) -> Optional[
     # В режиме разработки также считаем тестовыми любой логин со словом "test"
     if settings.ENV == "development":
         is_dev_test = (
-            login and
-            ("test" in login.lower() or
-             (login.lower().endswith("@test.com")))
+                login and
+                ("test" in login.lower() or
+                 (login.lower().endswith("@test.com")))
         )
         is_test_account = is_main_test or is_dev_test
     else:
@@ -234,9 +297,15 @@ async def authenticate_user(db: Session, login: str, password: str) -> Optional[
             )
             user = await create_user(db, test_user_data)
 
-        # Обновляем last_login_at
-        user.last_login_at = datetime.now(UTC)
-        await db.commit()
+        # Обновляем last_login_at без использования вложенной транзакции
+        if user:
+            # Обновляем время последнего входа
+            user.last_login_at = datetime.now(UTC)
+            db.add(user)
+
+            # Коммитим изменения
+            await db.commit()
+            logger.debug("Last login time updated for test user")
 
         # Всегда возвращаем пользователя без проверки пароля
         return user
@@ -256,14 +325,18 @@ async def authenticate_user(db: Session, login: str, password: str) -> Optional[
     if not verify_password(password, user.hashed_password):
         return None
 
-    # Update last login timestamp
+    # Update last login timestamp без использования вложенной транзакции
     user.last_login_at = datetime.now(UTC)
+    db.add(user)
+
+    # Коммитим изменения
     await db.commit()
+    logger.debug("Last login time updated for user")
 
     return user
 
 
-async def generate_username(email: str, db: Session) -> str:
+async def generate_username(email: str, db: AsyncSession) -> str:
     """
     Generate a unique username based on the email address.
 
@@ -307,7 +380,7 @@ async def generate_username(email: str, db: Session) -> str:
     return username
 
 
-async def create_user(db: Session, user_in: UserCreateSchema) -> UserModel:
+async def create_user(db: AsyncSession, user_in: UserCreateSchema) -> UserModel:
     """
     Create a new user record, with special handling for test accounts.
 
@@ -323,6 +396,10 @@ async def create_user(db: Session, user_in: UserCreateSchema) -> UserModel:
     Returns the created or updated user object.
     """
     logger = get_logger(__name__)
+    logger.info("Starting create_user function...")
+
+    # Ensure session won't expire objects after commit
+    db.expire_on_commit = False
 
     # Extract profile and preference fields
     profile_data = {}
@@ -348,9 +425,9 @@ async def create_user(db: Session, user_in: UserCreateSchema) -> UserModel:
     # В режиме разработки также считаем тестовыми любые email со словом "test"
     if settings.ENV == "development":
         is_dev_test = (
-            user_in.email and
-            ("test" in user_in.email.lower() or
-            user_in.email.lower().endswith("@test.com"))
+                user_in.email and
+                ("test" in user_in.email.lower() or
+                 user_in.email.lower().endswith("@test.com"))
         )
         is_test_account = is_plus_test or is_dev_test
     else:
@@ -359,12 +436,27 @@ async def create_user(db: Session, user_in: UserCreateSchema) -> UserModel:
 
     if is_test_account:
         logger.info(f"Processing test account: {user_in.email}")
-        # For test accounts, check if it already exists
-        existing_user = await get_user_by_email(db, email=user_in.email)
+        # For test accounts, check if it already exists with eager loading
+        logger.debug("Attempting to get user by email with eager loading...")
+
+        # Use eager loading to avoid lazy loading issues
+        result = await db.execute(
+            select(UserModel)
+            .where(UserModel.email == user_in.email)
+            .options(
+                selectinload(UserModel.profile),
+                selectinload(UserModel.preferences),
+                selectinload(UserModel.ratings)
+            )
+        )
+        existing_user = result.scalars().first()
+
+        logger.debug(f"User lookup result: {existing_user is not None}")
 
         if existing_user:
             logger.info(f"Updating existing test account: {existing_user.email} (ID: {existing_user.id})")
 
+            # Update user attributes without starting a new transaction
             # Update core user fields
             for field in ["username", "email", "lang"]:
                 if hasattr(user_in, field) and getattr(user_in, field) is not None:
@@ -386,12 +478,31 @@ async def create_user(db: Session, user_in: UserCreateSchema) -> UserModel:
 
             # Always set test account password to a known value
             existing_user.hashed_password = get_password_hash("test_password")
+
+            # Add to session
+            db.add(existing_user)
+
+            # Commit the changes
             await db.commit()
-            await db.refresh(existing_user)
-            return existing_user
+
+            # Refresh user with explicit eager loading after transaction completes
+            result = await db.execute(
+                select(UserModel)
+                .where(UserModel.id == existing_user.id)
+                .options(
+                    selectinload(UserModel.profile),
+                    selectinload(UserModel.preferences),
+                    selectinload(UserModel.ratings)
+                )
+            )
+            refreshed_user = result.scalars().first()
+
+            logger.info("Returning updated test user")
+            return refreshed_user
         else:
             logger.info(f"Creating new test account: {user_in.email}")
 
+            # Create user without using begin() transaction
             # Create core user data
             user_dict = user_in.model_dump(
                 exclude={"password", "first_name", "last_name", "avatar_url", "bio", "location", "beverage_preference"}
@@ -410,13 +521,38 @@ async def create_user(db: Session, user_in: UserCreateSchema) -> UserModel:
             # Create ratings
             user.ratings = UserRatingModel()
 
+            # Add to session
             db.add(user)
+
+            # Commit the changes
             await db.commit()
-            await db.refresh(user)
-            return user
+
+            # Refresh user with explicit eager loading after transaction completes
+            result = await db.execute(
+                select(UserModel)
+                .where(UserModel.email == user_in.email)
+                .options(
+                    selectinload(UserModel.profile),
+                    selectinload(UserModel.preferences),
+                    selectinload(UserModel.ratings)
+                )
+            )
+            new_user = result.scalars().first()
+
+            logger.info("Returning new test user")
+            return new_user
 
     # Normal user creation flow for non-test accounts
-    existing_user = await get_user_by_email(db, email=user_in.email)
+    logger.info("Normal user creation flow starting")
+    logger.debug("Checking if user already exists...")
+
+    # Check if user exists with eager loading
+    result = await db.execute(
+        select(UserModel)
+        .where(UserModel.email == user_in.email)
+    )
+    existing_user = result.scalars().first()
+
     if existing_user:
         logger.error(f"User with email {user_in.email} already exists")
         raise HTTPException(
@@ -424,7 +560,9 @@ async def create_user(db: Session, user_in: UserCreateSchema) -> UserModel:
             detail="The user with this email already exists in the system",
         )
 
+    # Create user without using begin() transaction
     # Create normal user - core data only
+    logger.debug("Creating user model...")
     user_dict = user_in.model_dump(
         exclude={"password", "first_name", "last_name", "avatar_url", "bio", "location", "beverage_preference"}
     )
@@ -433,21 +571,38 @@ async def create_user(db: Session, user_in: UserCreateSchema) -> UserModel:
 
     # Generate username if not provided
     if not user.username:
+        logger.debug("Generating username...")
         user.username = await generate_username(user_in.email, db)
 
     # Create related models
+    logger.debug("Creating related models (profile, preferences, ratings)...")
     user.profile = UserProfileModel(**profile_data)
     user.preferences = UserPreferencesModel(**preference_data)
     user.ratings = UserRatingModel()
 
+    # Add to session
     db.add(user)
+
+    # Commit the changes
     await db.commit()
-    await db.refresh(user)
-    logger.info(f"Created new regular user: {user.email} (ID: {user.id})")
-    return user
+
+    # Refresh user with explicit eager loading after transaction completes
+    result = await db.execute(
+        select(UserModel)
+        .where(UserModel.email == user_in.email)
+        .options(
+            selectinload(UserModel.profile),
+            selectinload(UserModel.preferences),
+            selectinload(UserModel.ratings)
+        )
+    )
+    new_user = result.scalars().first()
+
+    logger.info(f"Created new regular user: {new_user.email} (ID: {new_user.id})")
+    return new_user
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> UserModel:
+async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)) -> UserModel:
     """Get current user from token"""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -483,7 +638,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
 
 
 @handle_sqlalchemy_errors
-async def refresh_access_token(refresh_token_data: TokenRefreshSchema, db: Session) -> Dict[str, str]:
+async def refresh_access_token(refresh_token_data: TokenRefreshSchema, db: AsyncSession) -> Dict[str, str]:
     """Refresh access token using refresh token"""
     # Verify refresh token
     try:
@@ -575,7 +730,7 @@ async def refresh_access_token(refresh_token_data: TokenRefreshSchema, db: Sessi
         )
 
 
-async def revoke_refresh_token(refresh_token: str, db: Session) -> bool:
+async def revoke_refresh_token(refresh_token: str, db: AsyncSession) -> bool:
     """
     Revoke refresh token (logout)
 
@@ -587,15 +742,20 @@ async def revoke_refresh_token(refresh_token: str, db: Session) -> bool:
         True if token was successfully revoked, False otherwise
     """
     logger = get_logger(__name__)
+    logger.debug(f"Attempting to revoke refresh token")
 
     # Find token in database
-    result = await db.execute(
-        select(RefreshTokenModel).where(
-            RefreshTokenModel.token == refresh_token,
-            RefreshTokenModel.revoked == False
+    try:
+        result = await db.execute(
+            select(RefreshTokenModel).where(
+                RefreshTokenModel.token == refresh_token,
+                RefreshTokenModel.revoked == False
+            )
         )
-    )
-    db_token = result.scalars().first()
+        db_token = result.scalars().first()
+    except Exception as e:
+        logger.error(f"Error querying refresh token: {str(e)}")
+        return False
 
     if not db_token:
         logger.warning(f"Attempted to revoke non-existent token or already revoked token")
@@ -604,10 +764,16 @@ async def revoke_refresh_token(refresh_token: str, db: Session) -> bool:
     try:
         # Mark token as revoked
         db_token.revoked = True
+        db.add(db_token)
+
+        # Коммит изменений
         await db.commit()
+        logger.debug(f"Refresh token revoked successfully")
+
         logger.info(f"Successfully revoked token for user {db_token.user_id}")
         return True
     except Exception as e:
+        # Откат при ошибке
         await db.rollback()
         logger.error(f"Error revoking token: {str(e)}")
         return False

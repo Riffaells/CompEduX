@@ -7,9 +7,8 @@ root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -108,6 +107,7 @@ except Exception as e:
 
 # Регистрируем обработчики ошибок
 register_exception_handlers(app)
+
 
 # Endpoint to check the health of the API Gateway and all services
 @app.get("/health", include_in_schema=True, tags=["health"])

@@ -3,7 +3,8 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...db.session import get_db
 from ...models.associations import RoomModel
@@ -19,10 +20,12 @@ async def read_rooms(
         skip: int = 0,
         limit: int = 100,
         current_user: UserModel = Depends(get_current_user),
-        db: Session = Depends(get_db)
+        db: AsyncSession = Depends(get_db)
 ):
     """Get a list of all rooms"""
-    rooms = db.query(RoomModel).offset(skip).limit(limit).all()
+    query = select(RoomModel).offset(skip).limit(limit)
+    result = await db.execute(query)
+    rooms = result.scalars().all()
     return rooms
 
 
@@ -30,10 +33,12 @@ async def read_rooms(
 async def read_room(
         room_id: UUID,
         current_user: UserModel = Depends(get_current_user),
-        db: Session = Depends(get_db)
+        db: AsyncSession = Depends(get_db)
 ):
     """Get room information by ID"""
-    room = db.query(RoomModel).filter(RoomModel.id == room_id).first()
+    query = select(RoomModel).filter(RoomModel.id == room_id)
+    result = await db.execute(query)
+    room = result.scalars().first()
 
     if room is None:
         raise HTTPException(
@@ -57,7 +62,7 @@ class RoomCreateSchema(BaseModel):
 async def create_room(
         room: RoomCreateSchema,
         current_user: UserModel = Depends(get_current_user),
-        db: Session = Depends(get_db)
+        db: AsyncSession = Depends(get_db)
 ):
     """Create a new room"""
     db_room = RoomModel(
@@ -66,11 +71,11 @@ async def create_room(
     )
 
     db.add(db_room)
-    db.commit()
-    db.refresh(db_room)
+    await db.commit()
+    await db.refresh(db_room)
 
     # Add the creator to the room
     current_user.rooms.append(db_room)
-    db.commit()
+    await db.commit()
 
     return db_room

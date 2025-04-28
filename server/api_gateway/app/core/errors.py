@@ -1,7 +1,8 @@
+from typing import Optional, Dict, Any, Union, List
+
 from fastapi import HTTPException, status
 from fastapi.responses import JSONResponse
 from starlette.requests import Request
-from typing import Optional, Dict, Any, Union, List
 
 from common.logger import get_logger
 
@@ -13,12 +14,13 @@ class APIError(Exception):
     Базовый класс для всех API ошибок.
     Определяет стандартный формат ошибок для API Gateway.
     """
+
     def __init__(
-        self,
-        message: str,
-        error_code: int = status.HTTP_500_INTERNAL_SERVER_ERROR,
-        details: Optional[str] = None,
-        headers: Optional[Dict[str, str]] = None
+            self,
+            message: str,
+            error_code: int = status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details: Optional[str] = None,
+            headers: Optional[Dict[str, str]] = None
     ):
         self.message = message
         self.error_code = error_code
@@ -29,11 +31,12 @@ class APIError(Exception):
 
 class ServiceUnavailableError(APIError):
     """Ошибка недоступности сервиса"""
+
     def __init__(
-        self,
-        service_name: str,
-        details: Optional[str] = None,
-        headers: Optional[Dict[str, str]] = None
+            self,
+            service_name: str,
+            details: Optional[str] = None,
+            headers: Optional[Dict[str, str]] = None
     ):
         message = f"Сервис {service_name} временно недоступен"
         super().__init__(
@@ -46,11 +49,12 @@ class ServiceUnavailableError(APIError):
 
 class AuthenticationError(APIError):
     """Ошибка аутентификации"""
+
     def __init__(
-        self,
-        message: str = "Ошибка аутентификации",
-        details: Optional[str] = None,
-        headers: Optional[Dict[str, str]] = None
+            self,
+            message: str = "Ошибка аутентификации",
+            details: Optional[str] = None,
+            headers: Optional[Dict[str, str]] = None
     ):
         super().__init__(
             message=message,
@@ -62,11 +66,12 @@ class AuthenticationError(APIError):
 
 class NotFoundError(APIError):
     """Ресурс не найден"""
+
     def __init__(
-        self,
-        resource_type: str,
-        resource_id: Optional[str] = None,
-        details: Optional[str] = None
+            self,
+            resource_type: str,
+            resource_id: Optional[str] = None,
+            details: Optional[str] = None
     ):
         message = f"{resource_type} не найден"
         if resource_id:
@@ -80,10 +85,11 @@ class NotFoundError(APIError):
 
 class ValidationError(APIError):
     """Ошибка валидации"""
+
     def __init__(
-        self,
-        message: str = "Ошибка валидации данных",
-        details: Optional[Union[str, List[Dict[str, Any]]]] = None
+            self,
+            message: str = "Ошибка валидации данных",
+            details: Optional[Union[str, List[Dict[str, Any]]]] = None
     ):
         super().__init__(
             message=message,
