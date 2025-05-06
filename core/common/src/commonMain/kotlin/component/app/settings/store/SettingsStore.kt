@@ -1,6 +1,5 @@
 package component.app.settings.store
 
-import settings.MultiplatformSettings
 import com.arkivanov.mvikotlin.core.store.Reducer
 import com.arkivanov.mvikotlin.core.store.SimpleBootstrapper
 import com.arkivanov.mvikotlin.core.store.Store
@@ -10,14 +9,11 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import navigation.rDispatchers
 import org.kodein.di.DI
 import org.kodein.di.DIAware
 import org.kodein.di.instance
-import settings.AppearanceSettings
-import settings.NetworkSettings
-import settings.SecuritySettings
-import settings.ProfileSettings
-import navigation.rDispatchers
+import settings.*
 
 interface SettingsStore : Store<SettingsStore.Intent, SettingsStore.State, SettingsStore.Label> {
 
@@ -108,13 +104,14 @@ internal class SettingsStoreFactory(
     private val profileSettings by instance<ProfileSettings>()
 
     fun create(): SettingsStore =
-        object : SettingsStore, Store<SettingsStore.Intent, SettingsStore.State, SettingsStore.Label> by storeFactory.create(
-            name = "SettingsStore",
-            initialState = SettingsStore.State(),
-            bootstrapper = SimpleBootstrapper(Unit),
-            executorFactory = ::ExecutorImpl,
-            reducer = ReducerImpl
-        ) {}
+        object : SettingsStore,
+            Store<SettingsStore.Intent, SettingsStore.State, SettingsStore.Label> by storeFactory.create(
+                name = "SettingsStore",
+                initialState = SettingsStore.State(),
+                bootstrapper = SimpleBootstrapper(Unit),
+                executorFactory = ::ExecutorImpl,
+                reducer = ReducerImpl
+            ) {}
 
     private sealed interface Msg {
         data object LoadingData : Msg
@@ -328,6 +325,7 @@ internal class SettingsStoreFactory(
                     loadAllSettings()
                     setupObservers()
                 }
+
                 is SettingsStore.Intent.UpdateTheme -> {
                     scope.launch {
                         appearanceSettings.saveTheme(intent.theme)
@@ -337,6 +335,7 @@ internal class SettingsStoreFactory(
                         dispatch(Msg.UpdateTheme(intent.theme))
                     }
                 }
+
                 is SettingsStore.Intent.UpdateLanguage -> {
                     scope.launch {
                         appearanceSettings.saveLang(intent.language)
@@ -346,6 +345,7 @@ internal class SettingsStoreFactory(
                         dispatch(Msg.UpdateLanguage(intent.language))
                     }
                 }
+
                 is SettingsStore.Intent.UpdateBlackBackground -> {
                     scope.launch {
                         appearanceSettings.saveBlackBackground(intent.enabled)
@@ -355,6 +355,7 @@ internal class SettingsStoreFactory(
                         dispatch(Msg.UpdateBlackBackground(intent.enabled))
                     }
                 }
+
                 is SettingsStore.Intent.UpdateStarrySky -> {
                     scope.launch {
                         appearanceSettings.saveStarrySky(intent.enabled)
@@ -364,6 +365,7 @@ internal class SettingsStoreFactory(
                         dispatch(Msg.UpdateStarrySky(intent.enabled))
                     }
                 }
+
                 is SettingsStore.Intent.UpdateServerUrl -> {
                     scope.launch {
                         networkSettings.saveServerUrl(intent.url)
@@ -373,6 +375,7 @@ internal class SettingsStoreFactory(
                         dispatch(Msg.UpdateServerUrl(intent.url))
                     }
                 }
+
                 is SettingsStore.Intent.UpdateUseBiometric -> {
                     scope.launch {
                         securitySettings.saveUseBiometric(intent.enabled)
@@ -382,6 +385,7 @@ internal class SettingsStoreFactory(
                         dispatch(Msg.UpdateUseBiometric(intent.enabled))
                     }
                 }
+
                 is SettingsStore.Intent.UpdateAutoLogoutTime -> {
                     scope.launch {
                         securitySettings.saveAutoLogoutTime(intent.minutes)
@@ -391,6 +395,7 @@ internal class SettingsStoreFactory(
                         dispatch(Msg.UpdateAutoLogoutTime(intent.minutes))
                     }
                 }
+
                 is SettingsStore.Intent.Back -> {
                     // Обработка в компоненте
                 }
@@ -405,6 +410,7 @@ internal class SettingsStoreFactory(
                         publish(SettingsStore.Label.ProfileChanged(intent.username, email))
                     }
                 }
+
                 is SettingsStore.Intent.UpdateEmail -> {
                     scope.launch {
                         profileSettings.saveEmail(intent.email)
@@ -414,30 +420,35 @@ internal class SettingsStoreFactory(
                         publish(SettingsStore.Label.ProfileChanged(username, intent.email))
                     }
                 }
+
                 is SettingsStore.Intent.UpdateAvatarUrl -> {
                     scope.launch {
                         profileSettings.saveAvatarUrl(intent.url)
                         dispatch(Msg.UpdateAvatarUrl(intent.url))
                     }
                 }
+
                 is SettingsStore.Intent.UpdateStatus -> {
                     scope.launch {
                         profileSettings.saveStatus(intent.status)
                         dispatch(Msg.UpdateStatus(intent.status))
                     }
                 }
+
                 is SettingsStore.Intent.UpdateProfilePublic -> {
                     scope.launch {
                         profileSettings.setProfilePublic(intent.isPublic)
                         dispatch(Msg.UpdateProfilePublic(intent.isPublic))
                     }
                 }
+
                 is SettingsStore.Intent.UpdateProfileNotifications -> {
                     scope.launch {
                         profileSettings.setProfileNotifications(intent.enabled)
                         dispatch(Msg.UpdateProfileNotifications(intent.enabled))
                     }
                 }
+
                 is SettingsStore.Intent.ClearProfileData -> {
                     scope.launch {
                         profileSettings.clearProfileData()
@@ -452,30 +463,35 @@ internal class SettingsStoreFactory(
                         dispatch(Msg.UpdateUseExperimentalApi(intent.enabled))
                     }
                 }
+
                 is SettingsStore.Intent.UpdateEnableBandwidthLimit -> {
                     scope.launch {
                         networkSettings.saveEnableBandwidthLimit(intent.enabled)
                         dispatch(Msg.UpdateEnableBandwidthLimit(intent.enabled))
                     }
                 }
+
                 is SettingsStore.Intent.UpdateBandwidthLimitKbps -> {
                     scope.launch {
                         networkSettings.saveBandwidthLimitKbps(intent.kbps)
                         dispatch(Msg.UpdateBandwidthLimitKbps(intent.kbps))
                     }
                 }
+
                 is SettingsStore.Intent.UpdateUseCustomTimeouts -> {
                     scope.launch {
                         networkSettings.saveUseCustomTimeouts(intent.enabled)
                         dispatch(Msg.UpdateUseCustomTimeouts(intent.enabled))
                     }
                 }
+
                 is SettingsStore.Intent.UpdateConnectionTimeoutSeconds -> {
                     scope.launch {
                         networkSettings.saveConnectionTimeoutSeconds(intent.seconds)
                         dispatch(Msg.UpdateConnectionTimeoutSeconds(intent.seconds))
                     }
                 }
+
                 is SettingsStore.Intent.UpdateReadTimeoutSeconds -> {
                     scope.launch {
                         networkSettings.saveReadTimeoutSeconds(intent.seconds)

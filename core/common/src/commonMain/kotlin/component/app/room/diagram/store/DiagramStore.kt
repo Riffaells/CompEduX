@@ -8,10 +8,10 @@ import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import logging.Logger
+import navigation.rDispatchers
 import org.kodein.di.DI
 import org.kodein.di.DIAware
 import org.kodein.di.instance
-import navigation.rDispatchers
 
 interface DiagramStore : Store<DiagramStore.Intent, DiagramStore.State, Nothing> {
 
@@ -106,6 +106,7 @@ internal class DiagramStoreFactory(
                     is DiagramStore.Intent.Init -> {
                         safeDispatch(Msg.LoadData)
                     }
+
                     is DiagramStore.Intent.UpdateDiagramType -> {
                         scope.launch {
                             try {
@@ -116,6 +117,7 @@ internal class DiagramStoreFactory(
                         }
                         Unit
                     }
+
                     is DiagramStore.Intent.UpdateDiagramData -> {
                         scope.launch {
                             try {

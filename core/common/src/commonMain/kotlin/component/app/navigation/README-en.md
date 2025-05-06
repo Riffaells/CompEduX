@@ -1,18 +1,21 @@
 # Navigation Utilities
 
-This module provides utilities for managing navigation in the CompEduX application, ensuring thread-safe navigation operations and consistent behavior across components.
+This module provides utilities for managing navigation in the CompEduX application, ensuring thread-safe navigation
+operations and consistent behavior across components.
 
 ## Components
 
 ### NavigationExecutor
 
-The `NavigationExecutor` is a utility class that handles navigation operations safely, ensuring they are executed on the main thread. It provides methods for:
+The `NavigationExecutor` is a utility class that handles navigation operations safely, ensuring they are executed on the
+main thread. It provides methods for:
 
 - Navigation to specific destinations
 - Stack operations (push, pop, replace)
 - Safe execution of navigation actions
 
 Key features:
+
 - Thread safety using Decompose's `MainThreadWorker`
 - Error handling for navigation exceptions
 - Consistent API for all navigation operations

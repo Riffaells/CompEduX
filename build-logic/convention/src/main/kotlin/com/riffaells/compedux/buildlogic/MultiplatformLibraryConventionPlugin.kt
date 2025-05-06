@@ -1,13 +1,12 @@
 package com.riffaells.compedux.buildlogic
 
 import com.android.build.gradle.LibraryExtension
+import libs
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.artifacts.dsl.DependencyHandler
 import org.gradle.kotlin.dsl.configure
-import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
-import libs
+import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
 class MultiplatformLibraryConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
@@ -85,7 +84,6 @@ class MultiplatformLibraryConventionPlugin : Plugin<Project> {
                 }
 
             }
-
 
 
         }

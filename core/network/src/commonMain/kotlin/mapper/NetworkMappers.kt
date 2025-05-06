@@ -1,19 +1,11 @@
 package mapper
 
-import model.OAuthProviderDomain
-import model.UserDomain
-import model.UserPreferencesDomain
-import model.UserProfileDomain
-import model.UserRatingsDomain
+import model.*
 import model.auth.AuthResponseDomain
-import model.auth.ServerStatusResponseDomain
 import model.auth.NetworkAuthResponse
 import model.auth.NetworkServerStatusResponse
-import model.user.NetworkOAuthProvider
-import model.user.NetworkUserPreferences
-import model.user.NetworkUserProfile
-import model.user.NetworkUserRatings
-import model.user.NetworkUserResponse
+import model.auth.ServerStatusResponseDomain
+import model.user.*
 
 /**
  * Преобразует сетевую модель пользователя в доменную

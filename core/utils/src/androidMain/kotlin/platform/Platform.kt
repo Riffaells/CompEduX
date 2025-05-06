@@ -25,8 +25,8 @@ actual object Platform {
      */
     actual fun description(): String {
         return "Device: ${Build.MANUFACTURER} ${Build.MODEL}, " +
-               "Android: ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT}), " +
-               "Build: ${Build.DISPLAY}"
+                "Android: ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT}), " +
+                "Build: ${Build.DISPLAY}"
     }
 
     /**
@@ -34,6 +34,6 @@ actual object Platform {
      */
     actual fun userAgent(appName: String, appVersion: String): String {
         return "$appName/$appVersion (Android ${Build.VERSION.RELEASE}; " +
-               "${Build.MANUFACTURER} ${Build.MODEL})"
+                "${Build.MANUFACTURER} ${Build.MODEL})"
     }
 }

@@ -3,13 +3,15 @@
 """
 import asyncio
 import json
-import uuid
-import sys
 import os
+import sys
+import uuid
+
 import aiohttp
 
 # Добавляем путь к корню проекта, чтобы найти модули
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+
 
 async def create_course():
     """Тестирование создания нового курса"""
@@ -57,6 +59,7 @@ async def create_course():
                 print(f"Ошибка при создании курса: {error}")
                 return None
 
+
 async def main():
     print("Тестирование API создания курса")
     course = await create_course()
@@ -65,6 +68,7 @@ async def main():
         print(f"ID курса: {course['id']}")
         print(f"Slug курса: {course['slug']}")
         print(f"Доступные языки: {course['title'].keys()}")
+
 
 if __name__ == "__main__":
     asyncio.run(main())

@@ -581,6 +581,7 @@ get_async_session = db_manager.get_db
 init_db = db_manager.init_db
 reset_db = db_manager.reset_db
 
+
 async def check_db_connection(db: AsyncSession) -> bool:
     """
     Check database connection by running a simple query.

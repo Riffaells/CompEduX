@@ -8,11 +8,11 @@ import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import logging.Logger
+import navigation.rDispatchers
 import org.kodein.di.DI
 import org.kodein.di.DIAware
 import org.kodein.di.instance
 import usecase.auth.AuthUseCases
-import navigation.rDispatchers
 
 interface RoomStore : Store<RoomStore.Intent, RoomStore.State, Nothing> {
 
@@ -79,7 +79,7 @@ internal class RoomStoreFactory(
 
         private fun checkAuthStatus() {
             scope.launch {
-                    safeDispatch(Msg.UpdateAuthStatus(authUseCases.isAuthenticated()))
+                safeDispatch(Msg.UpdateAuthStatus(authUseCases.isAuthenticated()))
 
             }
         }
@@ -100,6 +100,7 @@ internal class RoomStoreFactory(
                         safeDispatch(Msg.LoadData)
                         checkAuthStatus()
                     }
+
                     is RoomStore.Intent.UpdateRoomName -> {
                         scope.launch {
                             try {
@@ -111,6 +112,7 @@ internal class RoomStoreFactory(
                         }
                         Unit
                     }
+
                     is RoomStore.Intent.UpdateRoomDescription -> {
                         scope.launch {
                             try {
@@ -122,10 +124,12 @@ internal class RoomStoreFactory(
                         }
                         Unit
                     }
+
                     is RoomStore.Intent.ToggleAchievement -> {
                         val currentState = state()
                         safeDispatch(Msg.ToggleAchievementVisibility(!currentState.showAchievement))
                     }
+
                     is RoomStore.Intent.ToggleAuth -> {
                         val currentState = state()
                         safeDispatch(Msg.ToggleAuthVisibility(!currentState.showAuth))

@@ -3,6 +3,9 @@ package di
 import api.auth.AuthApi
 import api.auth.DataAuthApiAdapter
 import api.auth.NetworkAuthApi
+import api.course.CourseApi
+import api.course.DataCourseApiAdapter
+import api.course.NetworkCourseApi
 import config.DataNetworkConfig
 import config.NetworkConfig
 import logging.LoggingProvider
@@ -14,6 +17,8 @@ import repository.auth.AuthRepository
 import repository.auth.AuthRepositoryImpl
 import repository.auth.TokenRepository
 import repository.auth.TokenRepositoryImpl
+import repository.course.CourseRepository
+import repository.course.CourseRepositoryImpl
 import settings.MultiplatformSettings
 
 /**
@@ -45,5 +50,20 @@ val dataModule = DI.Module("dataModule") {
         val tokenRepository = instance<TokenRepository>()
         val logger = instance<LoggingProvider>().getLogger("AuthApi")
         DataAuthApiAdapter(networkAuthApi, tokenRepository, logger)
+    }
+
+    // Репозитории и адаптеры для курсов
+    bind<CourseRepository>() with singleton {
+        val networkCourseApi = instance<NetworkCourseApi>()
+        val tokenRepository = instance<TokenRepository>()
+        val logger = instance<LoggingProvider>().getLogger("CourseRepository")
+        CourseRepositoryImpl(networkCourseApi, tokenRepository, logger)
+    }
+
+    bind<CourseApi>() with singleton {
+        val networkCourseApi = instance<NetworkCourseApi>()
+        val tokenRepository = instance<TokenRepository>()
+        val logger = instance<LoggingProvider>().getLogger("CourseApi")
+        DataCourseApiAdapter(networkCourseApi, tokenRepository, logger)
     }
 }

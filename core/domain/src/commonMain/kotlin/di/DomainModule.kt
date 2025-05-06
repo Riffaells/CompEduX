@@ -1,11 +1,11 @@
 package di
 
-import api.auth.AuthApi
 import org.kodein.di.DI
 import org.kodein.di.bind
 import org.kodein.di.instance
 import org.kodein.di.singleton
 import usecase.auth.*
+import usecase.course.*
 
 /**
  * DI-модуль для домена
@@ -29,6 +29,24 @@ val domainModule = DI.Module("domainModule") {
             getCurrentUser = instance(),
             isAuthenticated = instance(),
             checkServerStatus = instance()
+        )
+    }
+
+    // Course Use Cases
+    bind<GetCourseUseCase>() with singleton { GetCourseUseCase(instance()) }
+    bind<GetCoursesUseCase>() with singleton { GetCoursesUseCase(instance()) }
+    bind<CreateCourseUseCase>() with singleton { CreateCourseUseCase(instance()) }
+    bind<UpdateCourseUseCase>() with singleton { UpdateCourseUseCase(instance()) }
+    bind<DeleteCourseUseCase>() with singleton { DeleteCourseUseCase(instance()) }
+
+    // Контейнер для всех use cases курсов
+    bind<CourseUseCases>() with singleton {
+        CourseUseCases(
+            getCourse = instance(),
+            getCourses = instance(),
+            createCourse = instance(),
+            updateCourse = instance(),
+            deleteCourse = instance()
         )
     }
 }

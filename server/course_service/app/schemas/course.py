@@ -5,9 +5,10 @@ from datetime import datetime
 from typing import Dict, List, Optional, Union, Any
 from uuid import UUID
 
+from pydantic import BaseModel, Field, field_validator
+
 from ..models.course import CourseVisibility
 from ..schemas.technology_tree import TechnologyTree
-from pydantic import BaseModel, Field, field_validator
 
 
 # Schemas for Tags
@@ -38,7 +39,7 @@ class CourseBase(BaseModel):
     """Base schema for course data"""
     title: Dict[str, str]
     description: Optional[Dict[str, str]] = None
-    author_id: UUID
+    author_id: Optional[UUID] = None
     visibility: Optional[CourseVisibility] = Field(
         default=CourseVisibility.PRIVATE,
         description="Course visibility level"
@@ -114,6 +115,7 @@ class CourseInDB(CourseBase):
     slug: str
     created_at: datetime
     updated_at: datetime
+
     # TODO: Реализовать в будущем
     # rating_avg: Dict[str, Any] = Field(
     #     default={"value": 0.0, "count": 0},
@@ -200,10 +202,10 @@ class CourseWithLanguageUtils(Course):
 
 class CourseResponse(CourseWithLanguageUtils):
     """Schema for complete course response, including optional technology tree"""
+    tags: Optional[List[Tag]] = Field(default_factory=list)
     technology_tree: Optional[TechnologyTree] = None
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 # Schema for list of courses with pagination
@@ -246,6 +248,19 @@ class CourseSearchParams(BaseModel):
         if v is not None and len(v) < 2:
             raise ValueError("language must be a valid ISO language code (e.g., 'en', 'ru')")
         return v
+
+    class Config:
+        """Pydantic configuration"""
+        from_attributes = True
+        json_schema_extra = {
+            "example": {
+                "search": "programming",
+                "language": "en",
+                "author_id": "550e8400-e29b-41d4-a716-446655440000",
+                "sort_by": "created_at",
+                "sort_order": "desc"
+            }
+        }
 
 
 # Schema for language operation

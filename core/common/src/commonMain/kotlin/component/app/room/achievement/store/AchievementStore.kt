@@ -8,10 +8,10 @@ import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import logging.Logger
+import navigation.rDispatchers
 import org.kodein.di.DI
 import org.kodein.di.DIAware
 import org.kodein.di.instance
-import navigation.rDispatchers
 
 interface AchievementStore : Store<AchievementStore.Intent, AchievementStore.State, Nothing> {
 
@@ -47,15 +47,16 @@ internal class AchievementStoreFactory(
     private val logger by instance<Logger>("AchievementStore")
 
     fun create(): AchievementStore =
-        object : AchievementStore, Store<AchievementStore.Intent, AchievementStore.State, Nothing> by storeFactory.create(
-            name = "AchievementStore",
-            initialState = AchievementStore.State(
-                achievements = generateSampleAchievements()
-            ),
-            bootstrapper = SimpleBootstrapper(Unit),
-            executorFactory = ::ExecutorImpl,
-            reducer = ReducerImpl
-        ) {}
+        object : AchievementStore,
+            Store<AchievementStore.Intent, AchievementStore.State, Nothing> by storeFactory.create(
+                name = "AchievementStore",
+                initialState = AchievementStore.State(
+                    achievements = generateSampleAchievements()
+                ),
+                bootstrapper = SimpleBootstrapper(Unit),
+                executorFactory = ::ExecutorImpl,
+                reducer = ReducerImpl
+            ) {}
 
     private fun generateSampleAchievements(): List<AchievementStore.Achievement> {
         return listOf(
@@ -125,6 +126,7 @@ internal class AchievementStoreFactory(
                     is AchievementStore.Intent.Init -> {
                         safeDispatch(Msg.LoadData)
                     }
+
                     is AchievementStore.Intent.UnlockAchievement -> {
                         scope.launch {
                             try {
@@ -135,6 +137,7 @@ internal class AchievementStoreFactory(
                         }
                         Unit
                     }
+
                     is AchievementStore.Intent.RefreshAchievements -> {
                         scope.launch {
                             try {

@@ -1,9 +1,11 @@
 package ui.tree
 
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.absoluteOffset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -15,8 +17,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.absoluteOffset
-import androidx.compose.foundation.shape.RoundedCornerShape
 import component.TechnologyTreeStore
 
 /**
@@ -37,7 +37,8 @@ fun NodeLabels(
 
         // Simplified subtle color scheme without borders
         val textColor = if (isSelected) Color(0xFF000000) else Color(0xFF000000)
-        val backgroundColor = if (isSelected) Color(0xFFFFF59D).copy(alpha = 0.7f) else Color(0xFFE1E1E1).copy(alpha = 0.6f)
+        val backgroundColor =
+            if (isSelected) Color(0xFFFFF59D).copy(alpha = 0.7f) else Color(0xFFE1E1E1).copy(alpha = 0.6f)
 
         Box(
             modifier = Modifier

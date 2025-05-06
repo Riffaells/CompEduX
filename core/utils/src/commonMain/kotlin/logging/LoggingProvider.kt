@@ -2,7 +2,6 @@ package logging
 
 import io.github.aakira.napier.Antilog
 import org.kodein.di.DIAware
-import org.kodein.di.instance
 
 /**
  * Provider for obtaining loggers without extra abstractions

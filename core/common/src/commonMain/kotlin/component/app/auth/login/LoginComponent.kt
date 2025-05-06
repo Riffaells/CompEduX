@@ -11,11 +11,11 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import navigation.rDispatchers
 import org.kodein.di.DI
 import org.kodein.di.DIAware
 import org.kodein.di.instance
 import usecase.auth.AuthUseCases
-import navigation.rDispatchers
 
 interface LoginComponent {
     val state: StateFlow<LoginStore.State>
@@ -73,7 +73,8 @@ class DefaultLoginComponent(
                 onRegister()
             }
 
-            else -> { /* Для других интентов никаких действий не требуется */ }
+            else -> { /* Для других интентов никаких действий не требуется */
+            }
         }
     }
 

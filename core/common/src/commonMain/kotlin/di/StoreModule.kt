@@ -1,20 +1,10 @@
 package di
 
 import com.arkivanov.mvikotlin.core.store.StoreFactory
-import component.app.auth.store.AuthStore
-import component.app.auth.store.AuthStoreFactory
-import component.app.auth.store.LoginStore
-import component.app.auth.store.LoginStoreFactory
-import component.app.auth.store.RegisterStore
-import component.app.auth.store.RegisterStoreFactory
-import component.app.auth.store.ProfileStore
-import component.app.auth.store.ProfileStoreFactory
+import component.app.auth.store.*
 import component.root.store.RootStore
 import component.root.store.RootStoreFactory
-import org.kodein.di.DI
-import org.kodein.di.bindProvider
-import org.kodein.di.bindSingleton
-import org.kodein.di.instance
+import org.kodein.di.*
 
 /**
  * Модуль для регистрации всех Store-компонентов приложения
@@ -55,11 +45,7 @@ val storeModule = DI.Module("storeModule") {
     bindProvider<RootStore> {
         RootStoreFactory(
             storeFactory = instance(),
-            di= di
+            di = di
         ).create()
     }
-
-
-
-
 }

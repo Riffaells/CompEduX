@@ -1,8 +1,11 @@
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.*
+import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.WindowPosition
+import androidx.compose.ui.window.application
+import androidx.compose.ui.window.rememberWindowState
 import com.arkivanov.decompose.DefaultComponentContext
+import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.riffaells.compedux.di.appDI
 import component.root.DefaultRootComponent
 import component.root.RootComponentParams
@@ -12,7 +15,6 @@ import org.kodein.di.compose.withDI
 import org.kodein.di.direct
 import org.kodein.di.factory
 import org.kodein.di.instance
-import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 
 /**
  * Точка входа для разработки с горячей перезагрузкой Compose.

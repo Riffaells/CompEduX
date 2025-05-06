@@ -3,14 +3,10 @@ package api.auth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import logging.Logger
-import model.DomainResult
 import model.DomainError
+import model.DomainResult
 import model.UserDomain
-import model.auth.AuthResponseDomain
-import model.auth.LoginRequestDomain
-import model.auth.RefreshTokenRequestDomain
-import model.auth.RegisterRequestDomain
-import model.auth.ServerStatusResponseDomain
+import model.auth.*
 import repository.auth.TokenRepository
 
 /**
@@ -88,10 +84,11 @@ class DataAuthApiAdapter(
         result
     }
 
-    override suspend fun refreshToken(request: RefreshTokenRequestDomain): DomainResult<AuthResponseDomain> = withContext(Dispatchers.Default) {
-        logger.d("DataAuthApiAdapter: refreshToken(***)")
-        mapApiResult(networkAuthApi.refreshToken(request))
-    }
+    override suspend fun refreshToken(request: RefreshTokenRequestDomain): DomainResult<AuthResponseDomain> =
+        withContext(Dispatchers.Default) {
+            logger.d("DataAuthApiAdapter: refreshToken(***)")
+            mapApiResult(networkAuthApi.refreshToken(request))
+        }
 
     override suspend fun updateProfile(username: String): DomainResult<UserDomain> = withContext(Dispatchers.Default) {
         logger.d("DataAuthApiAdapter: updateProfile($username)")
@@ -107,25 +104,27 @@ class DataAuthApiAdapter(
         mapApiResult(networkAuthApi.updateProfile(token, username))
     }
 
-    override suspend fun checkServerStatus(): DomainResult<ServerStatusResponseDomain> = withContext(Dispatchers.Default) {
-        logger.d("DataAuthApiAdapter: checkServerStatus()")
-        val result = networkAuthApi.checkServerStatus()
+    override suspend fun checkServerStatus(): DomainResult<ServerStatusResponseDomain> =
+        withContext(Dispatchers.Default) {
+            logger.d("DataAuthApiAdapter: checkServerStatus()")
+            val result = networkAuthApi.checkServerStatus()
 
-        when (result) {
-            is model.DomainResult.Success -> {
-                // Преобразуем ServerStatusDomain в ServerStatusResponseDomain
-                val serverStatus = result.data
-                val responseStatus = ServerStatusResponseDomain(
-                    status = serverStatus.status,
-                    version = serverStatus.version,
-                    uptime = serverStatus.uptime
-                )
-                DomainResult.Success(responseStatus)
+            when (result) {
+                is model.DomainResult.Success -> {
+                    // Преобразуем ServerStatusDomain в ServerStatusResponseDomain
+                    val serverStatus = result.data
+                    val responseStatus = ServerStatusResponseDomain(
+                        status = serverStatus.status,
+                        version = serverStatus.version,
+                        uptime = serverStatus.uptime
+                    )
+                    DomainResult.Success(responseStatus)
+                }
+
+                is model.DomainResult.Error -> DomainResult.Error(result.error)
+                is model.DomainResult.Loading -> DomainResult.Loading
             }
-            is model.DomainResult.Error -> DomainResult.Error(result.error)
-            is model.DomainResult.Loading -> DomainResult.Loading
         }
-    }
 
     /**
      * Преобразует результат API в доменный результат

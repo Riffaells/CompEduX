@@ -32,8 +32,8 @@ actual object Platform {
         val javaVmName = System.getProperty("java.vm.name") ?: ""
 
         return "OS: $osName $osVersion ($osArch), " +
-               "Java: $javaVersion from $javaVendor, " +
-               "VM: $javaVmName"
+                "Java: $javaVersion from $javaVendor, " +
+                "VM: $javaVmName"
     }
 
     /**

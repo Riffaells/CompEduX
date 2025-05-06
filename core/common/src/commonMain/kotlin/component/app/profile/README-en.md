@@ -1,10 +1,12 @@
 # Profile Module
 
-This module manages user profile functionality within the CompEduX application, providing profile viewing, editing, and related actions.
+This module manages user profile functionality within the CompEduX application, providing profile viewing, editing, and
+related actions.
 
 ## Architecture
 
-The profile module follows the MVI (Model-View-Intent) architecture pattern using MVIKotlin and integrates with Decompose for navigation. Key components include:
+The profile module follows the MVI (Model-View-Intent) architecture pattern using MVIKotlin and integrates with
+Decompose for navigation. Key components include:
 
 - **ProfileComponent**: Main component managing profile screens and navigation
 - **ProfileStore**: State management and business logic for profile operations
@@ -22,6 +24,7 @@ The `ProfileComponent` serves as the entry point for profile-related functionali
 - Loading and saving user profile data
 
 Key features:
+
 - Lifecycle-scoped coroutines for safe async operations
 - Thread-safe navigation using MainThreadWorker
 - Error handling for profile operations and navigation
@@ -35,6 +38,7 @@ The `ProfileStore` implements MVIKotlin's `Store` interface and handles:
 - Business logic for profile operations (update, refresh, logout)
 
 State transitions:
+
 1. Initial state → Loading state
 2. Loading state → Profile data loaded/Error state
 3. Edit state → Save operation → Updated profile state
@@ -44,11 +48,11 @@ State transitions:
 The profile module supports the following navigation flows:
 
 1. **Main Profile Flow**:
-   - Profile main screen → Profile edit (on edit action)
-   - Profile main screen → Login (on logout action)
+    - Profile main screen → Profile edit (on edit action)
+    - Profile main screen → Login (on logout action)
 
 2. **Edit Profile Flow**:
-   - Edit screen → Profile main screen (on save or cancel)
+    - Edit screen → Profile main screen (on save or cancel)
 
 ## Thread Safety
 

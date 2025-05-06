@@ -1,7 +1,9 @@
 package di
 
-import api.auth.NetworkAuthApi
 import api.NetworkAuthApiImpl
+import api.auth.NetworkAuthApi
+import api.course.NetworkCourseApi
+import api.course.NetworkCourseApiImpl
 import client.HttpClientFactory
 import client.InMemoryTokenStorage
 import client.TokenStorage
@@ -53,6 +55,15 @@ val networkModule = DI.Module("networkModule") {
             client = instance(),
             networkConfig = instance(),
             logger = instance<LoggingProvider>().withTag("NetworkAuthApi")
+        )
+    }
+
+    // API для курсов
+    bind<NetworkCourseApi>() with singleton {
+        NetworkCourseApiImpl(
+            client = instance(),
+            networkConfig = instance(),
+            logger = instance<LoggingProvider>().withTag("NetworkCourseApi")
         )
     }
 }

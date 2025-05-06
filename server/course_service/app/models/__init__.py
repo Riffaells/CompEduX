@@ -1,10 +1,11 @@
 # Models Package
+from .article import Article
 from .base import Base
 from .course import Course
+from .lesson import Lesson
 from .localization import Localization
 from .tag import Tag, TagTranslation
 from .technology_tree import TechnologyTree
-from .article import Article
 
 __all__ = [
     'Base',
@@ -13,5 +14,6 @@ __all__ = [
     'TagTranslation',
     'Localization',
     'TechnologyTree',
-    'Article'
+    'Article',
+    'Lesson'
 ]

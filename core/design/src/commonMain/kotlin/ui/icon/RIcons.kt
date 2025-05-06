@@ -2,13 +2,14 @@ package ui.icon
 
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.Login
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.outlined.Diamond
+import androidx.compose.material.icons.outlined.Error
+import androidx.compose.material.icons.outlined.ThumbUp
+import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material.icons.rounded.*
-import androidx.compose.ui.graphics.vector.ImageVector
 
 
 object RIcons {

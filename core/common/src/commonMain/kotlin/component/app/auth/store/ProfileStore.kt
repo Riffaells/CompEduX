@@ -5,21 +5,16 @@ import com.arkivanov.mvikotlin.core.store.SimpleBootstrapper
 import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import model.DomainResult
-import model.UserDomain
-import model.UserPreferencesDomain
-import model.UserProfileDomain
-import model.UserRatingsDomain
+import logging.Logger
+import model.*
+import navigation.rDispatchers
 import org.kodein.di.DI
 import org.kodein.di.DIAware
 import org.kodein.di.instance
-import usecase.auth.AuthUseCases
-import logging.Logger
 import repository.auth.AuthRepository
-import navigation.rDispatchers
+import usecase.auth.AuthUseCases
 
 interface ProfileStore : Store<ProfileStore.Intent, ProfileStore.State, Nothing> {
     sealed interface Intent {
@@ -290,9 +285,8 @@ class ProfileStoreFactory(
                             dispatch(ProfileStore.Message.ClearError)
 
 
-
-                                // TODO: Реализовать обновление профиля через репозиторий
-                                dispatch(ProfileStore.Message.SaveProfileSuccess)
+                            // TODO: Реализовать обновление профиля через репозиторий
+                            dispatch(ProfileStore.Message.SaveProfileSuccess)
 
 
                         }
@@ -306,7 +300,7 @@ class ProfileStoreFactory(
 
 
                             val result = authUseCases.logout()
-                            l+=1
+                            l += 1
                             logger.i("ProfileStore: Count $l")
 
                             result

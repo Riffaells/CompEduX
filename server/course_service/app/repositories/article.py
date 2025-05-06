@@ -1,11 +1,10 @@
 from typing import List, Optional
 from uuid import UUID
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, update, delete
-from sqlalchemy.orm import selectinload
 
 from app.models.article import Article
 from app.schemas.article import ArticleCreate, ArticleUpdate
+from sqlalchemy import select, func, update, delete
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class ArticleRepository:
@@ -45,11 +44,11 @@ class ArticleRepository:
         return result.scalars().first()
 
     async def get_articles(self,
-                          course_id: UUID,
-                          skip: int = 0,
-                          limit: int = 100,
-                          language: Optional[str] = None,
-                          is_published: Optional[bool] = None) -> tuple[List[Article], int]:
+                           course_id: UUID,
+                           skip: int = 0,
+                           limit: int = 100,
+                           language: Optional[str] = None,
+                           is_published: Optional[bool] = None) -> tuple[List[Article], int]:
         query = select(Article).where(Article.course_id == course_id)
 
         if language:

@@ -1,7 +1,6 @@
 package components.settings.security
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -11,18 +10,17 @@ import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import compedux.core.ui.generated.resources.*
 import component.app.settings.store.SettingsStore
 import components.settings.security.components.SecuritySettingItem
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.resources.stringResource
-import compedux.core.ui.generated.resources.Res
-import compedux.core.ui.generated.resources.*
 
 @OptIn(ExperimentalResourceApi::class)
 @Composable
@@ -210,7 +208,7 @@ fun SecuritySettingsContent(
 
                 Text(
                     text = stringResource(Res.string.security_additional_settings) + " " +
-                           stringResource(Res.string.settings_coming_soon),
+                            stringResource(Res.string.settings_coming_soon),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

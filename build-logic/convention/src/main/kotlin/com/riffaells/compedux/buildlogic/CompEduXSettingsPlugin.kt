@@ -1,10 +1,10 @@
 package com.riffaells.compedux.buildlogic
 
+import libs
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.dsl.DependencyHandler
 import org.gradle.kotlin.dsl.dependencies
-import libs
 
 class CompEduXSettingsPlugin : Plugin<Project> {
     override fun apply(target: Project) {

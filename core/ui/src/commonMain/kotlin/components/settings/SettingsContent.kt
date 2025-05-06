@@ -1,22 +1,18 @@
 package components.settings
 
-import androidx.compose.animation.*
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.clickable
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.stack.Children
@@ -25,21 +21,15 @@ import com.arkivanov.decompose.extensions.compose.stack.animation.plus
 import com.arkivanov.decompose.extensions.compose.stack.animation.slide
 import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import compedux.core.ui.generated.resources.Res
 import compedux.core.ui.generated.resources.*
 import component.app.settings.SettingsComponent
-import component.app.settings.store.SettingsStore
 import components.settings.base.SettingCategory
 import components.settings.base.SettingCategoryItem
-import components.settings.appearance.AppearanceSettingsContent
 import components.settings.base.SettingsScaffold
-import components.settings.language.LanguageSettingsContent
 import components.settings.model.CategoryState
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.resources.stringResource
-import ui.icon.RIcons
 
 /**
  * Композабл для отображения экрана настроек
@@ -65,32 +55,40 @@ fun SettingsContent(
                         component = component,
                         title = stringResource(Res.string.settings_category_appearance)
                     )
+
                     SettingsComponent.SettingsCategory.LANGUAGE -> CategoryState.Language(
                         component = component,
                         title = stringResource(Res.string.settings_category_language)
                     )
+
                     SettingsComponent.SettingsCategory.NETWORK -> CategoryState.Network(
                         component = component,
                         title = stringResource(Res.string.settings_category_network)
                     )
+
                     SettingsComponent.SettingsCategory.SECURITY -> CategoryState.Security(
                         component = component,
                         title = stringResource(Res.string.settings_category_security)
                     )
+
                     SettingsComponent.SettingsCategory.NOTIFICATIONS -> CategoryState.Notifications(
                         component = component,
                         title = stringResource(Res.string.settings_category_notifications)
                     )
+
                     SettingsComponent.SettingsCategory.STORAGE -> CategoryState.Storage(
                         title = stringResource(Res.string.settings_category_storage)
                     )
+
                     SettingsComponent.SettingsCategory.EXPERIMENTAL -> CategoryState.Experimental(
                         component = component,
                         title = stringResource(Res.string.settings_category_experimental)
                     )
+
                     SettingsComponent.SettingsCategory.SYSTEM -> CategoryState.System(
                         title = stringResource(Res.string.settings_category_system)
                     )
+
                     SettingsComponent.SettingsCategory.PROFILE -> CategoryState.Profile(
                         component = component,
                         title = stringResource(Res.string.settings_category_profile)

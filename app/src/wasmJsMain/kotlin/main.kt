@@ -14,12 +14,9 @@ import org.kodein.di.direct
 import org.kodein.di.factory
 import org.kodein.di.instance
 
-import kotlinx.browser.window
-
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalDecomposeApi::class)
 fun main() {
     // Получаем логгер из DI
-
 
 
     val logger = appDI.direct.instance<Logger>()

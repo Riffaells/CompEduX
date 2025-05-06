@@ -4,7 +4,9 @@ This module provides various utility classes and functions used throughout the C
 
 ## NavigationExecutor
 
-The `NavigationExecutor` is a utility class designed to solve threading issues when working with Decompose navigation. It ensures that all navigation operations are executed on the main thread and provides error handling and logging capabilities.
+The `NavigationExecutor` is a utility class designed to solve threading issues when working with Decompose navigation.
+It ensures that all navigation operations are executed on the main thread and provides error handling and logging
+capabilities.
 
 ### Key Features
 

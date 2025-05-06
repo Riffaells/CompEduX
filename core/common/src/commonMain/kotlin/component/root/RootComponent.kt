@@ -11,6 +11,8 @@ import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
+import component.DefaultTechnologyTreeComponent
+import component.TechnologyTreeComponentParams
 import component.app.auth.AuthComponentParams
 import component.app.auth.DefaultAuthComponent
 import component.app.main.DefaultMainComponent
@@ -18,8 +20,6 @@ import component.app.main.MainComponentParams
 import component.app.room.DefaultRoomComponent
 import component.app.room.RoomComponentParams
 import component.app.settings.DefaultSettingsComponent
-import component.DefaultTechnologyTreeComponent
-import component.TechnologyTreeComponentParams
 import component.root.RootComponent.Child.*
 import component.root.store.RootStore
 import component.root.store.RootStoreFactory

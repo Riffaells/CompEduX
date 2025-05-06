@@ -7,9 +7,9 @@
 загружает переменные окружения и запускает FastAPI приложение с uvicorn.
 """
 import os
+import socket
 import sys
 import time
-import socket
 from pathlib import Path
 
 import uvicorn
@@ -42,7 +42,7 @@ load_dotenv(dotenv_path=env_path)
 os.environ["PYTHONUNBUFFERED"] = "1"
 
 # Импортируем логгер после настройки путей
-from common.logger import get_logger, initialize_logging, setup_logging_interceptors
+from common.logger import initialize_logging, setup_logging_interceptors
 
 # Настраиваем перехватчики логов
 interceptors = setup_logging_interceptors(
@@ -72,6 +72,7 @@ def check_port_available(host, port):
     except Exception as e:
         return False, e
 
+
 def find_available_port(start_port, end_port=None, host='127.0.0.1'):
     """Находит доступный порт в заданном диапазоне"""
     if end_port is None:
@@ -83,6 +84,7 @@ def find_available_port(start_port, end_port=None, host='127.0.0.1'):
             return port
 
     return None  # Не нашли свободный порт
+
 
 def main():
     """
@@ -149,12 +151,13 @@ def main():
             host=host,
             port=port,
             log_level="critical",  # Минимальный уровень логов
-            access_log=False,      # Отключаем access logs
-            use_colors=False       # Отключаем цвета для чистоты логов
+            access_log=False,  # Отключаем access logs
+            use_colors=False  # Отключаем цвета для чистоты логов
         )
     except Exception as e:
         logger.error(f"Failed to start Course Service: {str(e)}", exc_info=True)
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

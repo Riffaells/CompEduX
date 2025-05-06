@@ -126,7 +126,10 @@ abstract class BaseSettings(protected val settings: Settings) {
      *
      * // TODO: Реализовать более эффективную сериализацию списков с поддержкой экранирования запятых
      */
-    protected fun createStringListSetting(key: String, defaultValue: List<String> = emptyList()): Setting<List<String>> {
+    protected fun createStringListSetting(
+        key: String,
+        defaultValue: List<String> = emptyList()
+    ): Setting<List<String>> {
         return Setting(
             key = key,
             defaultValue = defaultValue,

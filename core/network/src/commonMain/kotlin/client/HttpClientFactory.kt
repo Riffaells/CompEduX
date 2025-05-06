@@ -1,8 +1,12 @@
 package client
 
+// Import necessary classes for network error handling
+import com.riffaells.compedux.BuildConfig
 import config.NetworkConfig
 import io.ktor.client.*
+import io.ktor.client.call.*
 import io.ktor.client.engine.*
+import io.ktor.client.network.sockets.*
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.auth.*
 import io.ktor.client.plugins.auth.providers.*
@@ -12,19 +16,13 @@ import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.util.*
+import kotlinx.coroutines.runBlocking
+import kotlinx.io.IOException
 import kotlinx.serialization.json.Json
 import logging.Logger
-import platform.Platform
-import platform.PlatformInfo
-import com.riffaells.compedux.BuildConfig
-// Import necessary classes for network error handling
-import io.ktor.client.network.sockets.ConnectTimeoutException
-import io.ktor.client.network.sockets.SocketTimeoutException
-import kotlinx.io.IOException
-import io.ktor.client.call.*
 import model.auth.NetworkAuthResponse
 import model.auth.NetworkRefreshTokenRequest
-import kotlinx.coroutines.runBlocking
+import platform.Platform
 
 /**
  * Factory for creating HTTP client
@@ -147,18 +145,22 @@ class HttpClientFactory(
                             response,
                             ErrorKeys.UNAUTHORIZED
                         )
+
                         403 -> throw ClientRequestException(
                             response,
                             ErrorKeys.FORBIDDEN
                         )
+
                         404 -> throw ClientRequestException(
                             response,
                             ErrorKeys.NOT_FOUND
                         )
+
                         422 -> throw ClientRequestException(
                             response,
                             ErrorKeys.VALIDATION_ERROR
                         )
+
                         in 500..599 -> throw ServerResponseException(
                             response,
                             ErrorKeys.SERVER_ERROR
@@ -188,6 +190,7 @@ class HttpClientFactory(
                         is SocketTimeoutException,
                         is HttpRequestTimeoutException ->
                             throw IOException(ErrorKeys.CONNECTION_ERROR, exception)
+
                         else -> throw exception
                     }
                 }

@@ -402,13 +402,13 @@ class DatabaseInitializer:
                 # Создание базы данных с заданными параметрами
                 cursor.execute(
                     sql.SQL("""
-                    CREATE DATABASE {}
-                        OWNER {}
-                        ENCODING 'UTF8'
-                        LC_COLLATE '{}'
-                        LC_CTYPE '{}'
-                        TEMPLATE template0
-                    """).format(
+                            CREATE DATABASE {}
+                                OWNER {}
+                                ENCODING 'UTF8'
+                                LC_COLLATE '{}'
+                                LC_CTYPE '{}'
+                                TEMPLATE template0
+                            """).format(
                         sql.Identifier(db_name),
                         sql.Identifier(owner),
                         sql.SQL(locale_collate),
@@ -473,13 +473,13 @@ class DatabaseInitializer:
                 with conn.cursor() as cursor:
                     cursor.execute(
                         sql.SQL("""
-                        CREATE DATABASE {}
-                            OWNER {}
-                            ENCODING 'UTF8'
-                            LC_COLLATE '{}'
-                            LC_CTYPE '{}'
-                            TEMPLATE template0
-                        """).format(
+                                CREATE DATABASE {}
+                                    OWNER {}
+                                    ENCODING 'UTF8'
+                                    LC_COLLATE '{}'
+                                    LC_CTYPE '{}'
+                                    TEMPLATE template0
+                                """).format(
                             sql.Identifier(db_name),
                             sql.Identifier(owner),
                             sql.SQL(locale),

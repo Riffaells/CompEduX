@@ -3,9 +3,14 @@ package di
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
+import component.DefaultTechnologyTreeComponent
+import component.TechnologyTreeComponentParams
 import component.app.auth.*
 import component.app.auth.login.DefaultLoginComponent
 import component.app.auth.register.DefaultRegisterComponent
+import component.app.course.CourseComponentParams
+import component.app.course.course.CourseComponentParams as NewCourseComponentParams
+import component.app.course.course.DefaultCourseComponent
 import component.app.main.DefaultMainComponent
 import component.app.main.MainComponentParams
 import component.app.main.store.MainStoreFactory
@@ -20,8 +25,6 @@ import component.app.room.diagram.store.DiagramStoreFactory
 import component.app.room.store.RoomStoreFactory
 import component.app.settings.DefaultSettingsComponent
 import component.app.settings.SettingsComponentParams
-import component.DefaultTechnologyTreeComponent
-import component.TechnologyTreeComponentParams
 import component.root.DefaultRootComponent
 import component.root.RootComponentParams
 import component.root.store.RootStoreFactory
@@ -140,6 +143,26 @@ val componentModule = DI.Module("componentModule") {
             di = di,
             componentContext = params.componentContext,
             onLogoutClicked = params.onLogout,
+        )
+    }
+
+    // Курсы - новая модель
+    bindFactory<NewCourseComponentParams, DefaultCourseComponent> { params ->
+        DefaultCourseComponent(
+            componentContext = params.componentContext,
+            courseId = params.courseId,
+            onBack = params.onBack,
+            di = di
+        )
+    }
+
+    // Курсы - старая модель (удалить когда новая будет полностью внедрена)
+    bindFactory<CourseComponentParams, DefaultCourseComponent> { params ->
+        DefaultCourseComponent(
+            componentContext = params.componentContext,
+            courseId = null,
+            onBack = params.onBack,
+            di = di
         )
     }
 }

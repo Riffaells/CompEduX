@@ -2,7 +2,7 @@
 Pydantic schemas for localization-related data
 """
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -15,6 +15,7 @@ class LocalizationBase(BaseModel):
         ...,
         description="Dictionary with language codes as keys and dictionaries of text keys and translations as values"
     )
+    description: Optional[str] = Field(None, description="Optional description of this localization namespace")
 
 
 class LocalizationCreate(LocalizationBase):
@@ -29,9 +30,10 @@ class LocalizationUpdate(BaseModel):
         None,
         description="Dictionary with language codes as keys and dictionaries of text keys and translations as values"
     )
+    description: Optional[str] = Field(None, description="Optional description of this localization namespace")
 
 
-class Localization(LocalizationBase):
+class LocalizationRead(LocalizationBase):
     """Schema for localization response"""
     id: UUID
     created_at: datetime
@@ -39,6 +41,19 @@ class Localization(LocalizationBase):
 
     class Config:
         from_attributes = True
+
+
+class TranslationStatistics(BaseModel):
+    """Schema for translation statistics"""
+    language: str
+    total_keys: int
+    translated_keys: int
+    completion_percentage: float
+
+
+class LocalizationWithStatistics(LocalizationRead):
+    """Schema for localization with translation statistics"""
+    statistics: List[TranslationStatistics]
 
 
 class TranslationResponse(BaseModel):

@@ -1,10 +1,8 @@
 package logging
 
 import io.github.aakira.napier.Antilog
-import io.github.aakira.napier.Napier
 import org.kodein.di.DI
 import org.kodein.di.bind
-import org.kodein.di.instance
 import org.kodein.di.singleton
 
 /**

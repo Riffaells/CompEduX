@@ -56,7 +56,6 @@ import uuid
 import contextvars
 from fastapi.responses import JSONResponse
 import traceback
-from starlette.middleware.base import BaseHTTPMiddleware
 from sqlalchemy.sql import text
 
 # Disable SQLAlchemy's built-in logging at module load time
@@ -77,13 +76,10 @@ for logger_name in ['sqlalchemy.engine', 'sqlalchemy.pool', 'sqlalchemy.orm', 's
 from common.logger.middleware import setup_request_logging
 
 # Импортируем новый роутер из api вместо старого из routes
-from app.api.api import api_router
-from app.core.config import settings
-from app.models.base import Base
-from app.db.db import database, init_db, get_async_session, engine
-from app.core.exceptions import APIException, api_exception_handler, validation_exception_handler
-from app.cache import configure_cache, cleanup_cache
-from app.models.course import Course
+from .api.api import api_router
+from .core.config import settings
+from .db.db import database, init_db, engine
+from .core.exceptions import APIException, api_exception_handler, validation_exception_handler
 
 # Create a context variable for request IDs
 request_id_var = contextvars.ContextVar("request_id", default=None)
@@ -167,6 +163,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # Объединенный middleware для обработки запросов и добавления метаданных
 @app.middleware("http")
 async def combined_middleware(request: Request, call_next):
@@ -213,6 +210,7 @@ async def combined_middleware(request: Request, call_next):
         )
         raise
 
+
 # Настройка middleware для логирования запросов
 setup_request_logging(
     app=app,
@@ -224,12 +222,6 @@ setup_request_logging(
     ],
     log_request_headers=False
 )
-
-@app.get("/")
-async def root():
-    """Root endpoint for health check"""
-    logger.info("[bold green]Health check endpoint called[/bold green]")
-    return {"message": "Course Service is running"}
 
 
 @app.get("/health",
@@ -267,7 +259,7 @@ async def health_check():
 
 
 # Connect API routes
-app.include_router(api_router, prefix=settings.API_V1_STR)
+app.include_router(api_router, prefix="")
 
 
 # Global exception handler

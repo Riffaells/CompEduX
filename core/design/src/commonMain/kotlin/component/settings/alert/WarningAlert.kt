@@ -1,7 +1,9 @@
 package component.settings.alert
 
 import androidx.compose.animation.*
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.EaseInCubic
+import androidx.compose.animation.core.EaseOutCubic
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -9,8 +11,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material.icons.outlined.Visibility
-import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -49,7 +49,7 @@ fun WarningAlert(
     var isExpanded by remember { mutableStateOf(true) }
     var isShown by remember { mutableStateOf(isVisible) }
 
-    val alertIcon = icon ?: when(severity) {
+    val alertIcon = icon ?: when (severity) {
         AlertSeverity.WARNING, AlertSeverity.ERROR -> Icons.Default.Warning
         AlertSeverity.INFO -> Icons.Default.Info
     }
@@ -83,7 +83,7 @@ fun WarningAlert(
         enter = fadeIn(animationSpec = tween(durationMillis = 300)) +
                 expandVertically(animationSpec = tween(durationMillis = 300, easing = EaseOutCubic)),
         exit = fadeOut(animationSpec = tween(durationMillis = 300)) +
-               shrinkVertically(animationSpec = tween(durationMillis = 300, easing = EaseInCubic))
+                shrinkVertically(animationSpec = tween(durationMillis = 300, easing = EaseInCubic))
     ) {
         Surface(
             modifier = modifier
@@ -193,6 +193,7 @@ enum class AlertSeverity {
                 iconColor = MaterialTheme.colorScheme.error,
                 borderColor = MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
             )
+
             ERROR -> AlertColors(
                 backgroundColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f),
                 messageBackgroundColor = Color.Transparent,
@@ -200,6 +201,7 @@ enum class AlertSeverity {
                 iconColor = MaterialTheme.colorScheme.error,
                 borderColor = MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
             )
+
             INFO -> AlertColors(
                 backgroundColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f),
                 messageBackgroundColor = Color.Transparent,

@@ -109,7 +109,7 @@ async def api_exception_handler(request: Request, exc: APIException) -> JSONResp
             error=exc.error,
             message=exc.message,
             detailed=exc.detailed
-        ).dict(exclude_none=True)
+        ).model_dump(exclude_none=True)
     )
 
 
@@ -131,5 +131,5 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
             error="VALIDATION_ERROR",
             message="Request validation error",
             detailed=detailed_message
-        ).dict(exclude_none=True)
+        ).model_dump(exclude_none=True)
     )

@@ -1,7 +1,6 @@
 package components.auth
 
 import androidx.compose.animation.*
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -13,12 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -301,6 +295,7 @@ fun ProfileContent(component: ProfileComponent) {
                             )
                         }
                     }
+
                     1 -> { // Социальные сети
                         Column(
                             verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -382,6 +377,7 @@ fun ProfileContent(component: ProfileComponent) {
                             )
                         }
                     }
+
                     2 -> { // Настройки
                         Column(
                             verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -460,7 +456,7 @@ fun ProfileContent(component: ProfileComponent) {
                                     }
 
                                     Text(
-                                        when(fontSize) {
+                                        when (fontSize) {
                                             "small" -> "Маленький"
                                             "medium" -> "Средний"
                                             "large" -> "Большой"
@@ -612,7 +608,7 @@ fun ProfileContent(component: ProfileComponent) {
                                     }
 
                                     Text(
-                                        when(beveragePreference) {
+                                        when (beveragePreference) {
                                             "coffee" -> "Кофе"
                                             "tea" -> "Чай"
                                             "water" -> "Вода"
@@ -623,6 +619,7 @@ fun ProfileContent(component: ProfileComponent) {
                             )
                         }
                     }
+
                     3 -> { // Безопасность (пароль)
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -771,7 +768,7 @@ fun ProfileContent(component: ProfileComponent) {
                         enabled = !state.loading &&
                                 username.isNotEmpty() &&
                                 (currentPassword.isEmpty() ||
-                                (newPassword.isNotEmpty() && newPassword == confirmPassword)),
+                                        (newPassword.isNotEmpty() && newPassword == confirmPassword)),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary
                         )

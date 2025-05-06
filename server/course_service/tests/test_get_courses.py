@@ -3,12 +3,14 @@
 """
 import asyncio
 import json
-import sys
 import os
+import sys
+
 import aiohttp
 
 # Добавляем путь к корню проекта, чтобы найти модули
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+
 
 async def get_courses():
     """Получение списка курсов"""
@@ -40,6 +42,7 @@ async def get_courses():
                 print(f"Ошибка при получении курсов: {error}")
                 return None
 
+
 async def get_course_by_id(course_id):
     """Получение информации о конкретном курсе по ID"""
     # URL сервиса курсов
@@ -61,6 +64,7 @@ async def get_course_by_id(course_id):
                 print(f"Ошибка при получении курса: {error}")
                 return None
 
+
 async def get_course_by_slug(slug):
     """Получение информации о конкретном курсе по slug"""
     # URL сервиса курсов
@@ -81,6 +85,7 @@ async def get_course_by_slug(slug):
                 error = await response.text()
                 print(f"Ошибка при получении курса: {error}")
                 return None
+
 
 async def main():
     print("Получение списка курсов")
@@ -105,6 +110,7 @@ async def main():
         await get_course_by_slug(first_course['slug'])
     else:
         print("Курсы не найдены или произошла ошибка при получении списка")
+
 
 if __name__ == "__main__":
     asyncio.run(main())

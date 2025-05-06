@@ -104,7 +104,7 @@ class LoginStoreFactory(
             }
         }
 
-        var  d =0
+        var d = 0
         override fun executeIntent(intent: LoginStore.Intent) {
             when (intent) {
                 is LoginStore.Intent.SetUsername -> {

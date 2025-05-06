@@ -1,6 +1,7 @@
 # Authentication Module
 
-This module provides a complete authentication solution for the CompEduX application, implemented using the Decompose library for navigation and MVIKotlin for state management.
+This module provides a complete authentication solution for the CompEduX application, implemented using the Decompose
+library for navigation and MVIKotlin for state management.
 
 ## Architecture
 
@@ -22,7 +23,8 @@ The main entry point for the authentication flow. It manages navigation between 
 
 ### State Management
 
-Authentication state is managed through `AuthStore`, which provides a reactive state flow that components can observe. The state includes:
+Authentication state is managed through `AuthStore`, which provides a reactive state flow that components can observe.
+The state includes:
 
 - **isAuthenticated**: Boolean indicating if the user is currently authenticated
 - **user**: User information when authenticated
@@ -88,4 +90,5 @@ Comprehensive error handling is implemented throughout the module:
 
 ## Configuration
 
-Authentication endpoints and behavior can be configured through the `AuthUseCases` interface, which is injected into the `AuthComponent`.
+Authentication endpoints and behavior can be configured through the `AuthUseCases` interface, which is injected into the
+`AuthComponent`.

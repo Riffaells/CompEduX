@@ -7,12 +7,12 @@ import logging
 import os
 from contextlib import asynccontextmanager
 from functools import lru_cache, wraps
-from typing import Optional, Dict, Any, Callable, TypeVar, cast
+from typing import Optional, Dict, Any, Callable, TypeVar
 
 from rich.console import Console
 from rich.logging import RichHandler
 
-from common.logger.config import get_default_theme, format_log_time, format_sql_error
+from common.logger.config import get_default_theme, format_sql_error
 
 # Type variables for function annotations
 T = TypeVar('T')

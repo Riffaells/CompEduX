@@ -1,17 +1,14 @@
 package components.settings.experimental
 
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Science
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,16 +21,14 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import compedux.core.ui.generated.resources.*
 import component.app.settings.store.SettingsStore
 import component.settings.animation.glowingPulse
 import component.settings.badge.ExperimentalBadge
 import component.settings.base.FuturisticSettingItem
 import component.settings.base.FuturisticSlider
 import component.settings.headers.SectionHeader
-import component.settings.section.CategoryBlock
 import components.settings.base.SettingsScaffold
-import compedux.core.ui.generated.resources.Res
-import compedux.core.ui.generated.resources.*
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.resources.stringResource
 

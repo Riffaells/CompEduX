@@ -21,5 +21,3 @@ allprojects {
         targetCompatibility = libs.versions.jvm.get()
     }
 }
-
-

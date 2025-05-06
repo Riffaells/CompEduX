@@ -193,26 +193,32 @@ internal class RootStoreFactory(
                     dispatch(Msg.NavigateTo(NavigationConfig.Main))
                     handleNavigateTo(NavigationConfig.Main)
                 }
+
                 is RootStore.Intent.NavigateToSettings -> {
                     dispatch(Msg.NavigateTo(NavigationConfig.Settings))
                     handleNavigateTo(NavigationConfig.Settings)
                 }
+
                 is RootStore.Intent.NavigateToDevMap -> {
                     dispatch(Msg.NavigateTo(NavigationConfig.Skiko))
                     handleNavigateTo(NavigationConfig.Skiko)
                 }
+
                 is RootStore.Intent.NavigateToSkiko -> {
                     dispatch(Msg.NavigateTo(NavigationConfig.Skiko))
                     handleNavigateTo(NavigationConfig.Skiko)
                 }
+
                 is RootStore.Intent.NavigateToTree -> {
                     dispatch(Msg.NavigateTo(NavigationConfig.Tree))
                     handleNavigateTo(NavigationConfig.Tree)
                 }
+
                 is RootStore.Intent.NavigateToAuth -> {
                     dispatch(Msg.NavigateTo(NavigationConfig.Auth))
                     handleNavigateTo(NavigationConfig.Auth)
                 }
+
                 is RootStore.Intent.NavigateToRoom -> {
                     dispatch(Msg.NavigateTo(NavigationConfig.Room(intent.roomId)))
                     handleNavigateTo(NavigationConfig.Room(intent.roomId))

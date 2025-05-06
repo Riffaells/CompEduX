@@ -72,18 +72,21 @@ class NetworkAuthApiImpl(
                     details = null
                 )
             )
+
             is ServerResponseException -> DomainResult.Error(
                 DomainError.serverError(
                     message = "error_server_unavailable",
                     details = e.message
                 )
             )
+
             is IOException, is ConnectTimeoutException, is SocketTimeoutException -> DomainResult.Error(
                 DomainError.networkError(
                     message = "error_network_connectivity",
                     details = e.message
                 )
             )
+
             else -> DomainResult.Error(
                 DomainError.unknownError(
                     message = "error_unknown",

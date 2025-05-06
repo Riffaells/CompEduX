@@ -2,11 +2,7 @@ package api.auth
 
 import model.DomainResult
 import model.UserDomain
-import model.auth.AuthResponseDomain
-import model.auth.LoginRequestDomain
-import model.auth.RefreshTokenRequestDomain
-import model.auth.RegisterRequestDomain
-import model.auth.ServerStatusResponseDomain
+import model.auth.*
 
 /**
  * Интерфейс для работы с API аутентификации из доменного слоя

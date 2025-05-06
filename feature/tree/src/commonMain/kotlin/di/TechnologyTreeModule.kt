@@ -1,7 +1,7 @@
 package di
 
-import component.TechnologyTreeStoreFactory
 import component.TechnologyTreeStore
+import component.TechnologyTreeStoreFactory
 import org.kodein.di.DI
 import org.kodein.di.bindProvider
 import org.kodein.di.instance
@@ -11,7 +11,7 @@ val technologyTreeModule = DI.Module("TechnologyTreeModule") {
     bindProvider<TechnologyTreeStore> {
         TechnologyTreeStoreFactory(
             storeFactory = instance(),
-            di= di
+            di = di
         ).create()
     }
 

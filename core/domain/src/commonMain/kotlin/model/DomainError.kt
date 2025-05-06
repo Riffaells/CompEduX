@@ -19,9 +19,9 @@ data class DomainError(
      */
     fun isAuthError(): Boolean {
         return code == ErrorCode.UNAUTHORIZED ||
-               code == ErrorCode.FORBIDDEN ||
-               code == ErrorCode.TOKEN_EXPIRED ||
-               code == ErrorCode.INVALID_TOKEN
+                code == ErrorCode.FORBIDDEN ||
+                code == ErrorCode.TOKEN_EXPIRED ||
+                code == ErrorCode.INVALID_TOKEN
     }
 
     companion object {

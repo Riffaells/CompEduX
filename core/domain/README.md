@@ -1,13 +1,14 @@
 # Domain Module
 
-The domain module is the core of the Clean Architecture implementation in CompEduX. It contains business logic, entity models, and interfaces that define the business rules of the application.
+The domain module is the core of the Clean Architecture implementation in CompEduX. It contains business logic, entity
+models, and interfaces that define the business rules of the application.
 
 ## Structure
 
 The module is organized into several packages:
 
 - **api** - Interfaces for external API communication
-  - **auth** - Authentication-related API interfaces (AuthApi, NetworkAuthApi)
+    - **auth** - Authentication-related API interfaces (AuthApi, NetworkAuthApi)
 - **config** - Configuration interfaces for various services
 - **di** - Dependency injection modules for domain layer
 - **model** - Domain entities that represent business objects
@@ -102,7 +103,8 @@ This separation allows for different levels of abstraction in the application.
 
 ## Usage
 
-The domain module is used by the data module to implement repositories and by UI components to interact with business logic:
+The domain module is used by the data module to implement repositories and by UI components to interact with business
+logic:
 
 ```kotlin
 // Example of a use case implementation

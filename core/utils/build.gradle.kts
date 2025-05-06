@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
-
 plugins {
     alias(libs.plugins.compedux.multiplatform)
     alias(libs.plugins.compedux.multiplatform.library)

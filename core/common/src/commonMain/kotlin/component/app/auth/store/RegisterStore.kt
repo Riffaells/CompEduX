@@ -9,10 +9,10 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import logging.Logger
 import model.auth.AuthStateDomain
+import navigation.rDispatchers
 import org.kodein.di.DI
 import org.kodein.di.DIAware
 import org.kodein.di.instance
-import navigation.rDispatchers
 
 /**
  * Интерфейс хранилища состояния для экрана регистрации
@@ -28,6 +28,7 @@ interface RegisterStore : Store<RegisterStore.Intent, RegisterStore.State, Nothi
             val email: String,
             val password: String
         ) : Intent
+
         data object NavigateToLogin : Intent
         data object ErrorShown : Intent
     }
@@ -93,11 +94,13 @@ class RegisterStoreFactory(
                             logger.d("RegisterStore: Auth state changed to Loading")
                             dispatch(Msg.StartLoading)
                         }
+
                         is AuthStateDomain.Authenticated -> {
                             logger.i("RegisterStore: User authenticated")
                             dispatch(Msg.StopLoading)
                             dispatch(Msg.SetAuthenticated)
                         }
+
                         is AuthStateDomain.Unauthenticated -> {
                             logger.d("RegisterStore: User unauthenticated")
                             dispatch(Msg.StopLoading)
@@ -108,6 +111,7 @@ class RegisterStoreFactory(
                                 dispatch(Msg.SetError(error))
                             }
                         }
+
                         else -> {
                             logger.w("RegisterStore: Unknown auth state: $authState")
                         }
@@ -124,16 +128,20 @@ class RegisterStoreFactory(
                     dispatch(Msg.ClearError)
 
                     // Делегируем регистрацию глобальному AuthStore
-                    authStore.accept(AuthStore.Intent.Register(
-                        username = intent.username,
-                        email = intent.email,
-                        password = intent.password
-                    ))
+                    authStore.accept(
+                        AuthStore.Intent.Register(
+                            username = intent.username,
+                            email = intent.email,
+                            password = intent.password
+                        )
+                    )
                 }
+
                 is RegisterStore.Intent.NavigateToLogin -> {
                     logger.d("RegisterStore: Navigate to login")
                     dispatch(Msg.NavigateToLogin)
                 }
+
                 is RegisterStore.Intent.ErrorShown -> {
                     logger.d("RegisterStore: Error shown")
                     dispatch(Msg.ClearError)

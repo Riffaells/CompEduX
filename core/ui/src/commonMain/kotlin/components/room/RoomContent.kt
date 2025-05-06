@@ -7,9 +7,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -33,7 +30,8 @@ import ui.icon.RIcons
 @Composable
 fun RoomContent(
     modifier: Modifier = Modifier,
-    component: RoomComponent) {
+    component: RoomComponent
+) {
     // Получаем состояние из компонента
     val state by component.state.collectAsState()
     val diagramSlot by component.diagramSlot.subscribeAsState()

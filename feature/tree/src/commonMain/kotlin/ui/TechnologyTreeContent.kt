@@ -1,29 +1,22 @@
 package ui
 
-import androidx.compose.foundation.Canvas
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import component.TechnologyTreeComponent
 import component.TechnologyTreeStore
 import ui.tree.NodeLabels
 import ui.tree.SelectedNodeInfo
 import ui.tree.TreeCanvas
-import ui.theme.TreeTheme
-import kotlin.math.sqrt
 
 @Composable
 fun TechnologyTreeContent(
@@ -121,19 +114,20 @@ fun TechnologyTreeContent(
                 // Канвас для отрисовки дерева и взаимодействия
                 Box(modifier = Modifier.fillMaxSize()) {
                     // Simplified to only handle panning
-                    Box(modifier = Modifier
+                    Box(
+                        modifier = Modifier
                             .fillMaxSize()
-                        .pointerInput(Unit) {
-                            detectDragGestures(
-                                onDragStart = { isDragging = true },
-                                onDrag = { change, dragAmount ->
-                                    change.consume()
-                                    // Only panning, no node movement
-                                    panOffset += dragAmount
-                                },
-                                onDragEnd = { isDragging = false }
-                            )
-                        }
+                            .pointerInput(Unit) {
+                                detectDragGestures(
+                                    onDragStart = { isDragging = true },
+                                    onDrag = { change, dragAmount ->
+                                        change.consume()
+                                        // Only panning, no node movement
+                                        panOffset += dragAmount
+                                    },
+                                    onDragEnd = { isDragging = false }
+                                )
+                            }
                     )
 
                     // Используем TreeCanvas компонент для отрисовки с улучшенной анимацией

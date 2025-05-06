@@ -2,12 +2,12 @@ package client
 
 import io.ktor.client.*
 import io.ktor.client.call.*
+import io.ktor.client.plugins.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
-import io.ktor.client.plugins.*
 import io.ktor.http.*
-import logging.Logger
 import kotlinx.io.IOException
+import logging.Logger
 import model.DomainError
 import model.DomainResult
 import model.auth.NetworkErrorResponse
@@ -184,24 +184,28 @@ suspend inline fun <reified T, reified E> HttpClient.safeSendWithErrorBody(
                     )
                 }
             }
+
             is ServerResponseException -> DomainResult.Error(
                 DomainError.serverError(
                     message = "error_server_unavailable",
                     details = e.message
                 )
             )
+
             is HttpRequestTimeoutException -> DomainResult.Error(
                 DomainError.networkError(
                     message = "error_timeout",
                     details = e.message
                 )
             )
+
             is IOException -> DomainResult.Error(
                 DomainError.networkError(
                     message = "error_network_connectivity",
                     details = e.message
                 )
             )
+
             else -> DomainResult.Error(
                 DomainError.unknownError(
                     message = "error_unknown",

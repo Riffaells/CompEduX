@@ -26,14 +26,14 @@ import components.auth.AuthContent
 import components.main.MainContent
 import components.room.RoomContent
 import components.settings.SettingsContent
-import ui.TechnologyTreeContent
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import settings.AppearanceSettings
+import ui.TechnologyTreeContent
 import ui.theme.AppTheme
 import utils.getScreenWidth
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.delay
 
 /**
  * Корневой композабл, который отображает текущий дочерний компонент
@@ -52,7 +52,6 @@ fun RootContent(
     val blackBackground by component.appearanceSettings.blackBackgroundFlow.collectAsState()
 
 
-
     val screenWidth = getScreenWidth()
     val isLargeScreen = screenWidth > 840.dp
 
@@ -60,7 +59,7 @@ fun RootContent(
     val navigationState = rememberNavigationState(isLargeScreen)
 
     // Определяем тему
-    val isDarkTheme =  when (theme) {
+    val isDarkTheme = when (theme) {
         AppearanceSettings.ThemeOption.THEME_SYSTEM -> null
         AppearanceSettings.ThemeOption.THEME_DARK -> true
         AppearanceSettings.ThemeOption.THEME_LIGHT -> false

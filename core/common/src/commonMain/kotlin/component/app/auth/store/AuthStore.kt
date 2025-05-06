@@ -1,6 +1,9 @@
 package component.app.auth.store
 
-import com.arkivanov.mvikotlin.core.store.*
+import com.arkivanov.mvikotlin.core.store.Reducer
+import com.arkivanov.mvikotlin.core.store.SimpleBootstrapper
+import com.arkivanov.mvikotlin.core.store.Store
+import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import com.arkivanov.mvikotlin.extensions.coroutines.states
 import kotlinx.coroutines.CoroutineScope
@@ -14,11 +17,11 @@ import logging.Logger
 import model.DomainResult
 import model.UserDomain
 import model.auth.AuthStateDomain
+import navigation.rDispatchers
 import org.kodein.di.DI
 import org.kodein.di.DIAware
 import org.kodein.di.instance
 import usecase.auth.AuthUseCases
-import navigation.rDispatchers
 
 /**
  * Глобальное хранилище состояния аутентификации
@@ -189,6 +192,7 @@ class AuthStoreFactory(
                             }
                         }
                     }
+
                     is AuthStore.Intent.Register -> {
                         logger.d("Register intent received for username: ${intent.username}, email: ${intent.email}")
                         scope.launch {
@@ -211,6 +215,7 @@ class AuthStoreFactory(
                             }
                         }
                     }
+
                     is AuthStore.Intent.Logout -> {
                         logger.d("Logout intent received")
                         scope.launch {
@@ -234,6 +239,7 @@ class AuthStoreFactory(
                             }
                         }
                     }
+
                     is AuthStore.Intent.SetAuthenticated -> {
                         logger.d("Set authenticated intent: ${intent.authenticated}")
                         if (intent.authenticated) {
@@ -245,6 +251,7 @@ class AuthStoreFactory(
                             safeDispatch(Msg.ClearUser)
                         }
                     }
+
                     is AuthStore.Intent.CheckAuthStatus -> {
                         logger.d("Check auth status intent received")
                         scope.launch {
@@ -279,11 +286,13 @@ class AuthStoreFactory(
                     }
                     safeDispatch(Msg.StopLoading)
                 }
+
                 is DomainResult.Error -> {
                     logger.w("Authentication error: ${result.error.message}")
                     safeDispatch(Msg.SetError(result.error.message, result.error.details))
                     safeDispatch(Msg.StopLoading)
                 }
+
                 is DomainResult.Loading -> {
                     logger.d("Authentication in progress")
                     // Состояние загрузки уже установлено
@@ -301,18 +310,22 @@ class AuthStoreFactory(
                     userDomain = msg.userDomain,
                     isAuthenticated = true
                 )
+
                 is Msg.SetError -> copy(
                     error = msg.error,
                     errorDetails = msg.details
                 )
+
                 is Msg.ClearUser -> copy(
                     userDomain = null,
                     isAuthenticated = false
                 )
+
                 is Msg.ClearError -> copy(
                     error = null,
                     errorDetails = null
                 )
+
                 is Msg.SetAuthenticated -> copy(
                     isAuthenticated = true
                 )

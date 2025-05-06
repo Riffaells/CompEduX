@@ -11,11 +11,11 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import navigation.rDispatchers
 import org.kodein.di.DI
 import org.kodein.di.DIAware
 import org.kodein.di.instance
 import usecase.auth.AuthUseCases
-import navigation.rDispatchers
 
 interface RegisterComponent {
     val state: StateFlow<RegisterStore.State>
@@ -78,7 +78,8 @@ class DefaultRegisterComponent(
                 onLogin()
             }
 
-            else -> { /* Для других интентов никаких действий не требуется */ }
+            else -> { /* Для других интентов никаких действий не требуется */
+            }
         }
     }
 

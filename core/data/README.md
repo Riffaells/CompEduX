@@ -1,6 +1,7 @@
 # Data Module
 
-The data module is responsible for the application's data operations, implementing repository interfaces from the domain module and interacting with network and persistence layers.
+The data module is responsible for the application's data operations, implementing repository interfaces from the domain
+module and interacting with network and persistence layers.
 
 ## Structure
 
@@ -201,8 +202,10 @@ val dataModule = DI.Module("dataModule") {
 
 The data module provides two important implementations:
 
-1. **AuthRepositoryImpl**: Implements the domain's `AuthRepository` interface, using `NetworkAuthApi` for API calls and handling token management internally
-2. **DataAuthApiAdapter**: Implements the domain's `AuthApi` interface, providing a higher-level API abstraction on top of `NetworkAuthApi`
+1. **AuthRepositoryImpl**: Implements the domain's `AuthRepository` interface, using `NetworkAuthApi` for API calls and
+   handling token management internally
+2. **DataAuthApiAdapter**: Implements the domain's `AuthApi` interface, providing a higher-level API abstraction on top
+   of `NetworkAuthApi`
 
 This structure allows domain layer components to work with different abstraction levels according to their needs.
 
@@ -217,4 +220,5 @@ The data module ensures cross-platform compatibility by:
 
 ## Conclusion
 
-The data module serves as a bridge between the domain layer and the external data sources, implementing the business rules defined in the domain while handling the technical details of data retrieval and storage.
+The data module serves as a bridge between the domain layer and the external data sources, implementing the business
+rules defined in the domain while handling the technical details of data retrieval and storage.

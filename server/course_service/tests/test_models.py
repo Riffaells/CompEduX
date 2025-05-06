@@ -20,8 +20,6 @@ from app.models.tag import Tag
 from app.models.localization import Localization
 from app.models.technology_tree import TechnologyTree
 
-
-
 # Создаем логгер для тестов
 logger = get_logger("course_service.tests.models")
 
@@ -108,6 +106,7 @@ def test_models():
 
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     logger.info("Testing slug generation...")

@@ -1,6 +1,7 @@
 package component.navigation
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -45,7 +46,7 @@ fun BaseNavigationContainer(
     content: @Composable BoxScope.() -> Unit
 ) {
     // Логируем создание контейнера
-    Napier.d(tag = "BaseNavigationContainer") { "Создание контейнера с тенью и скруглением"  }
+    Napier.d(tag = "BaseNavigationContainer") { "Создание контейнера с тенью и скруглением" }
     val boxStartTime = Clock.System.now().toEpochMilliseconds()
 
     // Создаем стиль размытия на основе типа и цвета фона

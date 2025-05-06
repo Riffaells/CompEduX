@@ -2,7 +2,6 @@ package ui.tree
 
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -60,7 +59,8 @@ fun Modifier.handleNodeDragging(
                 }
 
                 if (offset.x in (nodeX - radius)..(nodeX + radius) &&
-                    offset.y in (nodeY - radius)..(nodeY + radius)) {
+                    offset.y in (nodeY - radius)..(nodeY + radius)
+                ) {
                     // Выбираем узел в начале перемещения
                     component.onEvent(TechnologyTreeStore.Intent.NodeClicked(node.id))
                     break
@@ -106,7 +106,8 @@ fun Modifier.handleNodeTapping(
             }
 
             if (tapOffset.x in (nodeX - radius)..(nodeX + radius) &&
-                tapOffset.y in (nodeY - radius)..(nodeY + radius)) {
+                tapOffset.y in (nodeY - radius)..(nodeY + radius)
+            ) {
                 component.onEvent(TechnologyTreeStore.Intent.NodeClicked(node.id))
                 break
             }
@@ -131,5 +132,5 @@ fun isPointInNode(
     }
 
     return point.x in (nodeX - radius)..(nodeX + radius) &&
-           point.y in (nodeY - radius)..(nodeY + radius)
+            point.y in (nodeY - radius)..(nodeY + radius)
 }

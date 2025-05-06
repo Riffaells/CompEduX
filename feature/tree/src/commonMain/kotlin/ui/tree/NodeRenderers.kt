@@ -2,16 +2,14 @@ package ui.tree
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import component.TechnologyTreeStore
-import kotlin.math.PI
-import kotlin.math.cos
-import kotlin.math.min
-import kotlin.math.sin
-import kotlin.math.sqrt
-import kotlin.math.atan2
+import kotlin.math.*
 
 /**
  * Файл содержит функции для отрисовки различных элементов дерева технологий:
@@ -28,19 +26,23 @@ fun getNodeColorGradient(node: TechnologyTreeStore.TreeNode, selectedNodeId: Str
             Color(0xFFFF9800),
             Color(0xFFE65100)
         )
+
         node.requirements.isEmpty() -> listOf(
             Color(0xFF4CAF50),
             Color(0xFF2E7D32)
         )
+
         else -> when (node.style) {
             "hexagon" -> listOf(
                 Color(0xFF2196F3),
                 Color(0xFF0D47A1)
             )
+
             "square" -> listOf(
                 Color(0xFFFFC107),
                 Color(0xFFFF6F00)
             )
+
             else -> listOf(
                 Color(0xFF42A5F5),
                 Color(0xFF1565C0)
@@ -192,7 +194,7 @@ fun DrawScope.drawSquareNode(
     // Тень
     drawRect(
         color = Color.Black.copy(alpha = 0.5f),
-        topLeft = Offset(x - size/2 + 2f, y - size/2 + 2f),
+        topLeft = Offset(x - size / 2 + 2f, y - size / 2 + 2f),
         size = Size(size, size)
     )
 
@@ -200,7 +202,7 @@ fun DrawScope.drawSquareNode(
     if (isSelected) {
         drawRect(
             color = nodeGradient.first().copy(alpha = 0.7f),
-            topLeft = Offset(x - (size+10)/2, y - (size+10)/2),
+            topLeft = Offset(x - (size + 10) / 2, y - (size + 10) / 2),
             size = Size(size + 10, size + 10)
         )
     }
@@ -209,24 +211,24 @@ fun DrawScope.drawSquareNode(
     drawRect(
         brush = Brush.linearGradient(
             colors = nodeGradient,
-            start = Offset(x - size/2, y - size/2),
-            end = Offset(x + size/2, y + size/2)
+            start = Offset(x - size / 2, y - size / 2),
+            end = Offset(x + size / 2, y + size / 2)
         ),
-        topLeft = Offset(x - size/2, y - size/2),
+        topLeft = Offset(x - size / 2, y - size / 2),
         size = Size(size, size)
     )
 
     // Добавление эффекта блика
     drawRect(
         color = Color.White.copy(alpha = 0.5f),
-        topLeft = Offset(x - size/2, y - size/2),
-        size = Size(size/2, size/2)
+        topLeft = Offset(x - size / 2, y - size / 2),
+        size = Size(size / 2, size / 2)
     )
 
     // Обводка
     drawRect(
         color = if (isSelected) Color.White else Color(0xFF212121),
-        topLeft = Offset(x - size/2, y - size/2),
+        topLeft = Offset(x - size / 2, y - size / 2),
         size = Size(size, size),
         style = Stroke(width = 2.5f)
     )

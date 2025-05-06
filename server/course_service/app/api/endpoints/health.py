@@ -2,11 +2,11 @@
 API endpoints for health check
 """
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
 from app.db.db import check_db_connection
+from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.logger import get_logger
 

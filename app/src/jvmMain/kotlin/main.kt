@@ -51,7 +51,6 @@ fun main() {
         withDI(appDI) {
 
 
-
             logger.d("Инициализация DI")
 
             // Получаем фабрику для RootComponent и создаем компонент

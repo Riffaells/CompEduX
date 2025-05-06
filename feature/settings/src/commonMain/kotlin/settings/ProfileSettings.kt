@@ -105,7 +105,8 @@ internal class ProfileSettingsImpl(settings: Settings) : BaseSettings(settings),
     private val _avatarUrlFlow = MutableStateFlow(settings.getString(avatarUrlKey, ""))
     private val _statusFlow = MutableStateFlow(settings.getString(statusKey, ""))
     private val _isProfilePublicFlow = MutableStateFlow(settings.getBoolean(isProfilePublicKey, true))
-    private val _enableProfileNotificationsFlow = MutableStateFlow(settings.getBoolean(enableProfileNotificationsKey, true))
+    private val _enableProfileNotificationsFlow =
+        MutableStateFlow(settings.getBoolean(enableProfileNotificationsKey, true))
 
     override val usernameFlow: StateFlow<String> = _usernameFlow.asStateFlow()
     override val emailFlow: StateFlow<String> = _emailFlow.asStateFlow()

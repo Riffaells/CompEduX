@@ -7,7 +7,8 @@ from typing import Dict, List, Optional, Any, Union, Set
 from app.models.localization import Localization
 from app.schemas.localization import LocalizationCreate, LocalizationUpdate
 from fastapi.encoders import jsonable_encoder
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from common.logger import get_logger
 
@@ -18,7 +19,7 @@ logger = get_logger("course_service.crud.localization")
 class CRUDLocalization:
     """CRUD operations for Localization model"""
 
-    def get(self, db: Session, id: uuid.UUID) -> Optional[Localization]:
+    async def get(self, db: AsyncSession, id: uuid.UUID) -> Optional[Localization]:
         """
         Get a localization by ID
 
@@ -29,9 +30,10 @@ class CRUDLocalization:
         Returns:
             Localization if found, None otherwise
         """
-        return db.query(Localization).filter(Localization.id == id).first()
+        result = await db.execute(select(Localization).filter(Localization.id == id))
+        return result.scalars().first()
 
-    def get_by_namespace(self, db: Session, namespace: str) -> Optional[Localization]:
+    async def get_by_namespace(self, db: AsyncSession, namespace: str) -> Optional[Localization]:
         """
         Get a localization by namespace
 
@@ -42,10 +44,11 @@ class CRUDLocalization:
         Returns:
             Localization if found, None otherwise
         """
-        return db.query(Localization).filter(Localization.namespace == namespace).first()
+        result = await db.execute(select(Localization).filter(Localization.namespace == namespace))
+        return result.scalars().first()
 
-    def get_multi(
-            self, db: Session, *, skip: int = 0, limit: int = 100
+    async def get_multi(
+            self, db: AsyncSession, *, skip: int = 0, limit: int = 100
     ) -> List[Localization]:
         """
         Get multiple localizations with pagination
@@ -58,9 +61,10 @@ class CRUDLocalization:
         Returns:
             List of localizations
         """
-        return db.query(Localization).offset(skip).limit(limit).all()
+        result = await db.execute(select(Localization).offset(skip).limit(limit))
+        return result.scalars().all()
 
-    def create(self, db: Session, *, obj_in: LocalizationCreate) -> Localization:
+    async def create(self, db: AsyncSession, *, obj_in: LocalizationCreate) -> Localization:
         """
         Create a new localization
 
@@ -72,21 +76,21 @@ class CRUDLocalization:
             Created Localization object
         """
         # Check if localization with this namespace already exists
-        existing = self.get_by_namespace(db, obj_in.namespace)
+        existing = await self.get_by_namespace(db, obj_in.namespace)
         if existing:
             # Update existing localization instead of creating a new one
-            return self.update(db, db_obj=existing, obj_in=obj_in)
+            return await self.update(db, db_obj=existing, obj_in=obj_in)
 
         obj_data = jsonable_encoder(obj_in)
         db_obj = Localization(**obj_data)
 
         db.add(db_obj)
-        db.commit()
-        db.refresh(db_obj)
+        await db.commit()
+        await db.refresh(db_obj)
         return db_obj
 
-    def update(
-            self, db: Session, *, db_obj: Localization, obj_in: Union[LocalizationUpdate, Dict[str, Any]]
+    async def update(
+            self, db: AsyncSession, *, db_obj: Localization, obj_in: Union[LocalizationUpdate, Dict[str, Any]]
     ) -> Localization:
         """
         Update a localization
@@ -124,11 +128,11 @@ class CRUDLocalization:
             setattr(db_obj, field, update_data[field])
 
         db.add(db_obj)
-        db.commit()
-        db.refresh(db_obj)
+        await db.commit()
+        await db.refresh(db_obj)
         return db_obj
 
-    def remove(self, db: Session, *, id: uuid.UUID) -> Localization:
+    async def remove(self, db: AsyncSession, *, id: uuid.UUID) -> Localization:
         """
         Remove a localization
 
@@ -139,12 +143,14 @@ class CRUDLocalization:
         Returns:
             Removed Localization object
         """
-        obj = db.query(Localization).get(id)
-        db.delete(obj)
-        db.commit()
+        result = await db.execute(select(Localization).filter(Localization.id == id))
+        obj = result.scalars().first()
+        if obj:
+            await db.delete(obj)
+            await db.commit()
         return obj
 
-    def get_available_languages(self, db: Session, namespace: str = None) -> Set[str]:
+    async def get_available_languages(self, db: AsyncSession, namespace: str = None) -> Set[str]:
         """
         Get set of available languages in the localization tables
 
@@ -156,12 +162,13 @@ class CRUDLocalization:
             Set of language codes
         """
         languages = set()
-        query = db.query(Localization)
+        query = select(Localization)
 
         if namespace:
             query = query.filter(Localization.namespace == namespace)
 
-        localizations = query.all()
+        result = await db.execute(query)
+        localizations = result.scalars().all()
 
         for loc in localizations:
             if loc.translations:
@@ -169,8 +176,8 @@ class CRUDLocalization:
 
         return languages
 
-    def get_translation(
-            self, db: Session, namespace: str, key: str, lang: str, default: str = ""
+    async def get_translation(
+            self, db: AsyncSession, namespace: str, key: str, lang: str, default: str = ""
     ) -> str:
         """
         Get a specific translation
@@ -185,7 +192,7 @@ class CRUDLocalization:
         Returns:
             Localized text or default if not found
         """
-        localization = self.get_by_namespace(db, namespace)
+        localization = await self.get_by_namespace(db, namespace)
         if not localization:
             return default
 

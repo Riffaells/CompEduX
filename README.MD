@@ -1,6 +1,7 @@
 # CompEduX - Educational Platform
 
-CompEduX is a multiplatform educational application built with Kotlin Multiplatform. It provides a unified codebase for Android, iOS, and web applications, sharing business logic while maintaining native UI experiences.
+CompEduX is a multiplatform educational application built with Kotlin Multiplatform. It provides a unified codebase for
+Android, iOS, and web applications, sharing business logic while maintaining native UI experiences.
 
 ## Project Structure
 
@@ -42,6 +43,7 @@ The project follows Clean Architecture principles and is organized into several 
 ### Setup
 
 1. Clone the repository:
+
 ```
 git clone https://github.com/yourusername/CompEduX.git
 ```
@@ -49,6 +51,7 @@ git clone https://github.com/yourusername/CompEduX.git
 2. Open the project in Android Studio or IntelliJ IDEA
 
 3. Build the project:
+
 ```
 ./gradlew build
 ```
@@ -90,6 +93,5 @@ app (UI layer)
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-
 
 `./gradlew runHot`

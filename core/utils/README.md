@@ -1,6 +1,7 @@
 # Utils Module
 
-The utils module provides common utilities and functionality shared across all other modules in the CompEduX application.
+The utils module provides common utilities and functionality shared across all other modules in the CompEduX
+application.
 
 ## Components
 

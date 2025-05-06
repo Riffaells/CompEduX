@@ -3,12 +3,14 @@
 """
 import asyncio
 import json
-import sys
 import os
+import sys
+
 import aiohttp
 
 # Добавляем путь к корню проекта, чтобы найти модули
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+
 
 async def get_courses():
     """Получение списка курсов (первый курс будет использован для добавления статьи)"""
@@ -27,6 +29,7 @@ async def get_courses():
                 if result['items']:
                     return result['items'][0]
     return None
+
 
 async def add_article_to_course(course_id):
     """Добавление новой статьи к курсу"""
@@ -125,6 +128,7 @@ print(y)
             print(f"Исключение при отправке запроса: {str(e)}")
             return None
 
+
 async def main():
     # Получаем первый доступный курс
     print("Получение курса для добавления статьи...")
@@ -154,6 +158,7 @@ async def main():
         print(f"Язык: {article['language']}")
     else:
         print("Не удалось добавить статью к курсу.")
+
 
 if __name__ == "__main__":
     asyncio.run(main())

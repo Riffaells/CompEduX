@@ -13,7 +13,7 @@ logger = initialize_logging("course_service.api")
 router = APIRouter()
 
 # Include specific route modules
-router.include_router(courses.router, prefix="/courses", tags=["courses"])
+router.include_router(courses.router, prefix="/", tags=["courses"])
 router.include_router(enrollments.router, prefix="/enrollments", tags=["enrollments"])
 
 

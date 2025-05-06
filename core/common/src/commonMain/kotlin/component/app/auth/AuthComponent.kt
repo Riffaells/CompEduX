@@ -18,12 +18,12 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import logging.Logger
+import navigation.NavigationExecutor
+import navigation.rDispatchers
 import org.kodein.di.DI
 import org.kodein.di.DIAware
 import org.kodein.di.factory
 import org.kodein.di.instance
-import navigation.NavigationExecutor
-import navigation.rDispatchers
 
 /**
  * Parameters for creating the authentication component.

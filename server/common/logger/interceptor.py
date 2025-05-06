@@ -4,7 +4,6 @@ This helps prevent duplicate logs in the console.
 """
 
 import logging
-import sys
 from typing import List, Optional
 
 
@@ -102,10 +101,10 @@ def create_sql_interceptor() -> LogInterceptor:
 
 
 def setup_logging_interceptors(
-    intercept_uvicorn: bool = True,
-    intercept_fastapi: bool = True,
-    intercept_sql: bool = True,
-    additional_loggers: Optional[List[str]] = None
+        intercept_uvicorn: bool = True,
+        intercept_fastapi: bool = True,
+        intercept_sql: bool = True,
+        additional_loggers: Optional[List[str]] = None
 ) -> List[LogInterceptor]:
     """
     Set up log interceptors for various components.

@@ -1,17 +1,18 @@
 """
 Dependencies for API endpoints
 """
-from typing import Generator, Optional
 import uuid
-from datetime import datetime, timedelta, timezone
-from fastapi import Depends, HTTPException, status, Header
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlalchemy.ext.asyncio import AsyncSession
-import jwt
-from jwt.exceptions import PyJWTError
+from datetime import datetime, timezone
+from typing import AsyncGenerator
 
-from app.db.db import get_async_session
+import jwt
 from app.core.config import settings
+from app.db.db import get_async_session
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from jwt.exceptions import PyJWTError
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from common.logger import get_logger
 
 # Set up logger
@@ -22,19 +23,19 @@ security = HTTPBearer()
 
 
 # Dependency for getting DB session
-async def get_db() -> Generator[AsyncSession, None, None]:
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """
     Get database session dependency
 
     Returns:
         AsyncSession: SQLAlchemy async session
     """
-    async for session in get_async_session():
+    async with get_async_session() as session:
         yield session
 
 
 async def verify_token(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+        credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> bool:
     """
     Verify JWT token from Authorization header
@@ -93,7 +94,7 @@ async def verify_token(
 
 
 async def get_current_user_id(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+        credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> uuid.UUID:
     """
     Get user ID from JWT token

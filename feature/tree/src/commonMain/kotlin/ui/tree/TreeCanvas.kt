@@ -1,38 +1,18 @@
 package ui.tree
 
+// Import hexagon path creation functions and other node renderers
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.input.pointer.pointerInput
 import component.TechnologyTreeStore
 import ui.theme.TreeTheme
-import kotlin.math.PI
-import kotlin.math.abs
-import kotlin.math.cos
-import kotlin.math.min
-import kotlin.math.sin
 import kotlin.math.sqrt
-import kotlin.math.atan2
-// Import hexagon path creation functions and other node renderers
-import ui.tree.createHexagonPath
-import ui.tree.createTopHexagonPath
-import ui.tree.getNodeColorGradient
-import ui.tree.drawArrowConnection
-import ui.tree.drawDashedConnection
-import ui.tree.drawSimpleConnection
 
 /**
  * Компонент, отвечающий за отрисовку дерева на канвасе с использованием системы тем
@@ -62,7 +42,7 @@ fun TreeCanvas(
                     val nodePos = Offset(node.position.x.toFloat(), node.position.y.toFloat())
                     val distance = sqrt(
                         (adjustedOffset.x - nodePos.x) * (adjustedOffset.x - nodePos.x) +
-                        (adjustedOffset.y - nodePos.y) * (adjustedOffset.y - nodePos.y)
+                                (adjustedOffset.y - nodePos.y) * (adjustedOffset.y - nodePos.y)
                     )
                     distance <= 35f // радиус узла
                 }
@@ -105,9 +85,11 @@ fun TreeCanvas(
                         "solid_arrow" -> drawArrowConnection(
                             fromX, fromY, toX, toY, isConnectionHighlighted, gradient
                         )
+
                         "dashed_line" -> drawDashedConnection(
                             fromX, fromY, toX, toY, isConnectionHighlighted, gradient
                         )
+
                         else -> drawSimpleConnection(
                             fromX, fromY, toX, toY, isConnectionHighlighted, gradient
                         )

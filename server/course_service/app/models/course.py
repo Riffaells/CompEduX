@@ -9,11 +9,10 @@ from datetime import datetime, timezone
 from typing import List, Optional
 
 from app.models.base import Base
-from sqlalchemy import Column, DateTime, ForeignKey, String, Table, Index, Boolean, Enum, Text, Integer
+from sqlalchemy import Column, DateTime, ForeignKey, String, Table, Index, Boolean, Enum
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import relationship
-import sqlalchemy as sa
 
 # Связующая таблица между курсами и тегами
 course_tag = Table(
@@ -105,7 +104,9 @@ class Course(Base):
     # Связь с статьями
     articles = relationship("Article", back_populates="course", cascade="all, delete-orphan")
 
+    # Связь с уроками
     lessons = relationship("Lesson", back_populates="course", cascade="all, delete-orphan")
+
 
     @declared_attr
     def __table_args__(cls):

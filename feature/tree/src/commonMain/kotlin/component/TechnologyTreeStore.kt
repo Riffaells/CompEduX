@@ -9,10 +9,10 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import logging.Logger
+import navigation.rDispatchers
 import org.kodein.di.DI
 import org.kodein.di.DIAware
 import org.kodein.di.instance
-import navigation.rDispatchers
 
 interface TechnologyTreeStore : Store<TechnologyTreeStore.Intent, TechnologyTreeStore.State, Nothing> {
 
@@ -143,13 +143,14 @@ internal class TechnologyTreeStoreFactory(
     private val logger by instance<Logger>()
 
     fun create(): TechnologyTreeStore =
-        object : TechnologyTreeStore, Store<TechnologyTreeStore.Intent, TechnologyTreeStore.State, Nothing> by storeFactory.create(
-            name = "SkikoStore",
-            initialState = TechnologyTreeStore.State(),
-            bootstrapper = SimpleBootstrapper(Unit),
-            executorFactory = ::ExecutorImpl,
-            reducer = ReducerImpl
-        ) {}
+        object : TechnologyTreeStore,
+            Store<TechnologyTreeStore.Intent, TechnologyTreeStore.State, Nothing> by storeFactory.create(
+                name = "SkikoStore",
+                initialState = TechnologyTreeStore.State(),
+                bootstrapper = SimpleBootstrapper(Unit),
+                executorFactory = ::ExecutorImpl,
+                reducer = ReducerImpl
+            ) {}
 
     private sealed interface Msg {
         data object LoadingData : Msg
@@ -201,18 +202,23 @@ internal class TechnologyTreeStoreFactory(
                     is TechnologyTreeStore.Intent.Init -> {
                         // Инициализация уже выполнена в executeAction
                     }
+
                     is TechnologyTreeStore.Intent.Back -> {
                         // Обработка в компоненте
                     }
+
                     is TechnologyTreeStore.Intent.UpdateJsonInput -> {
                         dispatch(Msg.JsonInputUpdated(intent.jsonText))
                     }
+
                     is TechnologyTreeStore.Intent.ParseJson -> {
                         parseJsonTree(intent.jsonText)
                     }
+
                     is TechnologyTreeStore.Intent.NodeClicked -> {
                         dispatch(Msg.NodeSelected(intent.nodeId))
                     }
+
                     is TechnologyTreeStore.Intent.NodeMoved -> {
                         dispatch(Msg.NodePositionUpdated(intent.nodeId, intent.newPosition))
                     }

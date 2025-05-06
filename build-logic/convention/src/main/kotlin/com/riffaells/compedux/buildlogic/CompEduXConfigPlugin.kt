@@ -1,12 +1,12 @@
 package com.riffaells.compedux.buildlogic
 
+import com.github.gmazzo.buildconfig.BuildConfigExtension
 import libs
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
-import com.github.gmazzo.buildconfig.BuildConfigExtension
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
-import java.util.Date
+import java.util.*
 
 class CompEduXConfigPlugin : Plugin<Project> {
     override fun apply(target: Project) {
@@ -58,7 +58,6 @@ class CompEduXConfigPlugin : Plugin<Project> {
                 val wasmJsMain = sourceSets.wasmJsMain
                 val desktopMain = sourceSets.jvmMain
                 val androidMain = sourceSets.androidMain
-
 
 
             }

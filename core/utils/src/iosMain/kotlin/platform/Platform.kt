@@ -24,8 +24,8 @@ actual object Platform {
     actual fun description(): String {
         val device = UIDevice.currentDevice
         return "Device: ${device.model}, " +
-               "Name: ${device.name}, " +
-               "System: ${device.systemName} ${device.systemVersion}"
+                "Name: ${device.name}, " +
+                "System: ${device.systemName} ${device.systemVersion}"
     }
 
     /**

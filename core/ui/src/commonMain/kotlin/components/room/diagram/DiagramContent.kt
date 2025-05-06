@@ -1,11 +1,15 @@
 package components.room.diagram
 
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -18,9 +22,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import component.app.room.diagram.DiagramComponent
 import component.app.room.diagram.store.DiagramStore
-import kotlin.math.PI
-import kotlin.math.cos
-import kotlin.math.sin
 
 @Composable
 fun DiagramContent(component: DiagramComponent) {
@@ -76,7 +77,7 @@ fun DiagramTypeSelector(
                 onClick = { onTypeSelected(type) },
                 label = {
                     Text(
-                        text = when(type) {
+                        text = when (type) {
                             DiagramStore.DiagramType.BAR_CHART -> "Столбцы"
                             DiagramStore.DiagramType.PIE_CHART -> "Круговая"
                             DiagramStore.DiagramType.LINE_CHART -> "Линейная"
@@ -128,7 +129,8 @@ fun BarChart(data: List<DiagramStore.DataPoint>) {
 
         // Draw bars
         data.forEachIndexed { index, dataPoint ->
-            val barHeight = (dataPoint.value / maxValue * (size.height - bottomPadding - 20f) * animatedProgress.value).toFloat()
+            val barHeight =
+                (dataPoint.value / maxValue * (size.height - bottomPadding - 20f) * animatedProgress.value).toFloat()
             val startX = index * (barWidth + spacing) + spacing / 2
 
             // Draw bar
@@ -330,10 +332,12 @@ fun LineChart(data: List<DiagramStore.DataPoint>) {
                     if (i >= data.size - 1) break
 
                     val startX = i * pointWidth
-                    val startY = size.height - bottomPadding - (data[i].value / maxValue * (size.height - bottomPadding - 20f)).toFloat()
+                    val startY =
+                        size.height - bottomPadding - (data[i].value / maxValue * (size.height - bottomPadding - 20f)).toFloat()
 
                     val endX = (i + 1) * pointWidth
-                    val endY = size.height - bottomPadding - (data[i + 1].value / maxValue * (size.height - bottomPadding - 20f)).toFloat()
+                    val endY =
+                        size.height - bottomPadding - (data[i + 1].value / maxValue * (size.height - bottomPadding - 20f)).toFloat()
 
                     // Draw line segment
                     drawLine(
@@ -436,7 +440,8 @@ fun ScatterPlot(data: List<DiagramStore.DataPoint>) {
                     if (i >= data.size) break
 
                     val x = i * pointWidth + pointWidth / 2
-                    val y = size.height - bottomPadding - (data[i].value / maxValue * (size.height - bottomPadding - 20f)).toFloat()
+                    val y =
+                        size.height - bottomPadding - (data[i].value / maxValue * (size.height - bottomPadding - 20f)).toFloat()
 
                     // Draw point
                     drawCircle(

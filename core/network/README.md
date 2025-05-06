@@ -1,6 +1,7 @@
 # Network Module
 
-The network module provides a cross-platform networking implementation for CompEduX. It handles HTTP requests, authentication, error handling, and platform-specific configurations.
+The network module provides a cross-platform networking implementation for CompEduX. It handles HTTP requests,
+authentication, error handling, and platform-specific configurations.
 
 ## Structure
 
