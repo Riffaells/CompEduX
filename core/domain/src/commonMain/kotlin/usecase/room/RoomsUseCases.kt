@@ -1,4 +1,4 @@
-package usecase.rooms
+package usecase.room
 
 /**
  * Container for all course-related use cases

@@ -1,10 +1,10 @@
-package usecase.rooms
+package usecase.room
 
 import model.DomainError
 import model.DomainResult
-import model.rooms.RoomJoinDomain
-import model.rooms.RoomJoinResponseDomain
-import repository.rooms.RoomRepository
+import model.room.RoomJoinDomain
+import model.room.RoomJoinResponseDomain
+import repository.room.RoomRepository
 
 /**
  * Use case for joining a room using a code

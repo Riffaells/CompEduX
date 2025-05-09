@@ -1,8 +1,8 @@
-package usecase.rooms
+package usecase.room
 
 import model.DomainError
 import model.DomainResult
-import repository.rooms.RoomRepository
+import repository.room.RoomRepository
 
 /**
  * Use case for deleting a room

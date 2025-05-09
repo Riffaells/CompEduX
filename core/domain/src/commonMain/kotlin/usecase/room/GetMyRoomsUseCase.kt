@@ -1,10 +1,10 @@
-package usecase.rooms
+package usecase.room
 
 import model.DomainError
 import model.DomainResult
-import model.rooms.RoomListDomain
-import model.rooms.RoomQueryParams
-import repository.rooms.RoomRepository
+import model.room.RoomListDomain
+import model.room.RoomQueryParams
+import repository.room.RoomRepository
 
 /**
  * Use case for getting rooms that the current user is participating in

@@ -1,11 +1,11 @@
-package usecase.rooms
+package usecase.room
 
 import model.DomainError
 import model.DomainResult
 import model.course.LocalizedContent
-import model.rooms.RoomDomain
-import model.rooms.RoomStatusDomain
-import repository.rooms.RoomRepository
+import model.room.RoomDomain
+import model.room.RoomStatusDomain
+import repository.room.RoomRepository
 
 /**
  * Use case for creating a new room

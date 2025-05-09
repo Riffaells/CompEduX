@@ -1,4 +1,4 @@
-package model.rooms
+package model.room
 
 import kotlinx.datetime.Instant
 import kotlinx.serialization.SerialName

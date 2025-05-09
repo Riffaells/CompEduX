@@ -1,11 +1,11 @@
-package repository.rooms
+package repository.room
 
 import model.DomainResult
-import model.rooms.RoomDomain
-import model.rooms.RoomJoinDomain
-import model.rooms.RoomJoinResponseDomain
-import model.rooms.RoomListDomain
-import model.rooms.RoomQueryParams
+import model.room.RoomDomain
+import model.room.RoomJoinDomain
+import model.room.RoomJoinResponseDomain
+import model.room.RoomListDomain
+import model.room.RoomQueryParams
 
 /**
  * Repository for room operations

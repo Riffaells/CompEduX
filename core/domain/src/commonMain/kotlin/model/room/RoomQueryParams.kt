@@ -1,4 +1,4 @@
-package model.rooms
+package model.room
 
 /**
  * Query parameters for filtering and sorting rooms

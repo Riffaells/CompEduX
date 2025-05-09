@@ -7,7 +7,7 @@ import org.kodein.di.instance
 import org.kodein.di.singleton
 import usecase.auth.*
 import usecase.course.*
-import usecase.rooms.*
+import usecase.room.*
 
 /**
  * DI-модуль для домена
