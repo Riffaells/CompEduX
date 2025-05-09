@@ -2,10 +2,12 @@ package di
 
 import org.kodein.di.DI
 import org.kodein.di.bind
+import org.kodein.di.bindSingleton
 import org.kodein.di.instance
 import org.kodein.di.singleton
 import usecase.auth.*
 import usecase.course.*
+import usecase.rooms.*
 
 /**
  * DI-модуль для домена
@@ -33,11 +35,11 @@ val domainModule = DI.Module("domainModule") {
     }
 
     // Course Use Cases
-    bind<GetCourseUseCase>() with singleton { GetCourseUseCase(instance()) }
-    bind<GetCoursesUseCase>() with singleton { GetCoursesUseCase(instance()) }
-    bind<CreateCourseUseCase>() with singleton { CreateCourseUseCase(instance()) }
-    bind<UpdateCourseUseCase>() with singleton { UpdateCourseUseCase(instance()) }
-    bind<DeleteCourseUseCase>() with singleton { DeleteCourseUseCase(instance()) }
+    bindSingleton<GetCourseUseCase> { GetCourseUseCase(instance()) }
+    bindSingleton<GetCoursesUseCase> { GetCoursesUseCase(instance()) }
+    bindSingleton<CreateCourseUseCase> { CreateCourseUseCase(instance()) }
+    bindSingleton<UpdateCourseUseCase> { UpdateCourseUseCase(instance()) }
+    bindSingleton<DeleteCourseUseCase> { DeleteCourseUseCase(instance()) }
 
     // Контейнер для всех use cases курсов
     bind<CourseUseCases>() with singleton {
@@ -47,6 +49,28 @@ val domainModule = DI.Module("domainModule") {
             createCourse = instance(),
             updateCourse = instance(),
             deleteCourse = instance()
+        )
+    }
+
+
+
+    // Room Use Cases
+    bindSingleton<GetRoomUseCase> { GetRoomUseCase(instance()) }
+    bindSingleton<GetRoomsUseCase>{ GetRoomsUseCase(instance()) }
+    bindSingleton<GetMyRoomsUseCase>{ GetMyRoomsUseCase(instance()) }
+    bindSingleton<CreateRoomUseCase>{ CreateRoomUseCase(instance()) }
+    bindSingleton<UpdateRoomUseCase>{ UpdateRoomUseCase(instance()) }
+    bindSingleton<DeleteRoomUseCase>{ DeleteRoomUseCase(instance()) }
+
+    // Контейнер для всех use cases курсов
+    bind<RoomsUseCases>() with singleton {
+        RoomsUseCases(
+            getRoom = instance(),
+            getRooms = instance(),
+            getMyRooms = instance(),
+            createRoom = instance(),
+            updateRoom = instance(),
+            deleteRoom = instance()
         )
     }
 }

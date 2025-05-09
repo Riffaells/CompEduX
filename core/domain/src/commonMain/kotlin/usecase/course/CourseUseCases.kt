@@ -1,5 +1,6 @@
 package usecase.course
 
+
 /**
  * Container for all course-related use cases
  * Provides access to all course use cases through a single object
