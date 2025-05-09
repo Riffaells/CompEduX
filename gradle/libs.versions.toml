@@ -12,10 +12,10 @@ jvm = "17"
 
 kotlin = "2.1.20"
 compose = "1.7.3"
-agp = "8.7.3"
+agp = "8.9.2"
 androidx-core = "1.16.0"
 androidx-activityCompose = "1.10.1"
-androidx-uiTest = "1.7.8"
+androidx-uiTest = "1.8.1"
 multiplatform-settings = "1.3.0"
 kodein = "7.25.0"
 
@@ -79,6 +79,7 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 coroutines = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
 coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
 coroutines-swing = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-swing", version.ref = "coroutines" }
+coroutines-js = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core-js", version.ref = "coroutines" }
 
 
 kodein = { module = "org.kodein.di:kodein-di", version.ref = "kodein" }
