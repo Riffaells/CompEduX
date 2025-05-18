@@ -27,6 +27,7 @@ object RIcons {
     val NotGuessed = Icons.Outlined.ThumbUp
     val Home = Icons.Rounded.Home
     val Settings = Icons.Rounded.Settings
+    val MeetingRoom = Icons.Default.MeetingRoom
 
     // Experimental icons
     val Experiment = Icons.Rounded.Science
@@ -87,4 +88,8 @@ object RIcons {
     val Error = Icons.Outlined.Error
     val PlayArrow = Icons.Default.PlayArrow
     val Refresh = Icons.Default.Refresh
+    
+    // Добавленные иконки для RoomContent
+    val Delete = Icons.Default.Delete
+    val Search = Icons.Default.Search
 }

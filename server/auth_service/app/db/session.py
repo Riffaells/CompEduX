@@ -3,17 +3,26 @@ Database session module that extends common/db.py functionality
 """
 from typing import AsyncGenerator
 
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
 
 from common.db import AsyncDatabaseManager
 from common.logger import get_logger
 from ..core.config import settings
+from ..models.base import Base
 
 # Get logger
 logger = get_logger(__name__)
 
-# Create async database manager
-db_manager = AsyncDatabaseManager(settings, "auth_service")
+# Создаем экземпляр менеджера базы данных
+db_manager = AsyncDatabaseManager(
+    settings=settings,
+    service_name="auth_service",
+    required_tables=["users", "friendships", "user_profiles", "user_preferences", "user_ratings", "user_privacy"]
+)
+
+# Используем AsyncSessionLocal из db_manager
+async_session_factory = db_manager.AsyncSessionLocal
 
 # Export common SQLAlchemy objects
 engine = db_manager.engine
@@ -22,28 +31,15 @@ AsyncSessionLocal = db_manager.AsyncSessionLocal
 
 
 # Dependency function for getting async DB session
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
+async def get_db() -> AsyncSession:
     """
-    Dependency function for obtaining an async database session.
-    This function provides a clean session without transaction management,
-    letting the route handlers manage their own transactions.
-
-    The session is configured with expire_on_commit=False to avoid the
-    MissingGreenlet error when accessing lazy-loaded attributes
-    in an async context.
-
+    Dependency для получения сессии базы данных.
+    
     Yields:
-        AsyncSession: SQLAlchemy async session for database operations
+        AsyncSession: Сессия SQLAlchemy для асинхронной работы с базой данных
     """
-    async with AsyncSessionLocal() as db:
-        # Set expire_on_commit to False to avoid greenlet_spawn errors
-        db.expire_on_commit = False
-        # Просто предоставляем сессию без управления транзакциями
-        try:
-            yield db
-        finally:
-            # Закрываем сессию без коммита/роллбэка
-            await db.close()
+    async with async_session_factory() as session:
+        yield session
 
 
 # Function for testing database connection

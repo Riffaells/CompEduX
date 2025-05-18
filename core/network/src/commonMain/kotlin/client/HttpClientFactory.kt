@@ -16,7 +16,6 @@ import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.util.*
-import kotlinx.coroutines.runBlocking
 import kotlinx.io.IOException
 import kotlinx.serialization.json.Json
 import logging.Logger
@@ -95,32 +94,30 @@ class HttpClientFactory(
                         val refreshToken = tokenStorage.getRefreshToken() ?: return@refreshTokens null
 
                         try {
-                            // Получаем базовый URL API
-                            val baseApiUrl = runBlocking {
-                                networkConfig.getFullApiUrl()
-                            }
+                            // Get base API URL - now it's a suspend function call in a suspend context
+                            val baseApiUrl = networkConfig.getFullApiUrl()
 
-                            // Выполняем запрос на обновление токена
+                            // Execute token refresh request
                             val response = client.post("$baseApiUrl/auth/refresh") {
                                 contentType(ContentType.Application.Json)
                                 setBody(NetworkRefreshTokenRequest(refreshToken = refreshToken))
                             }
 
                             if (response.status.isSuccess()) {
-                                // Получаем новые токены из ответа
+                                // Get new tokens from response
                                 val authResponse = response.body<NetworkAuthResponse>()
 
-                                // Сохраняем новые токены в хранилище
+                                // Save new tokens to storage
                                 tokenStorage.saveAccessToken(authResponse.accessToken)
                                 tokenStorage.saveRefreshToken(authResponse.refreshToken)
 
-                                // Возвращаем новые токены для механизма аутентификации
+                                // Return new tokens for auth mechanism
                                 BearerTokens(
                                     accessToken = authResponse.accessToken,
                                     refreshToken = authResponse.refreshToken
                                 )
                             } else {
-                                // При ошибке обновления - очистка токенов и выход
+                                // On refresh error - clear tokens and exit
                                 logger.e("Failed to refresh token: ${response.status}")
                                 tokenStorage.clearTokens()
                                 null

@@ -298,26 +298,22 @@ class ProfileStoreFactory(
                             dispatch(ProfileStore.Message.StartLoading)
                             dispatch(ProfileStore.Message.ClearError)
 
+                            try {
+                                // Try to logout on the server
+                                val result = authUseCases.logout()
+                                l += 1
+                                logger.i("ProfileStore: Count $l")
 
-                            val result = authUseCases.logout()
-                            l += 1
-                            logger.i("ProfileStore: Count $l")
-
-                            result
-                                .onSuccess {
-                                    logger.i("ProfileStore: Logout successful")
-                                    dispatch(ProfileStore.Message.LogoutSuccess)
-                                }.onError { error ->
-                                    logger.w("ProfileStore: Logout failed: ${error.message}")
-                                    dispatch(
-                                        ProfileStore.Message.SetError(
-                                            error.message,
-                                            error.details
-                                        )
-                                    )
-                                }
-
-
+                                // Always dispatch logout success even if the API call fails
+                                logger.i("ProfileStore: Logout successful (client side)")
+                                dispatch(ProfileStore.Message.LogoutSuccess)
+                            } catch (e: Exception) {
+                                // Log error but still consider logout successful locally
+                                logger.w("ProfileStore: Logout API error: ${e.message}")
+                                
+                                // Still dispatch logout success for the client side
+                                dispatch(ProfileStore.Message.LogoutSuccess)
+                            }
                         }
                     }
                 }

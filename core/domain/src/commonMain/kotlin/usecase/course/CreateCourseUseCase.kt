@@ -21,34 +21,25 @@ class CreateCourseUseCase(private val courseRepository: CourseRepository) {
      */
     suspend operator fun invoke(
         title: LocalizedContent,
-        description: LocalizedContent,
-        authorId: String
+        description: LocalizedContent
     ): DomainResult<CourseDomain> {
         // Validate input data
-        if (title.content.isEmpty()) {
-            return DomainResult.Error(DomainError.validationError("Course title cannot be empty"))
-        }
-
-        if (description.content.isEmpty()) {
-            return DomainResult.Error(DomainError.validationError("Course description cannot be empty"))
-        }
-
-        if (authorId.isBlank()) {
-            return DomainResult.Error(DomainError.validationError("Author ID cannot be empty"))
+        val validationError = validateCourseData(title, description)
+        if (validationError != null) {
+            return DomainResult.Error(validationError)
         }
 
         // Create new course with basic parameters
-        val currentTime = Clock.System.now()
-        val timeString = currentTime.toString() // ISO-8601 format
+        val currentTime = Clock.System.now().toString() // ISO-8601 format
 
         val newCourse = CourseDomain(
-            id = generateUUID(),
+            id = "",
             title = title,
             description = description,
-            authorId = authorId,
-            createdAt = timeString,
-            updatedAt = timeString,
-            slug = generateSlug()
+            authorId = "",
+            createdAt = currentTime,
+            updatedAt = currentTime,
+            slug = ""
         )
 
         // Delegate execution to the repository
@@ -56,12 +47,46 @@ class CreateCourseUseCase(private val courseRepository: CourseRepository) {
     }
 
     /**
-     * Generate a random slug for the course
-     * @return an 8-character random slug
+     * Validate course data before creation
+     * @return DomainError if validation fails, null if data is valid
      */
-    private fun generateSlug(): String {
+    private fun validateCourseData(
+        title: LocalizedContent,
+        description: LocalizedContent
+    ): DomainError? {
+        return when {
+            title.isEmpty() -> 
+                DomainError.validationError("Course title cannot be empty")
+            description.isEmpty() -> 
+                DomainError.validationError("Course description cannot be empty")
+            else -> null
+        }
+    }
+
+    /**
+     * Generate a slug based on the title or a random one if title is not usable
+     */
+    private fun generateSlug(title: LocalizedContent): String {
+        // Try to generate from English title first, then any available title
+        val titleText = title.getContent("en") ?: title.getPreferredString()
+        
+        return if (titleText.isNotBlank()) {
+            titleText
+                .lowercase()
+                .replace(Regex("[^a-z0-9\\s]"), "")
+                .replace(Regex("\\s+"), "-")
+                .take(20) + "-" + generateRandomString(4)
+        } else {
+            generateRandomString(8)
+        }
+    }
+    
+    /**
+     * Generate a random string of specified length
+     */
+    private fun generateRandomString(length: Int): String {
         val allowedChars = ('a'..'z') + ('0'..'9')
-        return (1..8)
+        return (1..length)
             .map { allowedChars.random() }
             .joinToString("")
     }

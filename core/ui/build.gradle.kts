@@ -14,6 +14,7 @@ kotlin {
             implementation(projects.core.common)
             implementation(projects.feature.settings)
             implementation(projects.feature.tree)
+            implementation(projects.feature.course)
         }
     }
 }

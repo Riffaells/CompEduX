@@ -4,6 +4,7 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.router.stack.StackNavigation
 import com.arkivanov.decompose.router.stack.childStack
+import com.arkivanov.decompose.router.stack.pushNew
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
@@ -159,9 +160,10 @@ class DefaultAuthComponent(
      */
     private val scope = coroutineScope(rDispatchers.main)
 
+    // Flag to avoid re-navigating during logout
+    private var isHandlingLogout = false
 
     private val logger by instance<Logger>()
-
 
     /**
      * Safe navigation handler that ensures navigation operations
@@ -207,7 +209,12 @@ class DefaultAuthComponent(
                 .map { it.isAuthenticated }
                 .collect { isAuth ->
                     if (isAuth) {
+                        // Only navigate to profile if we're authenticated
                         navigationExecutor.navigateTo(Config.Profile)
+                    } else if (!isHandlingLogout) {
+                        // Only auto-navigate to login if not during logout process
+                        // This prevents competing with our forced navigation
+                        navigationExecutor.navigateTo(Config.Login)
                     }
                 }
         }
@@ -229,7 +236,7 @@ class DefaultAuthComponent(
     }
 
     override fun navigateToProfile() {
-        navigationExecutor.navigateTo(Config.Profile)
+        navigationExecutor.replaceAll(Config.Profile)
     }
 
     override fun navigateBack() {
@@ -289,8 +296,28 @@ class DefaultAuthComponent(
             ProfileComponentParams(
                 componentContext = componentContext,
                 onLogout = {
-//                    _store.accept(AuthStore.Intent.Logout)
-                    navigationExecutor.navigateTo(Config.Login)
+                    try {
+                        // Set flag to prevent competing navigation
+                        isHandlingLogout = true
+
+                        logger.d("LOGOUT: Forcefully navigating to login screen")
+
+
+                        // Clear auth state (this might trigger another navigation but it's fine)
+                        _store.accept(AuthStore.Intent.Logout)
+                        _store.accept(AuthStore.Intent.SetAuthenticated(false))
+
+                        logger.d("LOGOUT: Performing second navigation attempt")
+
+
+                        navigateToLogin()
+                    } catch (e: Exception) {
+                        // Last resort - remove all stack items except login
+                        logger.e("LOGOUT: Error in navigation, using fallback", e)
+
+                        // Always reset flag
+                        isHandlingLogout = false
+                    }
                 }
             )
         )

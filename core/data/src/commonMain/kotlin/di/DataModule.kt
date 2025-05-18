@@ -3,9 +3,9 @@ package di
 import api.auth.AuthApi
 import api.auth.DataAuthApiAdapter
 import api.auth.NetworkAuthApi
-import api.course.CourseApi
-import api.course.DataCourseApiAdapter
-import api.course.NetworkCourseApi
+import api.room.DataRoomApiAdapter
+import api.room.NetworkRoomApi
+import api.room.RoomApi
 import config.DataNetworkConfig
 import config.NetworkConfig
 import logging.LoggingProvider
@@ -17,8 +17,8 @@ import repository.auth.AuthRepository
 import repository.auth.AuthRepositoryImpl
 import repository.auth.TokenRepository
 import repository.auth.TokenRepositoryImpl
-import repository.course.CourseRepository
-import repository.course.CourseRepositoryImpl
+import repository.room.RoomRepository
+import repository.room.RoomRepositoryImpl
 import settings.MultiplatformSettings
 
 /**
@@ -52,18 +52,20 @@ val dataModule = DI.Module("dataModule") {
         DataAuthApiAdapter(networkAuthApi, tokenRepository, logger)
     }
 
-    // Репозитории и адаптеры для курсов
-    bind<CourseRepository>() with singleton {
-        val networkCourseApi = instance<NetworkCourseApi>()
+
+    
+    // Репозитории и адаптеры для комнат
+    bind<RoomRepository>() with singleton {
+        val networkRoomApi = instance<NetworkRoomApi>()
         val tokenRepository = instance<TokenRepository>()
-        val logger = instance<LoggingProvider>().getLogger("CourseRepository")
-        CourseRepositoryImpl(networkCourseApi, tokenRepository, logger)
+        val logger = instance<LoggingProvider>().getLogger("RoomRepository")
+        RoomRepositoryImpl(networkRoomApi, tokenRepository, logger)
     }
 
-    bind<CourseApi>() with singleton {
-        val networkCourseApi = instance<NetworkCourseApi>()
+    bind<RoomApi>() with singleton {
+        val networkRoomApi = instance<NetworkRoomApi>()
         val tokenRepository = instance<TokenRepository>()
-        val logger = instance<LoggingProvider>().getLogger("CourseApi")
-        DataCourseApiAdapter(networkCourseApi, tokenRepository, logger)
+        val logger = instance<LoggingProvider>().getLogger("RoomApi")
+        DataRoomApiAdapter(networkRoomApi, tokenRepository, logger)
     }
 }

@@ -8,7 +8,7 @@ package model
  */
 data class DomainError(
     val code: ErrorCode,
-    val message: String,
+    val message: String = "",
     val details: String? = null
 ) {
     /**

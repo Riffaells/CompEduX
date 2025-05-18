@@ -705,15 +705,32 @@ async def refresh_access_token(refresh_token_data: TokenRefreshSchema, db: Async
             expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         )
 
-        # Используем контекстный менеджер для транзакции
+        # Create new refresh token data
+        now = datetime.now(UTC)
+        expires_at = now + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+        token_data = {
+            "sub": str(user.id),
+            "type": "refresh",
+            "exp": int(expires_at.timestamp()),
+            "iat": int(now.timestamp())
+        }
+        new_refresh_token = jwt.encode(token_data, settings.AUTH_SECRET_KEY, algorithm=ALGORITHM)
+
+        # Используем одну транзакцию для обоих операций
         async with db_transaction(db) as session:
             # Mark old refresh token as revoked
             db_token.revoked = True
+            session.add(db_token)
+
+            # Create new refresh token record
+            new_db_token = RefreshTokenModel(
+                user_id=user.id,
+                token=new_refresh_token,
+                expires_at=expires_at
+            )
+            session.add(new_db_token)
 
             # Commit произойдет автоматически при выходе из контекста
-
-        # Create new refresh token (создаст отдельную транзакцию)
-        new_refresh_token = await create_refresh_token(user.id, db)
 
         return {
             "access_token": access_token,

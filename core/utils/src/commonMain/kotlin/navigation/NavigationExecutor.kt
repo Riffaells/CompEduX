@@ -98,6 +98,23 @@ class NavigationExecutor<C : Any>(
         }
     }
 
+
+    /**
+     * Replace the all configuration.
+     *
+     * Executes synchronously in the calling thread, so it should be called from the main thread.
+     *
+     * @param config Configuration to replace the current one with
+     */
+    fun replaceAll(config: C) {
+        try {
+            logger.d("Replacing current with $config", tag = tag)
+            navigation.replaceAll(config)
+        } catch (e: Exception) {
+            logger.e("Error replacing with $config: ${e.message}", e, tag)
+        }
+    }
+
     /**
      * Execute an arbitrary navigation operation.
      *

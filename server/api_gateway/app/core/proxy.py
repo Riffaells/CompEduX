@@ -8,7 +8,7 @@ import asyncio
 import json
 import time
 from datetime import UTC
-from typing import Dict, Tuple, Optional
+from typing import Dict, Tuple, Optional, Any, List, Union
 
 import httpx
 from app.core.config import SERVICE_ROUTES, settings
@@ -47,6 +47,275 @@ async def get_http_client() -> httpx.AsyncClient:
         )
         logger.debug("Создан новый HTTP клиент")
     return http_client
+
+
+async def async_http_request(
+    url: str,
+    method: str = "GET",
+    headers: Optional[Dict[str, str]] = None,
+    data: Optional[Dict[str, Any]] = None,
+    json_data: Optional[Dict[str, Any]] = None,
+    params: Optional[Dict[str, Any]] = None,
+    timeout: float = 10.0
+) -> Tuple[int, Dict[str, Any], bytes]:
+    """
+    Выполняет HTTP-запрос к указанному URL.
+
+    Args:
+        url: URL для запроса
+        method: HTTP-метод (GET, POST, PUT, DELETE, etc.)
+        headers: HTTP-заголовки
+        data: Данные формы
+        json_data: JSON-данные
+        params: Параметры запроса
+        timeout: Таймаут запроса в секундах
+
+    Returns:
+        Tuple[int, Dict[str, Any], bytes]: (статус, заголовки, содержимое)
+
+    Raises:
+        HTTPException: Если произошла ошибка при запросе
+    """
+    client = await get_http_client()
+    
+    try:
+        # Логирование запроса
+        logger.debug(f"HTTP {method} запрос к {url}")
+        if params:
+            logger.debug(f"Параметры: {params}")
+        if headers:
+            logger.debug(f"Заголовки: {headers}")
+        if json_data:
+            logger.debug(f"JSON данные: {json_data}")
+        
+        # Выполнение запроса
+        response = await client.request(
+            method=method,
+            url=url,
+            headers=headers,
+            data=data,
+            json=json_data,
+            params=params,
+            timeout=timeout
+        )
+        
+        # Получение данных ответа
+        status_code = response.status_code
+        response_headers = dict(response.headers)
+        content = response.content
+        
+        # Логирование ответа
+        logger.debug(f"HTTP {method} ответ от {url}: {status_code}")
+        
+        return status_code, response_headers, content
+    
+    except httpx.TimeoutException as e:
+        logger.error(f"Таймаут при запросе {method} {url}: {str(e)}")
+        raise HTTPException(status_code=504, detail=f"Сервис недоступен: превышено время ожидания")
+    
+    except httpx.ConnectError as e:
+        logger.error(f"Ошибка соединения при запросе {method} {url}: {str(e)}")
+        raise HTTPException(status_code=503, detail=f"Сервис недоступен: ошибка подключения")
+    
+    except Exception as e:
+        logger.error(f"Ошибка при запросе {method} {url}: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Ошибка при запросе: {str(e)}")
+
+
+async def handle_request(
+    request: Request,
+    service_url: str,
+) -> Response:
+    """
+    Обрабатывает HTTP-запрос и проксирует его к указанному сервису.
+
+    Args:
+        request: FastAPI Request объект
+        service_url: URL сервиса
+
+    Returns:
+        Response: FastAPI Response объект
+    """
+    # Получить путь и параметры запроса
+    path = request.url.path
+    params = dict(request.query_params)
+    
+    # Получить заголовки запроса
+    headers = dict(request.headers)
+    headers.pop('host', None)  # Удаляем заголовок host
+    
+    # Получить метод запроса
+    method = request.method
+    
+    # Формируем URL для запроса к сервису
+    target_url = f"{service_url.rstrip('/')}/{path.lstrip('/')}"
+    
+    # Получаем тело запроса
+    body = None
+    json_body = None
+    
+    if method in ["POST", "PUT", "PATCH"]:
+        try:
+            json_body = await request.json()
+        except:
+            body = await request.body()
+    
+    # Выполняем запрос
+    try:
+        status, headers, content = await async_http_request(
+            url=target_url,
+            method=method,
+            headers=headers,
+            data=body,
+            json_data=json_body,
+            params=params
+        )
+        
+        # Формируем ответ
+        return Response(
+            content=content,
+            status_code=status,
+            headers=headers
+        )
+    except HTTPException as e:
+        return Response(
+            content=json.dumps({"detail": e.detail}),
+            status_code=e.status_code,
+            media_type="application/json"
+        )
+
+
+async def route_request_to_service(
+    service_name: str,
+    path: str,
+    method: str,
+    current_user: Optional[Dict[str, Any]] = None,
+    json_data: Optional[Dict[str, Any]] = None,
+    query_params: Optional[Dict[str, Any]] = None,
+    response: Optional[Response] = None,
+    request: Optional[Request] = None,
+    auth_header: Optional[str] = None
+) -> Any:
+    """
+    Маршрутизирует запрос к указанному сервису.
+    
+    Args:
+        service_name: Имя сервиса из SERVICE_ROUTES
+        path: Путь для запроса (без базового URL)
+        method: HTTP-метод (GET, POST, PUT, PATCH, DELETE)
+        current_user: Данные текущего пользователя (для авторизации)
+        json_data: JSON-данные для отправки
+        query_params: Параметры запроса
+        response: Объект Response для установки заголовков
+        request: Оригинальный FastAPI запрос для получения заголовков
+        auth_header: Заголовок авторизации для передачи в сервис
+        
+    Returns:
+        Any: Результат запроса или HTTPException
+    """
+    # Логирование запроса для отладки
+    logger.debug(f"[route_request_to_service] Получен запрос к сервису {service_name}, путь: {path}, метод: {method}")
+    
+    # Проверяем наличие сервиса в конфигурации
+    if service_name not in SERVICE_ROUTES:
+        logger.error(f"Сервис '{service_name}' не найден в SERVICE_ROUTES")
+        raise HTTPException(status_code=500, detail=f"Сервис '{service_name}' не настроен")
+    
+    service_config = SERVICE_ROUTES[service_name]
+    service_url = service_config.get("base_url")
+    
+    if not service_url:
+        logger.error(f"URL для сервиса '{service_name}' не настроен")
+        raise HTTPException(status_code=500, detail=f"URL для сервиса '{service_name}' не настроен")
+    
+    # Формируем заголовки
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+    }
+    
+    # Добавляем заголовок X-User если есть информация о пользователе
+    if current_user:
+        user_json = json.dumps(current_user)
+        headers["X-User"] = user_json
+        logger.debug(f"[route_request_to_service] Добавлен заголовок X-User для пользователя ID: {current_user.get('id', 'неизвестно')}")
+        
+    # Если предоставлен заголовок авторизации, используем его
+    if auth_header:
+        logger.debug(f"[route_request_to_service] Используем заголовок Authorization из исходного запроса: {auth_header[:20]}...")
+        headers["Authorization"] = auth_header
+    # Иначе, если есть информация о пользователе, создаем заголовок Authorization
+    elif current_user and "id" in current_user:
+        import jwt
+        from app.core.config import settings
+        
+        token_data = {
+            "sub": str(current_user["id"]),
+            "exp": int(time.time()) + 3600,  # Срок действия 1 час
+            "email": current_user.get("email", ""),
+            "roles": current_user.get("roles", []),
+            "name": current_user.get("display_name", "")
+        }
+        
+        token = jwt.encode(
+            token_data,
+            settings.AUTH_SECRET_KEY,
+            algorithm=settings.JWT_ALGORITHM
+        )
+        
+        headers["Authorization"] = f"Bearer {token}"
+        logger.debug(f"[route_request_to_service] Создан новый токен авторизации: Bearer {token[:20]}...")
+    else:
+        logger.warning(f"[route_request_to_service] Отсутствует заголовок Authorization для запроса к {service_name}")
+    
+    # Формируем полный URL
+    full_url = f"{service_url.rstrip('/')}{path}"
+    logger.debug(f"[route_request_to_service] Отправляем запрос к {full_url}")
+    
+    try:
+        # Выполняем запрос
+        status, response_headers, content = await async_http_request(
+            url=full_url,
+            method=method,
+            headers=headers,
+            json_data=json_data,
+            params=query_params
+        )
+        
+        logger.debug(f"[route_request_to_service] Получен ответ со статусом {status}")
+        
+        # Логирование ошибок
+        if status >= 400:
+            try:
+                error_content = json.loads(content)
+                logger.error(f"[route_request_to_service] Ошибка от сервиса {service_name}: {error_content}")
+            except:
+                logger.error(f"[route_request_to_service] Ошибка от сервиса {service_name}: {content[:200]}")
+        
+        # Обработка заголовков ответа
+        if response and response_headers:
+            for header, value in response_headers.items():
+                # Копируем только нужные заголовки
+                if header.lower() in ["content-type", "cache-control", "etag"]:
+                    response.headers[header] = value
+        
+        # Обработка содержимого
+        if content:
+            if response_headers.get("content-type", "").startswith("application/json"):
+                try:
+                    return json.loads(content)
+                except:
+                    return content
+            return content
+        
+        # Пустой ответ
+        return None
+    
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"Ошибка при запросе {method} {full_url}: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Ошибка при запросе: {str(e)}")
 
 
 async def proxy_request(base_url: str, path: str, request: Request, use_request_params: bool = True) -> Response:

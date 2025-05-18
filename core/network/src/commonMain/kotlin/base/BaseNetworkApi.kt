@@ -104,8 +104,13 @@ abstract class BaseNetworkApi(
                 // Execute the operation and return result if successful
                 return operation()
             } catch (e: CancellationException) {
-                // Don't retry if the coroutine was cancelled
-                throw e
+                // Don't retry if the coroutine was cancelled - return error instead of throwing
+                return DomainResult.Error(
+                    DomainError.unknownError(
+                        message = "error_operation_cancelled",
+                        details = e.message
+                    )
+                )
             } catch (e: ClientRequestException) {
                 // Don't retry for client errors (4xx) as they are typically not transient
                 if (e.response.status.value !in 408..499) {

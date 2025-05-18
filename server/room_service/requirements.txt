@@ -1,0 +1,26 @@
+fastapi>=0.104.1
+uvicorn>=0.24.0
+pydantic>=2.4.2
+pydantic-settings>=2.0.3
+sqlalchemy>=2.0.23
+psycopg2-binary>=2.9.9
+python-jose>=3.3.0
+passlib>=1.7.4
+python-multipart>=0.0.6
+bcrypt>=4.0.1
+alembic>=1.12.1
+email-validator>=2.1.0
+httpx>=0.25.1
+python-dotenv
+PyJWT>=2.8.0
+rich>=13.6.0
+databases[postgresql]>=0.8.0
+
+# Async database dependencies
+asyncpg>=0.29.0
+greenlet>=2.0.2  # Required for async SQLAlchemy
+sqlalchemy[asyncio]>=2.0.23  # SQLAlchemy with async support
+
+# Caching
+fastapi-cache2>=0.2.1
+redis>=4.6.0

@@ -4,6 +4,8 @@ import api.NetworkAuthApiImpl
 import api.auth.NetworkAuthApi
 import api.course.NetworkCourseApi
 import api.course.NetworkCourseApiImpl
+import api.room.NetworkRoomApi
+import api.room.NetworkRoomApiImpl
 import client.HttpClientFactory
 import client.InMemoryTokenStorage
 import client.TokenStorage
@@ -66,4 +68,15 @@ val networkModule = DI.Module("networkModule") {
             logger = instance<LoggingProvider>().withTag("NetworkCourseApi")
         )
     }
+
+    // API для комнат
+    bind<NetworkRoomApi>() with singleton {
+        NetworkRoomApiImpl(
+            client = instance(),
+            networkConfig = instance(),
+            logger = instance<LoggingProvider>().withTag("NetworkRoomApi")
+        )
+    }
+
+
 }

@@ -5,9 +5,10 @@ Database initialization for auth_service
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.logger import get_logger
-from .session import db_manager
+from .session import db_manager, engine
 from ..core.config import settings
 from ..models.enums import BeveragePreference
+from ..models.base import Base
 
 logger = get_logger("auth_service.db.init_db")
 
@@ -30,7 +31,7 @@ async def create_test_data(db: AsyncSession) -> None:
         test_user = UserModel(
             email="test@example.com",
             username="test",
-            hashed_password=get_password_hash("test123"),
+            hashed_password=get_password_hash("test123fdffddffd"),
             is_verified=True
         )
 
@@ -56,16 +57,11 @@ async def create_test_data(db: AsyncSession) -> None:
             competition_rating=4.2
         )
 
-        # Используем контекстный менеджер для транзакции
-        try:
-            async with db.begin():
-                db.add(test_user)
-                logger.info("Test user transaction committed")
-        except Exception as e:
-            logger.error(f"Error creating test user: {str(e)}")
-            raise
-
-        # Обновление объекта после завершения транзакции
+        # Добавляем пользователя в сессию и делаем коммит
+        db.add(test_user)
+        await db.commit()
+        
+        # Обновляем объект после коммита
         await db.refresh(test_user)
         logger.info(f"Test user created: {test_user.email} (ID: {test_user.id})")
 
@@ -83,6 +79,27 @@ async def init_db() -> bool:
         bool: Success or failure
     """
     logger.info("Initializing auth service database...")
+
+    # Принудительно импортируем все модели, чтобы убедиться, что они зарегистрированы
+    from ..models.base import Base
+    from ..models.user import UserModel, UserProfileModel, UserPreferencesModel, UserRatingModel
+    from ..models.auth import RefreshTokenModel
+    from ..models.privacy import UserPrivacyModel
+    from ..models.stats import ClientStatModel
+    from ..models.associations import UserOAuthProviderModel, FriendshipModel
+
+    # Явно логируем информацию о модели FriendshipModel
+    logger.info(f"Ensuring FriendshipModel is registered: {FriendshipModel.__tablename__}")
+    
+    try:
+        # Явно создаем все таблицы
+        logger.info("Creating all database tables...")
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("Database tables created successfully")
+    except Exception as e:
+        logger.error(f"Error creating database tables: {str(e)}")
+        return False
 
     # Use the common AsyncDatabaseManager to initialize
     success = await db_manager.init_db(create_test_data if settings.ENV == "development" else None)

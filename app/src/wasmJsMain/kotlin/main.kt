@@ -18,30 +18,37 @@ import org.kodein.di.instance
 fun main() {
     // Получаем логгер из DI
 
+    try {
+        val logger = appDI.direct.instance<Logger>()
+        logger.d("Запуск WASM-приложения")
 
-    val logger = appDI.direct.instance<Logger>()
-    logger.d("Запуск WASM-приложения")
+        val lifecycle = LifecycleRegistry()
 
-    val lifecycle = LifecycleRegistry()
+        val body = document.body ?: return
+        ComposeViewport(body) {
+            withDI(appDI) {
+                logger.d("Инициализация DI")
 
-    val body = document.body ?: return
-    ComposeViewport(body) {
-        withDI(appDI) {
-            logger.d("Инициализация DI")
-
-            // Получаем фабрику для RootComponent и создаем компонент
-            val rootComponentFactory = appDI.direct.factory<RootComponentParams, DefaultRootComponent>()
-            val rootComponent = rootComponentFactory(
-                RootComponentParams(
-                    componentContext = DefaultComponentContext(lifecycle)
+                // Получаем фабрику для RootComponent и создаем компонент
+                val rootComponentFactory = appDI.direct.factory<RootComponentParams, DefaultRootComponent>()
+                val rootComponent = rootComponentFactory(
+                    RootComponentParams(
+                        componentContext = DefaultComponentContext(lifecycle)
+                    )
                 )
-            )
 
-            logger.d("Рендеринг RootContent")
-            // Отображаем корневой контент
-            RootContent(
-                component = rootComponent
-            )
+                logger.d("Рендеринг RootContent")
+                // Отображаем корневой контент
+                RootContent(
+                    component = rootComponent
+                )
+            }
         }
+    } catch (e: Exception) {
+        e.printStackTrace()
+        println("Error: ${e.message}")
+        // Handle the error
+    } finally {
+        println("WASM-приложение завершено")
     }
 }

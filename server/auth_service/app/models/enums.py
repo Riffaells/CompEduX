@@ -1,7 +1,7 @@
-from enum import Enum
+import enum
 
 
-class UserRole(str, Enum):
+class UserRole(str, enum.Enum):
     """
     User roles in the system.
 
@@ -10,12 +10,12 @@ class UserRole(str, Enum):
         USER: Regular user with basic privileges.
         MODERATOR: Moderator with extended privileges for content moderation.
     """
-    ADMIN = "admin"
-    USER = "user"
-    MODERATOR = "moderator"
+    ADMIN = "ADMIN"
+    USER = "USER"
+    MODERATOR = "MODERATOR"
 
 
-class OAuthProvider(str, Enum):
+class OAuthProvider(str, enum.Enum):
     """
     Supported OAuth authentication providers.
 
@@ -23,27 +23,39 @@ class OAuthProvider(str, Enum):
         GOOGLE: Authentication through Google.
         GITHUB: Authentication through GitHub.
         EMAIL: Standard authentication via email and password.
+        FACEBOOK: Authentication through Facebook.
+        TWITTER: Authentication through Twitter.
+        APPLE: Authentication through Apple.
+        VK: Authentication through VK.
+        YANDEX: Authentication through Yandex.
     """
-    GOOGLE = "google"
-    GITHUB = "github"
-    EMAIL = "email"
+    GOOGLE = "GOOGLE"
+    GITHUB = "GITHUB"
+    EMAIL = "EMAIL"
+    FACEBOOK = "FACEBOOK"
+    TWITTER = "TWITTER"
+    APPLE = "APPLE"
+    VK = "VK"
+    YANDEX = "YANDEX"
 
 
-class PrivacyLevel(str, Enum):
+class PrivacyLevel(str, enum.Enum):
     """
     Privacy levels for various user data.
 
     Attributes:
         PUBLIC: Data is visible to all users.
+        REGISTERED: Data is visible to registered users.
         FRIENDS: Data is visible only to user's friends.
         PRIVATE: Data is visible only to the user themselves.
     """
-    PUBLIC = "public"  # Visible to everyone
-    FRIENDS = "friends"  # Visible only to friends
-    PRIVATE = "private"  # Visible only to the user
+    PUBLIC = "PUBLIC"  # Visible to everyone
+    REGISTERED = "REGISTERED"  # Visible to registered users
+    FRIENDS = "FRIENDS"  # Visible only to friends
+    PRIVATE = "PRIVATE"  # Visible only to the user
 
 
-class BeveragePreference(str, Enum):
+class BeveragePreference(str, enum.Enum):
     """
     User's preferred beverage for breaks.
 
@@ -56,11 +68,21 @@ class BeveragePreference(str, Enum):
         WATER: Water preference.
         JUICE: Juice preference.
         SODA: Soda preference.
+        ENERGY_DRINK: Energy drink preference.
         NONE: No preference specified.
     """
-    COFFEE = "coffee"
-    TEA = "tea"
-    WATER = "water"
-    JUICE = "juice"
-    SODA = "soda"
-    NONE = "none"
+    COFFEE = "COFFEE"
+    TEA = "TEA"
+    WATER = "WATER"
+    JUICE = "JUICE"
+    SODA = "SODA"
+    ENERGY_DRINK = "ENERGY_DRINK"
+    NONE = "NONE"
+
+
+class FriendshipStatus(str, enum.Enum):
+    """Статусы дружбы между пользователями"""
+    PENDING = "PENDING"  # Запрос на дружбу отправлен, ожидает подтверждения
+    ACCEPTED = "ACCEPTED"  # Дружба подтверждена
+    REJECTED = "REJECTED"  # Запрос на дружбу отклонен
+    BLOCKED = "BLOCKED"  # Пользователь заблокирован

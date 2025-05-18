@@ -166,6 +166,7 @@ class VersionedAPIRoute(APIRouter):
 
 # Получаем маршруты для статистики
 from .api.routes import stats
+from .api.routes import friends
 
 # Изменим создание роутеров
 v1_router = VersionedAPIRoute(version="v1", prefix=settings.API_V1_STR)
@@ -176,14 +177,17 @@ api_router = VersionedAPIRoute()  # Роутер без версии в пути
 v1_router.include_router(auth.router, prefix="/auth", tags=["auth"])
 v1_router.include_router(users.router, prefix="/users", tags=["users"])
 v1_router.include_router(stats.router, prefix="/stats", tags=["stats"])
+v1_router.include_router(friends.router, prefix="/friends", tags=["friends"])
 
 # Подключаем те же эндпоинты без версии в пути для обратной совместимости
 base_router.include_router(auth.router, prefix="/auth", tags=["auth"])
 base_router.include_router(users.router, prefix="/users", tags=["users"])
+base_router.include_router(friends.router, prefix="/friends", tags=["friends"])
 
 # Подключаем роутеры для маршрутизации через заголовки
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
 api_router.include_router(users.router, prefix="/users", tags=["users"])
+api_router.include_router(friends.router, prefix="/friends", tags=["friends"])
 
 
 # Настройка маршрутизации и порядка роутеров

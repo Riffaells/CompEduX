@@ -23,6 +23,26 @@ interface CourseRepository {
      * @return operation result with a paginated course list
      */
     suspend fun getCourses(params: CourseQueryParams = CourseQueryParams()): DomainResult<CourseListDomain>
+    
+    /**
+     * Get courses by author
+     * @param authorId author identifier
+     * @param page page number (1-based)
+     * @param pageSize number of items per page
+     * @return operation result with a paginated course list
+     */
+    suspend fun getCoursesByAuthor(
+        authorId: String, 
+        page: Int = 1, 
+        pageSize: Int = 20
+    ): DomainResult<CourseListDomain>
+    
+    /**
+     * Get popular courses
+     * @param limit maximum number of courses to return
+     * @return operation result with a list of courses
+     */
+    suspend fun getPopularCourses(limit: Int = 10): DomainResult<List<CourseDomain>>
 
     /**
      * Create a new course

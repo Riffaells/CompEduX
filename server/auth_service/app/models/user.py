@@ -175,6 +175,12 @@ class UserModel(Base):
                                     cascade="all, delete-orphan")
     ratings = relationship("UserRatingModel", uselist=False, back_populates="user", cascade="all, delete-orphan")
 
+    # Friendship relationships
+    outgoing_friendships = relationship("FriendshipModel", foreign_keys="FriendshipModel.user_id", 
+                                       back_populates="user", cascade="all, delete-orphan")
+    incoming_friendships = relationship("FriendshipModel", foreign_keys="FriendshipModel.friend_id", 
+                                       back_populates="friend", cascade="all, delete-orphan")
+
     # Settings preserved for backward compatibility - will be deprecated
     settings = Column(JSON, default=dict)
 
@@ -215,8 +221,3 @@ class UserModel(Base):
 
         if not self.ratings:
             self.ratings = UserRatingModel()
-
-
-# Заглушка для модели Room, которая будет определена в room_service
-class RoomModel:
-    id = None

@@ -5,7 +5,6 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
@@ -32,6 +31,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import settings.AppearanceSettings
 import ui.TechnologyTreeContent
+import ui.icon.RIcons
 import ui.theme.AppTheme
 import utils.getScreenWidth
 
@@ -86,7 +86,7 @@ fun RootContent(
         when (childStack.active.instance) {
             is MainChild -> "main"
             is SettingsChild -> "settings"
-            is SkikoChild -> "map"
+            is RoomChild -> "room"
             is AuthChild -> "profile"
             else -> "main"
         }
@@ -416,11 +416,11 @@ private fun rememberNavigationConfig(component: RootComponent): NavigationConfig
                 onClick = { component.onSettingsClicked() }
             )
             addItem(
-                id = "map",
-                icon = Icons.Default.Map,
-                label = "Карта развития",
-                contentDescription = "Перейти на карту развития",
-                onClick = { component.onDevelopmentMapClicked() }
+                id = "room",
+                icon = RIcons.MeetingRoom,
+                label = "Комнаты",
+                contentDescription = "Перейти к комнатам",
+                onClick = { component.onRoomClicked() }
             )
             addItem(
                 id = "profile",

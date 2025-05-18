@@ -7,13 +7,13 @@ import model.room.RoomQueryParams
 import repository.room.RoomRepository
 
 /**
- * Use case to get a filtered list of roomss
+ * Use case to get a filtered list of rooms
  */
 class GetRoomsUseCase(private val roomRepository: RoomRepository) {
     /**
-     * Get a list of roomss with filtering and pagination
+     * Get a list of rooms with filtering and pagination
      * @param params query parameters
-     * @return operation result with a paginated list of roomss
+     * @return operation result with a paginated list of rooms
      */
     suspend operator fun invoke(params: RoomQueryParams = RoomQueryParams()): DomainResult<RoomListDomain> {
         // Validate input data
@@ -29,11 +29,11 @@ class GetRoomsUseCase(private val roomRepository: RoomRepository) {
     }
 
     /**
-     * Convenience method to search roomss by text
+     * Convenience method to search rooms by text
      * @param searchText text to search for
      * @param page page number
      * @param size page size
-     * @return operation result with a list of roomss
+     * @return operation result with a list of rooms
      */
     suspend operator fun invoke(searchText: String, page: Int = 0, size: Int = 20): DomainResult<RoomListDomain> {
         val params = RoomQueryParams(
@@ -45,11 +45,11 @@ class GetRoomsUseCase(private val roomRepository: RoomRepository) {
     }
 
     /**
-     * Convenience method to get roomss by author
+     * Convenience method to get rooms by author
      * @param authorId author identifier
      * @param page page number
      * @param size page size
-     * @return operation result with a list of roomss
+     * @return operation result with a list of rooms
      */
     suspend fun getByAuthor(authorId: String, page: Int = 0, size: Int = 20): DomainResult<RoomListDomain> {
         val params = RoomQueryParams(

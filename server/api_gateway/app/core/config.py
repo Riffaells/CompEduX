@@ -1,3 +1,6 @@
+"""
+Configuration for the API Gateway
+"""
 import sys
 from typing import Optional, Dict
 
@@ -34,11 +37,11 @@ SERVICE_ROUTES: Dict[str, Dict[str, str]] = {
         "prefix": "/auth",
         "health_endpoint": "/health"
     },
-    # "room": {
-    #     "base_url": settings.ROOM_SERVICE_URL,
-    #     "prefix": "/rooms",
-    #     "health_endpoint": "/health"
-    # },
+    "room": {
+        "base_url": settings.ROOM_SERVICE_URL,
+        "prefix": "/rooms",
+        "health_endpoint": "/health"
+    },
     # "competition": {
     #     "base_url": settings.COMPETITION_SERVICE_URL,
     #     "prefix": "/competitions",

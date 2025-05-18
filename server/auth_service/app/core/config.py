@@ -43,6 +43,21 @@ class Settings(BaseServiceSettings):
     SMTP_PASSWORD: Optional[str] = None
     EMAILS_FROM_EMAIL: Optional[str] = None
     EMAILS_FROM_NAME: Optional[str] = None
+    
+    # Database connection settings
+    DB_ECHO: bool = False
+    DB_POOL_SIZE: int = 5
+    DB_MAX_OVERFLOW: int = 10
+    DB_POOL_TIMEOUT: int = 30
+    DB_POOL_RECYCLE: int = 3600
+    DB_POOL_PRE_PING: bool = True
+    
+    @property
+    def DATABASE_URL(self) -> str:
+        """
+        Alias for SQLALCHEMY_DATABASE_URI to maintain compatibility
+        """
+        return self.SQLALCHEMY_DATABASE_URI
 
 
 # Create settings instance

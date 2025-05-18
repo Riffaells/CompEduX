@@ -51,19 +51,27 @@ class DefaultProfileComponent(
 
     override fun accept(intent: ProfileStore.Intent) {
         profileStore.accept(intent)
-
-        // Если это Logout intent, то после обработки в Store нужно выполнить навигацию
-        if (intent is ProfileStore.Intent.Logout) {
-            scope.launch {
-                onLogout()
-            }
-        }
     }
 
+    /**
+     * Handles logout action
+     * This method is designed to guarantee navigation to login screen
+     */
     override fun onLogout() {
-        profileStore.accept(ProfileStore.Intent.Logout)
+        // First trigger the callback that will control navigation
+        onLogoutClicked()
+        
+        // Then handle local state cleanup
         scope.launch {
-            onLogoutClicked()
+            try {
+                // Force logout in auth use cases
+                authUseCases.logout()
+            } catch (e: Exception) {
+                // Ignore exceptions - logout should proceed even with errors
+            } finally {
+                // Notify store that logout happened
+                profileStore.accept(ProfileStore.Intent.Logout)
+            }
         }
     }
 }

@@ -50,7 +50,7 @@ suspend inline fun <reified T> HttpClient.safeSend(
         DomainResult.Error(
             errorTransformer(e.response)
         )
-
+    } catch (e: ServerResponseException) {
         // Server errors (5xx)
         logger.e("Server error during request: ${e.response.status.value}", e)
         DomainResult.Error(
@@ -184,34 +184,38 @@ suspend inline fun <reified T, reified E> HttpClient.safeSendWithErrorBody(
                     )
                 }
             }
-
-            is ServerResponseException -> DomainResult.Error(
-                DomainError.serverError(
-                    message = "error_server_unavailable",
-                    details = e.message
+            is ServerResponseException -> {
+                DomainResult.Error(
+                    DomainError.serverError(
+                        message = "error_server_unavailable",
+                        details = e.message
+                    )
                 )
-            )
-
-            is HttpRequestTimeoutException -> DomainResult.Error(
-                DomainError.networkError(
-                    message = "error_timeout",
-                    details = e.message
+            }
+            is HttpRequestTimeoutException -> {
+                DomainResult.Error(
+                    DomainError.networkError(
+                        message = "error_timeout",
+                        details = e.message
+                    )
                 )
-            )
-
-            is IOException -> DomainResult.Error(
-                DomainError.networkError(
-                    message = "error_network_connectivity",
-                    details = e.message
+            }
+            is IOException -> {
+                DomainResult.Error(
+                    DomainError.networkError(
+                        message = "error_network_connectivity",
+                        details = e.message
+                    )
                 )
-            )
-
-            else -> DomainResult.Error(
-                DomainError.unknownError(
-                    message = "error_unknown",
-                    details = e.message
+            }
+            else -> {
+                DomainResult.Error(
+                    DomainError.unknownError(
+                        message = "error_unknown",
+                        details = e.message
+                    )
                 )
-            )
+            }
         }
     }
 }

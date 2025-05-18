@@ -43,4 +43,5 @@ include(
     ":core:ui",
     ":feature:settings",
     ":feature:tree",
+    ":feature:course",
 )

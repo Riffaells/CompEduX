@@ -806,7 +806,7 @@ fun ProfileContent(component: ProfileComponent) {
 
                     // Logout button
                     Button(
-                        onClick = { component.accept(ProfileStore.Intent.Logout) },
+                        onClick = { component.onLogout() },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),

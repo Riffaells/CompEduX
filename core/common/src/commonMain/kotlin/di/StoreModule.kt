@@ -2,6 +2,12 @@ package di
 
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import component.app.auth.store.*
+import component.app.room.diagram.store.DiagramStore
+import component.app.room.diagram.store.DiagramStoreFactory
+import component.app.room.list.store.RoomListStore
+import component.app.room.list.store.RoomListStoreFactory
+import component.app.room.store.RoomStore
+import component.app.room.store.RoomStoreFactory
 import component.root.store.RootStore
 import component.root.store.RootStoreFactory
 import org.kodein.di.*
@@ -44,6 +50,21 @@ val storeModule = DI.Module("storeModule") {
 
     bindProvider<RootStore> {
         RootStoreFactory(
+            storeFactory = instance(),
+            di = di
+        ).create()
+    }
+    
+    // Room stores
+    bindProvider<RoomStore> {
+        RoomStoreFactory(
+            storeFactory = instance(),
+            di = di
+        ).create()
+    }
+    
+    bindProvider<RoomListStore> {
+        RoomListStoreFactory(
             storeFactory = instance(),
             di = di
         ).create()

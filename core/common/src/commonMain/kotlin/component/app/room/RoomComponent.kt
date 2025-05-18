@@ -2,14 +2,19 @@ package component.app.room
 
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.slot.*
+import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import component.app.room.achievement.AchievementComponentParams
 import component.app.room.achievement.DefaultAchievementComponent
+import component.app.room.detail.DefaultRoomDetailComponent
+import component.app.room.detail.RoomDetailComponentParams
 import component.app.room.diagram.DefaultDiagramComponent
 import component.app.room.diagram.DiagramComponentParams
+import component.app.room.list.DefaultRoomListComponent
+import component.app.room.list.RoomListComponentParams
 import component.app.room.store.RoomStore
 import component.app.room.store.RoomStoreFactory
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -32,6 +37,7 @@ interface RoomComponent {
     val state: StateFlow<RoomStore.State>
     val diagramSlot: Value<ChildSlot<*, DiagramChild>>
     val achievementSlot: Value<ChildSlot<*, AchievementChild>>
+    val roomStack: Value<ChildStack<*, RoomChild>>
 
     fun onEvent(event: RoomStore.Intent)
     fun onBackClicked()
@@ -44,6 +50,10 @@ interface RoomComponent {
         data class AchievementContent(val component: DefaultAchievementComponent) : AchievementChild()
     }
 
+    sealed class RoomChild {
+        data class List(val component: DefaultRoomListComponent) : RoomChild()
+        data class Detail(val component: DefaultRoomDetailComponent) : RoomChild()
+    }
 }
 
 class DefaultRoomComponent(
@@ -71,6 +81,9 @@ class DefaultRoomComponent(
     // Navigation for auth slot
     private val authNavigation = SlotNavigation<AuthConfig>()
 
+    // Navigation for room stack
+    private val roomNavigation = StackNavigation<RoomConfig>()
+
     // Diagram slot
     override val diagramSlot: Value<ChildSlot<*, RoomComponent.DiagramChild>> = childSlot(
         source = diagramNavigation,
@@ -89,6 +102,15 @@ class DefaultRoomComponent(
         childFactory = ::createAchievementChild
     )
 
+    // Room stack
+    override val roomStack: Value<ChildStack<*, RoomComponent.RoomChild>> = childStack(
+        source = roomNavigation,
+        serializer = RoomConfig.serializer(),
+        initialConfiguration = RoomConfig.List,
+        handleBackButton = true,
+        key = "RoomStack",
+        childFactory = ::createRoomChild
+    )
 
     init {
         // Инициализируем диаграмму
@@ -144,7 +166,6 @@ class DefaultRoomComponent(
         }
     }
 
-
     private fun createDiagramChild(
         config: DiagramConfig,
         componentContext: ComponentContext
@@ -165,6 +186,35 @@ class DefaultRoomComponent(
             )
         }
 
+    private fun createRoomChild(
+        config: RoomConfig,
+        componentContext: ComponentContext
+    ): RoomComponent.RoomChild =
+        when (config) {
+            is RoomConfig.List -> RoomComponent.RoomChild.List(
+                roomListComponent(
+                    componentContext,
+                    ::onRoomSelected
+                )
+            )
+            is RoomConfig.Detail -> RoomComponent.RoomChild.Detail(
+                roomDetailComponent(
+                    componentContext,
+                    config.roomId,
+                    ::onRoomDetailBack
+                )
+            )
+        }
+
+    private fun onRoomSelected(roomId: String) {
+        roomNavigation.navigate { stack ->
+            stack + RoomConfig.Detail(roomId)
+        }
+    }
+
+    private fun onRoomDetailBack() {
+        roomNavigation.pop()
+    }
 
     private fun diagramComponent(componentContext: ComponentContext): DefaultDiagramComponent {
         val diagramComponentFactory: (DiagramComponentParams) -> DefaultDiagramComponent by factory()
@@ -184,6 +234,33 @@ class DefaultRoomComponent(
         )
     }
 
+    private fun roomListComponent(
+        componentContext: ComponentContext,
+        onRoomSelected: (String) -> Unit
+    ): DefaultRoomListComponent {
+        val roomListComponentFactory: (RoomListComponentParams) -> DefaultRoomListComponent by factory()
+        return roomListComponentFactory(
+            RoomListComponentParams(
+                componentContext = componentContext,
+                onRoomSelected = onRoomSelected
+            )
+        )
+    }
+
+    private fun roomDetailComponent(
+        componentContext: ComponentContext,
+        roomId: String,
+        onBack: () -> Unit
+    ): DefaultRoomDetailComponent {
+        val roomDetailComponentFactory: (RoomDetailComponentParams) -> DefaultRoomDetailComponent by factory()
+        return roomDetailComponentFactory(
+            RoomDetailComponentParams(
+                componentContext = componentContext,
+                roomId = roomId,
+                onBack = onBack
+            )
+        )
+    }
 
     @Serializable
     private sealed interface DiagramConfig {
@@ -201,6 +278,15 @@ class DefaultRoomComponent(
     private sealed interface AuthConfig {
         @Serializable
         data object Auth : AuthConfig
+    }
+
+    @Serializable
+    private sealed interface RoomConfig {
+        @Serializable
+        data object List : RoomConfig
+
+        @Serializable
+        data class Detail(val roomId: String) : RoomConfig
     }
 
     override fun onBackClicked() {

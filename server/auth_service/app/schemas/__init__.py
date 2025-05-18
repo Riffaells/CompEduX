@@ -1,7 +1,13 @@
-# Schemas Package
-# Temporarily commented out room-related schemas to troubleshoot database connection issues
-from .associations import UserOAuthProviderSchema  # , UserRoomSchema, RoomSchema
-from .auth import UserLoginSchema, TokenSchema, TokenRefreshSchema, TokenPayloadSchema
+# -*- coding: utf-8 -*-
+"""
+Schemas package for auth_service
+"""
+from .associations import UserOAuthProviderSchema
+from .auth import (
+    TokenSchema, TokenPayloadSchema, TokenRefreshSchema, TokenDataSchema,
+    LoginSchema, LoginResponseSchema, RegistrationSchema, RegistrationResponseSchema,
+    UserLoginSchema, OAuthLoginSchema
+)
 from .base import UserBaseSchema
 from .privacy import PrivacySettingsSchema, PrivacySettingsUpdateSchema
 from .stats import (
@@ -16,29 +22,48 @@ from .user import (
     UserResponseSchema,
     UserPublicProfileSchema,
     UserProfileSchema,
-    UserPreferencesSchema
+    UserPreferencesSchema,
+    UserList
+)
+from .friendship import (
+    FriendshipBase, FriendshipCreate, FriendshipUpdate, FriendshipResponse,
+    FriendMinimalSchema, FriendDetailSchema, FriendWithStatusSchema, FriendListResponse,
+    FriendshipStatusEnum
 )
 
 __all__ = [
     'UserBaseSchema',
     'PrivacySettingsSchema',
     'PrivacySettingsUpdateSchema',
-    'UserLoginSchema',
     'TokenSchema',
-    'TokenRefreshSchema',
     'TokenPayloadSchema',
+    'TokenRefreshSchema',
+    'TokenDataSchema',
+    'LoginSchema',
+    'LoginResponseSchema',
+    'RegistrationSchema',
+    'RegistrationResponseSchema',
+    'UserLoginSchema',
+    'OAuthLoginSchema',
     'UserOAuthProviderSchema',
-    # Temporarily commented out room-related schemas to troubleshoot database connection issues
-    # 'UserRoomSchema',
-    # 'RoomSchema',
     'UserCreateSchema',
     'UserUpdateSchema',
     'UserResponseSchema',
     'UserPublicProfileSchema',
     'UserProfileSchema',
     'UserPreferencesSchema',
+    'UserList',
     'PlatformStatSchema',
     'OSStatSchema',
     'AppVersionStatSchema',
-    'ClientStatsResponse'
+    'ClientStatsResponse',
+    'FriendshipBase',
+    'FriendshipCreate',
+    'FriendshipUpdate',
+    'FriendshipResponse',
+    'FriendMinimalSchema',
+    'FriendDetailSchema',
+    'FriendWithStatusSchema',
+    'FriendListResponse',
+    'FriendshipStatusEnum'
 ]

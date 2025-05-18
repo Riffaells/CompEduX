@@ -33,7 +33,7 @@ data class LocalizedContent(
      * @param fallbackLanguage the fallback language if primary is not available
      * @return content in one of the languages or empty string if none available
      */
-    fun getContentWithFallback(primaryLanguage: String, fallbackLanguage: String = "en"): String {
+    fun getContentWithFallback(primaryLanguage: String, fallbackLanguage: String = defaultLanguage): String {
         return getContent(primaryLanguage) ?: getContent(fallbackLanguage) ?: ""
     }
 
@@ -42,12 +42,10 @@ data class LocalizedContent(
      * This is used by adapters to convert to common models
      */
     fun getPreferredString(preferredLanguage: String? = null): String {
-        return if (preferredLanguage != null) {
-            getContentWithFallback(preferredLanguage, defaultLanguage)
-        } else if (content.containsKey(defaultLanguage)) {
-            content[defaultLanguage] ?: ""
-        } else {
-            content.values.firstOrNull() ?: ""
+        return when {
+            preferredLanguage != null -> getContentWithFallback(preferredLanguage, defaultLanguage)
+            content.containsKey(defaultLanguage) -> content[defaultLanguage] ?: ""
+            else -> content.values.firstOrNull() ?: ""
         }
     }
 
@@ -68,12 +66,26 @@ data class LocalizedContent(
         return content.keys
     }
 
+    /**
+     * Check if the localized content is empty (has no translations)
+     * @return true if there are no translations available
+     */
+    fun isEmpty(): Boolean = content.isEmpty() || content.values.all { it.isBlank() }
+
     companion object {
         /**
          * Create localized content with a single value for the specified language
          */
         fun single(value: String, languageCode: String = "en"): LocalizedContent {
-            return LocalizedContent(mapOf(languageCode.lowercase() to value))
+            return LocalizedContent(mapOf(languageCode.lowercase() to value), languageCode)
+        }
+
+        /**
+         * Create localized content from a string, setting it for both English and Russian
+         * This is a convenience method for the most common use case in this application
+         */
+        fun createBilingual(value: String): LocalizedContent {
+            return LocalizedContent(mapOf("en" to value, "ru" to value))
         }
     }
 }
@@ -85,35 +97,24 @@ object LocalizedContentSerializer : KSerializer<LocalizedContent> {
     override val descriptor: SerialDescriptor = buildClassSerialDescriptor("LocalizedContent")
 
     override fun serialize(encoder: Encoder, value: LocalizedContent) {
-        // Direct serialization of the content map
-        val jsonEncoder = encoder as? JsonEncoder
-        if (jsonEncoder != null) {
-            val jsonObject = JsonObject(value.content.mapValues { (_, v) ->
-                kotlinx.serialization.json.JsonPrimitive(v)
-            })
-            jsonEncoder.encodeJsonElement(jsonObject)
-        }
+        val jsonEncoder = encoder as? JsonEncoder ?: return
+        val jsonObject = JsonObject(value.content.mapValues { JsonPrimitive(it.value) })
+        jsonEncoder.encodeJsonElement(jsonObject)
     }
 
     override fun deserialize(decoder: Decoder): LocalizedContent {
-        // Parse JSON directly to content map
-        val jsonDecoder = decoder as? JsonDecoder
-        if (jsonDecoder != null) {
-            val jsonElement = jsonDecoder.decodeJsonElement()
-            val contentMap = mutableMapOf<String, String>()
-
-            if (jsonElement is JsonObject) {
-                jsonElement.jsonObject.forEach { (key, value) ->
-                    contentMap[key] = value.jsonPrimitive.content
-                }
-            }
-
-            val defaultLanguage = if (contentMap.containsKey("en")) "en" else
-                contentMap.keys.firstOrNull() ?: "en"
-
-            return LocalizedContent(contentMap, defaultLanguage)
+        val jsonDecoder = decoder as? JsonDecoder ?: return LocalizedContent()
+        val jsonElement = jsonDecoder.decodeJsonElement()
+        
+        if (jsonElement !is JsonObject) return LocalizedContent()
+        
+        val contentMap = jsonElement.mapValues { it.value.jsonPrimitive.content }
+        val defaultLanguage = when {
+            contentMap.containsKey("en") -> "en"
+            contentMap.isNotEmpty() -> contentMap.keys.first()
+            else -> "en"
         }
 
-        return LocalizedContent()
+        return LocalizedContent(contentMap, defaultLanguage)
     }
 }

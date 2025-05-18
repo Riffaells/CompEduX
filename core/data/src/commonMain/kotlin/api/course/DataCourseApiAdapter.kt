@@ -24,13 +24,9 @@ class DataCourseApiAdapter(
 
         // Get saved token
         val token = tokenRepository.getAccessToken()
-
-        if (token == null) {
-            logger.w("Cannot get course: No access token")
-            return@withContext DomainResult.Error(DomainError.authError("Access token not found"))
-        }
-
-        return@withContext networkCourseApi.getCourse(courseId)
+        
+        // Even without token, try to get the course (might be public)
+        return@withContext networkCourseApi.getCourse(courseId, token)
     }
 
     override suspend fun getCourses(params: Map<String, Any?>): DomainResult<CourseListDomain> =
@@ -39,13 +35,9 @@ class DataCourseApiAdapter(
 
             // Get saved token
             val token = tokenRepository.getAccessToken()
-
-            if (token == null) {
-                logger.w("Cannot get courses: No access token")
-                return@withContext DomainResult.Error(DomainError.authError("Access token not found"))
-            }
-
-            return@withContext networkCourseApi.getCourses(params)
+            
+            // Even without token, try to get courses (might be public)
+            return@withContext networkCourseApi.getCourses(params, token)
         }
 
     override suspend fun createCourse(course: CourseDomain): DomainResult<CourseDomain> =
@@ -60,7 +52,7 @@ class DataCourseApiAdapter(
                 return@withContext DomainResult.Error(DomainError.authError("Access token not found"))
             }
 
-            return@withContext networkCourseApi.createCourse(course)
+            return@withContext networkCourseApi.createCourse(course, token)
         }
 
     override suspend fun updateCourse(courseId: String, course: CourseDomain): DomainResult<CourseDomain> =
@@ -75,7 +67,7 @@ class DataCourseApiAdapter(
                 return@withContext DomainResult.Error(DomainError.authError("Access token not found"))
             }
 
-            return@withContext networkCourseApi.updateCourse(courseId, course)
+            return@withContext networkCourseApi.updateCourse(courseId, course, token)
         }
 
     override suspend fun deleteCourse(courseId: String): DomainResult<Unit> = withContext(Dispatchers.Default) {
@@ -89,6 +81,6 @@ class DataCourseApiAdapter(
             return@withContext DomainResult.Error(DomainError.authError("Access token not found"))
         }
 
-        return@withContext networkCourseApi.deleteCourse(courseId)
+        return@withContext networkCourseApi.deleteCourse(courseId, token)
     }
 }

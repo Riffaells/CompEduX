@@ -105,15 +105,21 @@ class DatabaseInitializer:
         services = [
             {
                 "name": "auth_service",
-                "user": os.getenv("AUTH_SERVICE_USER", "auth_user"),
-                "password": os.getenv("AUTH_SERVICE_PASSWORD", "authpassword123"),
-                "db": os.getenv("AUTH_SERVICE_DB", "auth_db"),
+                "user": os.getenv("AUTH_DB_USER", "auth_user"),
+                "password": os.getenv("AUTH_DB_PASSWORD", "authpassword123"),
+                "db": os.getenv("AUTH_DB_NAME", "auth_db"),
             },
             {
                 "name": "course_service",
-                "user": os.getenv("COURSE_SERVICE_USER", "course_user"),
-                "password": os.getenv("COURSE_SERVICE_PASSWORD", "coursepassword123"),
-                "db": os.getenv("COURSE_SERVICE_DB", "course_db"),
+                "user": os.getenv("COURSE_DB_USER", "course_user"),
+                "password": os.getenv("COURSE_DB_PASSWORD", "coursepassword123"),
+                "db": os.getenv("COURSE_DB_NAME", "course_db"),
+            },
+            {
+                "name": "room_service",
+                "user": os.getenv("ROOM_DB_USER", "room_user"),
+                "password": os.getenv("ROOM_DB_PASSWORD", "roompassword123"),
+                "db": os.getenv("ROOM_DB_NAME", "room_db"),
             },
             # При необходимости добавьте здесь другие сервисы
         ]

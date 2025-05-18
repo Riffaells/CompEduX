@@ -1,18 +1,30 @@
 package model.room
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Paginated list of rooms
+ * Доменная модель списка комнат
+ *
+ * @property items Список комнат
+ * @property total Общее количество комнат
+ * @property page Текущая страница
+ * @property pageSize Размер страницы
  */
 @Serializable
 data class RoomListDomain(
-    val items: List<RoomDomain> = emptyList(),
-    val total: Int = 0,
-    val page: Int = 0,
-    val size: Int = 20,
-    val pages: Int = 0
+    val items: List<RoomDomain>,
+    val total: Int,
+    val page: Int,
+    @SerialName("page_size")
+    val pageSize: Int
 ) {
+    /**
+     * Количество страниц
+     */
+    val pages: Int
+        get() = if (pageSize > 0) (total + pageSize - 1) / pageSize else 0
+
     /**
      * Проверка, пуст ли список
      */
@@ -40,8 +52,7 @@ data class RoomListDomain(
                 items = emptyList(),
                 total = 0,
                 page = 0,
-                size = 0,
-                pages = 0
+                pageSize = 0
             )
         }
 
@@ -49,13 +60,11 @@ data class RoomListDomain(
          * Create a list from rooms without pagination info
          */
         fun fromList(rooms: List<RoomDomain>): RoomListDomain {
-            val nonEmptyList = rooms.isNotEmpty()
             return RoomListDomain(
                 items = rooms,
                 total = rooms.size,
                 page = 0,
-                size = rooms.size,
-                pages = if (nonEmptyList) 1 else 0
+                pageSize = rooms.size
             )
         }
     }

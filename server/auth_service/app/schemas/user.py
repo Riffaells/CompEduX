@@ -7,6 +7,7 @@ from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator, Confi
 
 # Temporarily commented out UserRoomSchema for troubleshooting
 from ..models.enums import UserRole, PrivacyLevel, OAuthProvider, BeveragePreference
+from .associations import UserOAuthProviderSchema
 
 # Username validation pattern: letters, numbers, underscore, hyphen
 USERNAME_PATTERN = re.compile(r'^[a-zA-Z0-9_-]+$')
@@ -105,25 +106,6 @@ class UserRatingSchema(BaseModel):
     additional_ratings: Dict[str, Any] = {}
 
     # Timestamps
-    created_at: datetime
-    updated_at: datetime
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-# OAuth provider schema
-class UserOAuthProviderSchema(BaseModel):
-    """
-    Schema for user's OAuth provider.
-
-    Contains information about the connected OAuth provider.
-    """
-    id: UUID
-    provider: OAuthProvider
-    provider_user_id: str
-    access_token: str = None
-    refresh_token: str = None
-    expires_at: datetime = None
     created_at: datetime
     updated_at: datetime
 
@@ -301,9 +283,9 @@ class UserResponseSchema(BaseModel):
     last_login_at: Optional[datetime] = None
 
     # Related entities with their own data
-    profile: UserProfileSchema
-    preferences: UserPreferencesSchema
-    ratings: UserRatingSchema
+    profile: Optional[UserProfileSchema] = None
+    preferences: Optional[UserPreferencesSchema] = None
+    ratings: Optional[UserRatingSchema] = None
     oauth_providers: List[UserOAuthProviderSchema] = []
 
     # Legacy field maintained for backward compatibility but hidden in docs
@@ -338,34 +320,13 @@ class UserPublicProfileSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-# Схема для аутентификации
-class UserLoginSchema(BaseModel):
-    """
-    Schema for user authentication.
-
-    Used for logging into the system.
-    """
-    email: EmailStr
-    password: str
-
-
-# Схема для токенов
-class TokenSchema(BaseModel):
-    """
-    Schema for authentication tokens.
-
-    Contains access token and refresh token.
-    """
-    access_token: str
-    refresh_token: str
-    token_type: str = "bearer"
-
-
-# Схема для обновления токена
-class TokenRefreshSchema(BaseModel):
-    """
-    Schema for refreshing access token.
-
-    Used to obtain a new access token using a refresh token.
-    """
-    refresh_token: str
+# Добавляем схему для списка пользователей с пагинацией
+class UserList(BaseModel):
+    """Schema for listing users with pagination"""
+    items: List[Any]  # Может быть как UserResponseSchema, так и UserPublicProfileSchema
+    total: int
+    page: int
+    size: int
+    pages: int
+    
+    model_config = ConfigDict(from_attributes=True)

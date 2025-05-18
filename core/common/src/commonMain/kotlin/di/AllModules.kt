@@ -27,5 +27,6 @@ val allModules = DI.Module("allModules") {
     // 5. Компоненты приложения
     import(storeModule)
     import(componentModule)
+    import(courseModule)
     import(technologyTreeModule)
 }

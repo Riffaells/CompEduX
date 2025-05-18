@@ -13,7 +13,7 @@ class DeleteRoomUseCase(private val roomRepository: RoomRepository) {
      * @param roomId the room identifier
      * @return operation result
      */
-    suspend operator fun invoke(roomId: String): DomainResult<Unit> {
+    suspend operator fun invoke(roomId: String): DomainResult<Boolean> {
         // Validate room ID
         if (roomId.isBlank()) {
             return DomainResult.Error(DomainError.validationError("Room ID cannot be empty"))
@@ -22,7 +22,7 @@ class DeleteRoomUseCase(private val roomRepository: RoomRepository) {
         // Check if the room exists
         val existingRoom = roomRepository.getRoom(roomId)
         if (existingRoom is DomainResult.Error) {
-            return existingRoom
+            return DomainResult.Error(existingRoom.error)
         }
         
         // Delete the room

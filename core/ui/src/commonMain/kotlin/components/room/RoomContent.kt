@@ -20,7 +20,9 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import component.app.room.RoomComponent
 import component.app.room.store.RoomStore
 import components.room.achievement.AchievementContent
+import components.room.detail.RoomDetailContent
 import components.room.diagram.DiagramContent
+import components.room.list.RoomListContent
 import ui.icon.RIcons
 
 /**
@@ -36,6 +38,7 @@ fun RoomContent(
     val state by component.state.collectAsState()
     val diagramSlot by component.diagramSlot.subscribeAsState()
     val achievementSlot by component.achievementSlot.subscribeAsState()
+    val roomStack by component.roomStack.subscribeAsState()
 
     // Состояние для анимации элементов
     var showContent by remember { mutableStateOf(false) }
@@ -55,7 +58,7 @@ fun RoomContent(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(state.roomName) },
+                title = { Text("Комнаты") },
                 navigationIcon = {
                     IconButton(onClick = { component.onBackClicked() }) {
                         Icon(RIcons.ArrowBack, contentDescription = "Назад")
@@ -81,30 +84,7 @@ fun RoomContent(
             verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Заголовок и описание комнаты
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp)
-                    .alpha(contentAlpha)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .padding(16.dp)
-                ) {
-                    Text(
-                        text = state.roomName,
-                        style = MaterialTheme.typography.headlineSmall,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                    Text(
-                        text = state.roomDescription,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
-
-            // Основной контент с диаграммами и достижениями
+            // Основной контент с комнатами, диаграммами и достижениями
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -112,64 +92,44 @@ fun RoomContent(
                     .alpha(contentAlpha),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Диаграмма - всегда отображается
+                // Основная область для списка комнат или детального просмотра
                 Box(
                     modifier = Modifier
-                        .weight(1f)
+                        .weight(2f)
                         .fillMaxHeight()
                 ) {
-                    diagramSlot.child?.instance?.let { diagramChild ->
-                        when (diagramChild) {
-                            is RoomComponent.DiagramChild.DiagramContent -> {
-                                Card(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .shadow(4.dp, RoundedCornerShape(16.dp))
-                                ) {
-                                    Column {
-                                        Text(
-                                            text = "Диаграмма",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .background(MaterialTheme.colorScheme.primaryContainer)
-                                                .padding(8.dp),
-                                            textAlign = TextAlign.Center
-                                        )
-                                        DiagramContent(diagramChild.component)
-                                    }
-                                }
+                    Card(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .shadow(4.dp, RoundedCornerShape(16.dp))
+                    ) {
+                        when (val child = roomStack.active.instance) {
+                            is RoomComponent.RoomChild.List -> {
+                                RoomListContent(component = child.component)
                             }
-                        }
-                    } ?: run {
-                        // Placeholder when no diagram is shown
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text("Диаграмма загружается...")
+                            is RoomComponent.RoomChild.Detail -> {
+                                RoomDetailContent(component = child.component)
+                            }
                         }
                     }
                 }
 
-                // Достижения
-                AnimatedVisibility(
-                    visible = state.showAchievement,
-                    enter = fadeIn() + expandHorizontally(),
-                    exit = fadeOut() + shrinkHorizontally()
+                // Правая панель с диаграммой и достижениями
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    // Диаграмма - всегда отображается
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .fillMaxHeight()
+                            .fillMaxWidth()
                     ) {
-                        achievementSlot.child?.instance?.let { achievementChild ->
-                            when (achievementChild) {
-                                is RoomComponent.AchievementChild.AchievementContent -> {
+                        diagramSlot.child?.instance?.let { diagramChild ->
+                            when (diagramChild) {
+                                is RoomComponent.DiagramChild.DiagramContent -> {
                                     Card(
                                         modifier = Modifier
                                             .fillMaxSize()
@@ -177,21 +137,21 @@ fun RoomContent(
                                     ) {
                                         Column {
                                             Text(
-                                                text = "Достижения",
+                                                text = "Диаграмма",
                                                 style = MaterialTheme.typography.titleMedium,
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .background(MaterialTheme.colorScheme.secondaryContainer)
+                                                    .background(MaterialTheme.colorScheme.primaryContainer)
                                                     .padding(8.dp),
                                                 textAlign = TextAlign.Center
                                             )
-                                            AchievementContent(achievementChild.component)
+                                            DiagramContent(diagramChild.component)
                                         }
                                     }
                                 }
                             }
                         } ?: run {
-                            // Placeholder when no achievements are shown
+                            // Placeholder when no diagram is shown
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
@@ -200,31 +160,62 @@ fun RoomContent(
                                     .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text("Достижения скрыты")
+                                Text("Диаграмма загружается...")
                             }
                         }
                     }
-                }
-            }
 
-            // Кнопки управления
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp)
-                    .alpha(contentAlpha),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                Button(
-                    onClick = { component.onEvent(RoomStore.Intent.UpdateRoomName("Обновленная комната")) }
-                ) {
-                    Text("Обновить название")
-                }
-
-                Button(
-                    onClick = { component.onEvent(RoomStore.Intent.UpdateRoomDescription("Новое описание комнаты с обновленной информацией.")) }
-                ) {
-                    Text("Обновить описание")
+                    // Достижения
+                    AnimatedVisibility(
+                        visible = state.showAchievement,
+                        enter = fadeIn() + expandVertically(),
+                        exit = fadeOut() + shrinkVertically(),
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                        ) {
+                            achievementSlot.child?.instance?.let { achievementChild ->
+                                when (achievementChild) {
+                                    is RoomComponent.AchievementChild.AchievementContent -> {
+                                        Card(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .shadow(4.dp, RoundedCornerShape(16.dp))
+                                        ) {
+                                            Column {
+                                                Text(
+                                                    text = "Достижения",
+                                                    style = MaterialTheme.typography.titleMedium,
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .background(MaterialTheme.colorScheme.secondaryContainer)
+                                                        .padding(8.dp),
+                                                    textAlign = TextAlign.Center
+                                                )
+                                                AchievementContent(achievementChild.component)
+                                            }
+                                        }
+                                    }
+                                }
+                            } ?: run {
+                                // Placeholder when no achievements are shown
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("Достижения скрыты")
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

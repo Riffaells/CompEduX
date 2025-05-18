@@ -9,6 +9,7 @@ kotlin {
         commonMain.dependencies {
             // Настройки
             implementation(projects.feature.settings)
+            implementation(projects.feature.course)
             implementation(projects.feature.tree)
 
 

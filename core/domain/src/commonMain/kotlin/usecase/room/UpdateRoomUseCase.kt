@@ -5,6 +5,7 @@ import model.DomainResult
 import model.course.LocalizedContent
 import model.room.RoomDomain
 import model.room.RoomStatusDomain
+import model.room.RoomUpdateDomain
 import repository.room.RoomRepository
 
 /**
@@ -39,24 +40,22 @@ class UpdateRoomUseCase(private val roomRepository: RoomRepository) {
             return DomainResult.Error(DomainError.validationError("Maximum participants cannot be negative"))
         }
         
-        // Get the existing room
+        // Get the existing room to verify it exists
         val existingRoomResult = roomRepository.getRoom(roomId)
         if (existingRoomResult is DomainResult.Error) {
             return existingRoomResult
         }
         
-        val existingRoom = (existingRoomResult as DomainResult.Success).data
-        
-        // Create updated room object
-        val updatedRoom = existingRoom.copy(
-            name = name ?: existingRoom.name,
-            description = description ?: existingRoom.description,
-            status = status ?: existingRoom.status,
-            maxParticipants = maxParticipants ?: existingRoom.maxParticipants,
-            settings = settings ?: existingRoom.settings
+        // Create room update object with only the fields to update
+        val roomUpdate = RoomUpdateDomain(
+            name = name ?: (existingRoomResult as DomainResult.Success).data.name,
+            description = description,
+            status = status,
+            maxParticipants = maxParticipants,
+            settings = settings
         )
         
         // Update the room
-        return roomRepository.updateRoom(roomId, updatedRoom)
+        return roomRepository.updateRoom(roomId, roomUpdate)
     }
 }

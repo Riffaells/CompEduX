@@ -6,14 +6,17 @@ import com.arkivanov.decompose.router.stack.StackNavigation
 import com.arkivanov.decompose.router.stack.childStack
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
+import com.arkivanov.essenty.lifecycle.doOnCreate
 import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
-import component.app.course.course.CourseComponent
-import component.app.course.course.DefaultCourseComponent
 import component.app.main.store.MainStore
 import component.app.main.store.MainStoreFactory
+import component.root.store.RootStore
+import components.CourseComponent
+import components.DefaultCourseComponent
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import logging.Logger
 import navigation.NavigationExecutor
@@ -42,7 +45,7 @@ sealed interface MainConfig {
     data object Home : MainConfig
 
     @Serializable
-    data class Course(val courseId: String?) : MainConfig
+    data object Course : MainConfig
 }
 
 /**
@@ -212,10 +215,23 @@ class DefaultMainComponent(
     override val childStack = childStack(
         source = navigation,
         serializer = MainConfig.serializer(),
-        initialStack = { listOf(MainConfig.Home) },
+        initialStack = { listOf(MainConfig.Course) },
         handleBackButton = true,
         childFactory = ::child
     )
+
+    /**
+     * Инициализация
+     */
+    init {
+        // Загружаем список курсов при создании компонента
+        lifecycle.doOnCreate {
+            scope.launch {
+                val homeChild = childStack.value.active.instance as? MainComponent.Child.HomeChild
+                homeChild?.component?.onAction(MainStore.Intent.RefreshCourses)
+            }
+        }
+    }
 
     /**
      * Создание компонента на основе конфигурации
@@ -223,7 +239,7 @@ class DefaultMainComponent(
     private fun child(config: MainConfig, componentContext: ComponentContext): MainComponent.Child =
         when (config) {
             MainConfig.Home -> MainComponent.Child.HomeChild(homeComponent(componentContext))
-            is MainConfig.Course -> MainComponent.Child.CourseChild(courseComponent(componentContext, config.courseId))
+            is MainConfig.Course -> MainComponent.Child.CourseChild(courseComponent(componentContext))
         }
 
     /**
@@ -244,21 +260,23 @@ class DefaultMainComponent(
     /**
      * Создание компонента курса
      */
-    private fun courseComponent(componentContext: ComponentContext, courseId: String?): CourseComponent {
+    private fun courseComponent(componentContext: ComponentContext): CourseComponent {
         return DefaultCourseComponent(
             componentContext = componentContext,
-            courseId = courseId,
             onBack = ::navigateBack,
             di = di
         )
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    override val state: StateFlow<MainStore.State> =
-        (childStack.value.active.instance as? MainComponent.Child.HomeChild)?.component?.state
-            ?: (instanceKeeper.getStore { mainStoreFactory.create() }).stateFlow
-
     private val mainStoreFactory: MainStoreFactory by instance()
+
+    private val store =
+        instanceKeeper.getStore {
+            mainStoreFactory.create()
+        }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    override val state: StateFlow<MainStore.State> = store.stateFlow
 
     override fun onAction(action: MainStore.Intent) {
         when (val child = childStack.value.active.instance) {
@@ -286,7 +304,7 @@ class DefaultMainComponent(
     }
 
     override fun navigateToCourse(courseId: String?) {
-        navigationExecutor.navigateTo(MainConfig.Course(courseId))
+        navigationExecutor.navigateTo(MainConfig.Course)
     }
 
     override fun navigateBack() {
