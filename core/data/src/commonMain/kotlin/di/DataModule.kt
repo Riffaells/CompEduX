@@ -3,9 +3,7 @@ package di
 import api.auth.AuthApi
 import api.auth.DataAuthApiAdapter
 import api.auth.NetworkAuthApi
-import api.room.DataRoomApiAdapter
 import api.room.NetworkRoomApi
-import api.room.RoomApi
 import config.DataNetworkConfig
 import config.NetworkConfig
 import logging.LoggingProvider
@@ -61,11 +59,11 @@ val dataModule = DI.Module("dataModule") {
         val logger = instance<LoggingProvider>().getLogger("RoomRepository")
         RoomRepositoryImpl(networkRoomApi, tokenRepository, logger)
     }
-
-    bind<RoomApi>() with singleton {
-        val networkRoomApi = instance<NetworkRoomApi>()
-        val tokenRepository = instance<TokenRepository>()
-        val logger = instance<LoggingProvider>().getLogger("RoomApi")
-        DataRoomApiAdapter(networkRoomApi, tokenRepository, logger)
-    }
+//
+//    bind<RoomApi>() with singleton {
+//        val networkRoomApi = instance<NetworkRoomApi>()
+//        val tokenRepository = instance<TokenRepository>()
+//        val logger = instance<LoggingProvider>().getLogger("RoomApi")
+//        DataRoomApiAdapter(networkRoomApi, tokenRepository, logger)
+//    }
 }

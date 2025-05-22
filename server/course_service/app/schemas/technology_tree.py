@@ -160,10 +160,7 @@ class GroupUpdate(BaseModel):
 class TechnologyTreeBase(BaseModel):
     """Base schema for technology tree data"""
     course_id: UUID
-    nodes: List[NodeBase] = Field(default_factory=list, description="List of tree nodes")
-    connections: List[Connection] = Field(default_factory=list, description="List of connections between nodes")
-    groups: Optional[List[Group]] = Field(default_factory=list, description="List of node groups")
-    metadata: TreeMetadata = Field(default_factory=TreeMetadata)
+    data: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Tree data containing nodes, connections, and metadata")
     is_published: bool = Field(default=False, description="Whether the tree is published")
     version: int = Field(default=1, description="Tree version number")
 
@@ -171,19 +168,14 @@ class TechnologyTreeBase(BaseModel):
 class TechnologyTreeCreate(BaseModel):
     """Schema for creating a new technology tree"""
     course_id: UUID
-    nodes: Optional[List[NodeCreate]] = Field(default_factory=list)
-    connections: Optional[List[ConnectionCreate]] = Field(default_factory=list)
-    groups: Optional[List[GroupCreate]] = Field(default_factory=list)
-    metadata: Optional[TreeMetadata] = Field(default_factory=TreeMetadata)
+    data: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Tree data containing nodes, connections, and metadata")
     is_published: Optional[bool] = Field(default=False)
+    version: Optional[int] = Field(default=1)
 
 
 class TechnologyTreeUpdate(BaseModel):
     """Schema for updating an existing technology tree"""
-    nodes: Optional[List[NodeBase]] = None
-    connections: Optional[List[Connection]] = None
-    groups: Optional[List[Group]] = None
-    metadata: Optional[TreeMetadata] = None
+    data: Optional[Dict[str, Any]] = None
     is_published: Optional[bool] = None
     version: Optional[int] = None
 

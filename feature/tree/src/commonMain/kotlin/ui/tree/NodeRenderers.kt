@@ -8,7 +8,8 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
-import component.TechnologyTreeStore
+import model.tree.TreeNodeDomain
+import model.tree.TreeNodeTypeDomain
 import kotlin.math.*
 
 /**
@@ -18,7 +19,7 @@ import kotlin.math.*
  */
 
 // Функция для получения градиентных цветов для узла в зависимости от его типа и состояния
-fun getNodeColorGradient(node: TechnologyTreeStore.TreeNode, selectedNodeId: String?): List<Color> {
+fun getNodeColorGradient(node: TreeNodeDomain, selectedNodeId: String?): List<Color> {
     val isSelected = node.id == selectedNodeId
 
     return when {
@@ -32,20 +33,25 @@ fun getNodeColorGradient(node: TechnologyTreeStore.TreeNode, selectedNodeId: Str
             Color(0xFF2E7D32)
         )
 
-        else -> when (node.style) {
-            "hexagon" -> listOf(
+        else -> when (node.type) {
+            TreeNodeTypeDomain.TOPIC -> listOf(
                 Color(0xFF2196F3),
                 Color(0xFF0D47A1)
             )
 
-            "square" -> listOf(
+            TreeNodeTypeDomain.SKILL -> listOf(
                 Color(0xFFFFC107),
                 Color(0xFFFF6F00)
             )
 
-            else -> listOf(
-                Color(0xFF42A5F5),
-                Color(0xFF1565C0)
+            TreeNodeTypeDomain.MODULE -> listOf(
+                Color(0xFFE91E63),
+                Color(0xFFC2185B)
+            )
+
+            TreeNodeTypeDomain.ARTICLE -> listOf(
+                Color(0xFF9C27B0),
+                Color(0xFF6A1B9A)
             )
         }
     }
@@ -85,7 +91,7 @@ fun createTopHexagonPath(centerX: Float, centerY: Float, radius: Float): Path {
 
 // Функция для отрисовки узла круглой формы
 fun DrawScope.drawCircularNode(
-    node: TechnologyTreeStore.TreeNode,
+    node: TreeNodeDomain,
     x: Float,
     y: Float,
     isSelected: Boolean,
@@ -137,7 +143,7 @@ fun DrawScope.drawCircularNode(
 
 // Функция для отрисовки узла в форме шестиугольника
 fun DrawScope.drawHexagonNode(
-    node: TechnologyTreeStore.TreeNode,
+    node: TreeNodeDomain,
     x: Float,
     y: Float,
     isSelected: Boolean,
@@ -182,7 +188,7 @@ fun DrawScope.drawHexagonNode(
 
 // Функция для отрисовки узла в форме квадрата
 fun DrawScope.drawSquareNode(
-    node: TechnologyTreeStore.TreeNode,
+    node: TreeNodeDomain,
     x: Float,
     y: Float,
     isSelected: Boolean,
@@ -202,17 +208,17 @@ fun DrawScope.drawSquareNode(
     if (isSelected) {
         drawRect(
             color = nodeGradient.first().copy(alpha = 0.7f),
-            topLeft = Offset(x - (size + 10) / 2, y - (size + 10) / 2),
-            size = Size(size + 10, size + 10)
+            topLeft = Offset(x - size / 2 - 5f, y - size / 2 - 5f),
+            size = Size(size + 10f, size + 10f)
         )
     }
 
     // Основная форма с градиентом
     drawRect(
-        brush = Brush.linearGradient(
+        brush = Brush.radialGradient(
             colors = nodeGradient,
-            start = Offset(x - size / 2, y - size / 2),
-            end = Offset(x + size / 2, y + size / 2)
+            center = Offset(x, y),
+            radius = size
         ),
         topLeft = Offset(x - size / 2, y - size / 2),
         size = Size(size, size)
@@ -222,7 +228,7 @@ fun DrawScope.drawSquareNode(
     drawRect(
         color = Color.White.copy(alpha = 0.5f),
         topLeft = Offset(x - size / 2, y - size / 2),
-        size = Size(size / 2, size / 2)
+        size = Size(size, size / 2)
     )
 
     // Обводка

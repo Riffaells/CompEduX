@@ -46,7 +46,6 @@ interface MainStore : Store<MainStore.Intent, MainStore.State, Nothing> {
         val authorName: String,
         val status: String,
         val tags: List<String> = emptyList(),
-        val modulesCount: Int = 0
     )
 }
 
@@ -162,7 +161,6 @@ internal class MainStoreFactory(
                     authorName = course.authorName,
                     status = course.status.name,
                     tags = course.tags,
-                    modulesCount = course.modules.size
                 )
             }
         }

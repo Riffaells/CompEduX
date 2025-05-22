@@ -8,31 +8,38 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import component.TechnologyTreeComponent
 import component.TechnologyTreeStore
+import model.tree.NodePositionDomain
+import model.tree.TechnologyTreeDomain
+import model.tree.TreeNodeDomain
 
 /**
  * Файл содержит функции для обработки взаимодействия с деревом технологий:
- * - панорамирование поля
+ * - панорамирование (перемещение) поля
  * - перемещение отдельных узлов
+ * - обработка кликов по узлам
  */
 
 /**
  * Модификатор для обработки панорамирования всего поля
  */
-fun Modifier.handleTreePanning(
+fun Modifier.handleCanvasPanning(
     isPanning: MutableState<Boolean>,
     panOffset: MutableState<Offset>,
-    resetPanButtonVisible: MutableState<Boolean>
+    onPanningChanged: (Boolean) -> Unit = {}
 ): Modifier = this.pointerInput(Unit) {
     detectDragGestures(
-        onDragStart = { isPanning.value = true },
+        onDragStart = {
+            isPanning.value = true
+            onPanningChanged(true)
+        },
         onDragEnd = {
             isPanning.value = false
-            resetPanButtonVisible.value = panOffset.value != Offset.Zero
+            onPanningChanged(false)
         },
         onDrag = { change, dragAmount ->
             change.consume()
+            // Обновляем смещение панорамирования
             panOffset.value += dragAmount
-            resetPanButtonVisible.value = true
         }
     )
 }
@@ -41,96 +48,114 @@ fun Modifier.handleTreePanning(
  * Модификатор для обработки перетаскивания узлов
  */
 fun Modifier.handleNodeDragging(
-    treeData: TechnologyTreeStore.TreeData,
+    treeData: TechnologyTreeDomain,
     component: TechnologyTreeComponent,
     panOffset: MutableState<Offset>,
-    selectedNodeId: String?
+    selectedNodeId: MutableState<String?>,
+    isDraggingNode: MutableState<Boolean>
 ): Modifier = this.pointerInput(treeData) {
     detectDragGestures(
-        onDragStart = { offset ->
-            // Проверяем, попал ли клик на какой-либо узел с учетом смещения
-            for (node in treeData.nodes) {
-                val nodeX = node.position.x.toFloat() + panOffset.value.x
-                val nodeY = node.position.y.toFloat() + panOffset.value.y
-                val radius = when (node.style) {
-                    "circular" -> 32f
-                    "hexagon", "square" -> 35f
-                    else -> 32f
-                }
+        onDragStart = { startPoint ->
+            // Находим узел, по которому кликнули
+            val clickedNode = findNodeAtPosition(treeData, startPoint, panOffset.value)
 
-                if (offset.x in (nodeX - radius)..(nodeX + radius) &&
-                    offset.y in (nodeY - radius)..(nodeY + radius)
-                ) {
-                    // Выбираем узел в начале перемещения
-                    component.onEvent(TechnologyTreeStore.Intent.NodeClicked(node.id))
-                    break
-                }
+            if (clickedNode != null) {
+                // Отмечаем узел как выбранный
+                selectedNodeId.value = clickedNode.id
+                isDraggingNode.value = true
+                component.onEvent(TechnologyTreeStore.Intent.NodeClicked(clickedNode.id))
             }
         },
+        onDragEnd = {
+            isDraggingNode.value = false
+        },
         onDrag = { change, dragAmount ->
-            val dragNodeId = selectedNodeId ?: return@detectDragGestures
-            val dragNode = treeData.nodes.find { it.id == dragNodeId } ?: return@detectDragGestures
+            change.consume()
 
-            // Обновляем позицию узла
-            val newPosX = (dragNode.position.x + dragAmount.x).toInt()
-            val newPosY = (dragNode.position.y + dragAmount.y).toInt()
+            // Если выбран узел - перемещаем его
+            val nodeId = selectedNodeId.value
+            if (nodeId != null && isDraggingNode.value) {
+                val node = treeData.nodes.find { it.id == nodeId }
 
-            // Отправляем событие о перемещении узла
-            component.onEvent(
-                TechnologyTreeStore.Intent.NodeMoved(
-                    dragNodeId,
-                    TechnologyTreeStore.Position(newPosX, newPosY)
-                )
-            )
+                if (node != null) {
+                    // Вычисляем новую позицию с учетом смещения
+                    val newX = node.position.x + dragAmount.x
+                    val newY = node.position.y + dragAmount.y
+
+                    // Отправляем событие перемещения узла
+                    component.onEvent(
+                        TechnologyTreeStore.Intent.NodeMoved(
+                            nodeId,
+                            NodePositionDomain(newX, newY)
+                        )
+                    )
+                }
+            }
         }
     )
 }
 
 /**
- * Модификатор для обработки щелчка по узлу
+ * Модификатор для обработки кликов по узлам
  */
 fun Modifier.handleNodeTapping(
-    treeData: TechnologyTreeStore.TreeData,
+    treeData: TechnologyTreeDomain,
     component: TechnologyTreeComponent,
     panOffset: MutableState<Offset>
 ): Modifier = this.pointerInput(treeData) {
-    detectTapGestures { tapOffset ->
-        // Проверяем, попал ли клик на какой-либо узел с учетом смещения
-        for (node in treeData.nodes) {
-            val nodeX = node.position.x.toFloat() + panOffset.value.x
-            val nodeY = node.position.y.toFloat() + panOffset.value.y
-            val radius = when (node.style) {
-                "circular" -> 32f
-                "hexagon", "square" -> 35f
-                else -> 32f
-            }
+    detectTapGestures { tapPoint ->
+        // Находим узел, по которому кликнули
+        val clickedNode = findNodeAtPosition(treeData, tapPoint, panOffset.value)
 
-            if (tapOffset.x in (nodeX - radius)..(nodeX + radius) &&
-                tapOffset.y in (nodeY - radius)..(nodeY + radius)
-            ) {
-                component.onEvent(TechnologyTreeStore.Intent.NodeClicked(node.id))
-                break
-            }
+        if (clickedNode != null) {
+            // Отправляем событие клика по узлу
+            component.onEvent(TechnologyTreeStore.Intent.NodeClicked(clickedNode.id))
+        } else {
+            // Если клик был вне узла, снимаем выделение
+            component.onEvent(TechnologyTreeStore.Intent.NodeClicked(null))
         }
     }
 }
 
 /**
- * Функция для определения, попадает ли точка в узел
+ * Функция для определения узла по клику с учетом смещения панорамирования
  */
-fun isPointInNode(
-    node: TechnologyTreeStore.TreeNode,
+private fun findNodeAtPosition(
+    treeData: TechnologyTreeDomain,
     point: Offset,
-    panOffset: Offset
-): Boolean {
-    val nodeX = node.position.x.toFloat() + panOffset.x
-    val nodeY = node.position.y.toFloat() + panOffset.y
-    val radius = when (node.style) {
-        "circular" -> 32f
-        "hexagon", "square" -> 35f
-        else -> 32f
-    }
+    panOffset: Offset,
+    nodeRadius: Float = 30f
+): TreeNodeDomain? {
+    return treeData.nodes.firstOrNull { node ->
+        val nodeX = node.position.x + panOffset.x
+        val nodeY = node.position.y + panOffset.y
 
-    return point.x in (nodeX - radius)..(nodeX + radius) &&
-            point.y in (nodeY - radius)..(nodeY + radius)
+        // Расчет расстояния между точкой клика и центром узла
+        val distance = kotlin.math.sqrt(
+            (point.x - nodeX) * (point.x - nodeX) +
+            (point.y - nodeY) * (point.y - nodeY)
+        )
+
+        // Проверяем, попадает ли клик внутрь узла
+        distance <= nodeRadius
+    }
+}
+
+/**
+ * Функция-расширение для проверки, находится ли точка внутри узла
+ */
+fun TreeNodeDomain.containsPoint(
+    point: Offset,
+    panOffset: Offset,
+    radius: Float = 30f
+): Boolean {
+    val nodeX = position.x + panOffset.x
+    val nodeY = position.y + panOffset.y
+
+    val distance = kotlin.math.sqrt(
+        (point.x - nodeX) * (point.x - nodeX) +
+        (point.y - nodeY) * (point.y - nodeY)
+    )
+
+    return distance <= radius
 }

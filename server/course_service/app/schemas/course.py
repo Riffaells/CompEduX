@@ -8,7 +8,6 @@ from uuid import UUID
 from pydantic import BaseModel, Field, field_validator
 
 from ..models.course import CourseVisibility
-from ..schemas.technology_tree import TechnologyTree
 
 
 # Schemas for Tags
@@ -201,9 +200,8 @@ class CourseWithLanguageUtils(Course):
 
 
 class CourseResponse(CourseWithLanguageUtils):
-    """Schema for complete course response, including optional technology tree"""
+    """Schema for complete course response"""
     tags: Optional[List[Tag]] = Field(default_factory=list)
-    technology_tree: Optional[TechnologyTree] = None
 
     model_config = {"from_attributes": True}
 

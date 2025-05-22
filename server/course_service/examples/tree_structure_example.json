@@ -1,0 +1,139 @@
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "course_id": "550e8400-e29b-41d4-a716-446655440123",
+  "version": 1,
+  "is_published": false,
+  "data": {
+    "nodes": {
+      "node1": {
+        "id": "node1",
+        "title": {
+          "en": "Introduction to Programming",
+          "ru": "Введение в программирование"
+        },
+        "description": {
+          "en": "Learn the basics of programming and computational thinking",
+          "ru": "Изучите основы программирования и вычислительного мышления"
+        },
+        "position": {"x": 100, "y": 150},
+        "style": "circular",
+        "content_id": "550e8400-e29b-41d4-a716-446655440010",
+        "requirements": [],
+        "type": "article",
+        "status": "published"
+      },
+      "node2": {
+        "id": "node2",
+        "title": {
+          "en": "Variables and Data Types",
+          "ru": "Переменные и типы данных"
+        },
+        "description": {
+          "en": "Learn about variables, data types, and basic operations",
+          "ru": "Изучите переменные, типы данных и основные операции"
+        },
+        "position": {"x": 250, "y": 100},
+        "style": "hexagon",
+        "content_id": "550e8400-e29b-41d4-a716-446655440011",
+        "requirements": ["node1"],
+        "type": "article",
+        "status": "published"
+      },
+      "node3": {
+        "id": "node3",
+        "title": {
+          "en": "Control Structures",
+          "ru": "Управляющие конструкции"
+        },
+        "description": {
+          "en": "Learn about conditionals, loops, and flow control",
+          "ru": "Изучите условные операторы, циклы и управление потоком"
+        },
+        "position": {"x": 250, "y": 200},
+        "style": "hexagon",
+        "content_id": "550e8400-e29b-41d4-a716-446655440012",
+        "requirements": ["node1"],
+        "type": "article",
+        "status": "published"
+      },
+      "node4": {
+        "id": "node4",
+        "title": {
+          "en": "Functions and Methods",
+          "ru": "Функции и методы"
+        },
+        "description": {
+          "en": "Learn about functions, parameters, and return values",
+          "ru": "Изучите функции, параметры и возвращаемые значения"
+        },
+        "position": {"x": 400, "y": 150},
+        "style": "hexagon",
+        "content_id": "550e8400-e29b-41d4-a716-446655440013",
+        "requirements": ["node2", "node3"],
+        "type": "article",
+        "status": "published"
+      },
+      "node5": {
+        "id": "node5",
+        "title": {
+          "en": "Final Project",
+          "ru": "Итоговый проект"
+        },
+        "description": {
+          "en": "Apply everything you've learned in a comprehensive project",
+          "ru": "Примените все, что вы изучили, в комплексном проекте"
+        },
+        "position": {"x": 550, "y": 150},
+        "style": "square",
+        "content_id": "550e8400-e29b-41d4-a716-446655440014",
+        "requirements": ["node4"],
+        "type": "project",
+        "status": "published"
+      }
+    },
+    "connections": [
+      {
+        "id": "conn1",
+        "from": "node1",
+        "to": "node2",
+        "type": "required"
+      },
+      {
+        "id": "conn2",
+        "from": "node1",
+        "to": "node3",
+        "type": "required"
+      },
+      {
+        "id": "conn3",
+        "from": "node2",
+        "to": "node4",
+        "type": "required"
+      },
+      {
+        "id": "conn4",
+        "from": "node3",
+        "to": "node4",
+        "type": "required"
+      },
+      {
+        "id": "conn5",
+        "from": "node4",
+        "to": "node5",
+        "type": "required"
+      }
+    ],
+    "metadata": {
+      "defaultLanguage": "en",
+      "availableLanguages": ["en", "ru"],
+      "layoutType": "tree",
+      "layoutDirection": "horizontal",
+      "canvasSize": {
+        "width": 800,
+        "height": 600
+      }
+    }
+  },
+  "created_at": "2023-06-10T10:30:00Z",
+  "updated_at": "2023-06-25T14:30:00Z"
+} 

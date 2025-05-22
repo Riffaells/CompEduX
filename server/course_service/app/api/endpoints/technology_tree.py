@@ -47,7 +47,7 @@ async def get_technology_tree(
         )
 
     # Get the technology tree
-    tree = await technology_tree_crud.get_by_course_id(db, course_id)
+    tree = await technology_tree_crud.get_by_course_id_async(db, course_id)
     if not tree:
         logger.warning(f"Technology tree not found for course: {course_id}")
         raise HTTPException(
@@ -84,7 +84,7 @@ async def get_technology_tree_languages(
         )
 
     # Get the technology tree
-    tree = await technology_tree_crud.get_by_course_id(db, course_id)
+    tree = await technology_tree_crud.get_by_course_id_async(db, course_id)
     if not tree:
         logger.warning(f"Technology tree not found for course: {course_id}")
         raise HTTPException(
@@ -122,7 +122,7 @@ async def create_technology_tree(
         )
 
     # Check if technology tree already exists
-    existing_tree = await technology_tree_crud.get_by_course_id(db, course_id)
+    existing_tree = await technology_tree_crud.get_by_course_id_async(db, course_id)
     if existing_tree:
         logger.warning(f"Technology tree already exists for course: {course_id}")
         raise HTTPException(
@@ -139,7 +139,7 @@ async def create_technology_tree(
         )
 
     # Create the technology tree
-    tree = await technology_tree_crud.create(db, obj_in=technology_tree)
+    tree = await technology_tree_crud.create_async(db, obj_in=technology_tree)
 
     return tree
 
@@ -168,7 +168,7 @@ async def update_technology_tree(
         )
 
     # Get existing technology tree
-    existing_tree = await technology_tree_crud.get_by_course_id(db, course_id)
+    existing_tree = await technology_tree_crud.get_by_course_id_async(db, course_id)
     if not existing_tree:
         logger.warning(f"Technology tree not found for course: {course_id}")
         raise HTTPException(
@@ -177,7 +177,7 @@ async def update_technology_tree(
         )
 
     # Update the technology tree
-    updated_tree = await technology_tree_crud.update(db, db_obj=existing_tree, obj_in=technology_tree)
+    updated_tree = await technology_tree_crud.update_async(db, db_obj=existing_tree, obj_in=technology_tree)
 
     return updated_tree
 
@@ -205,7 +205,7 @@ async def delete_technology_tree(
         )
 
     # Get existing technology tree
-    existing_tree = await technology_tree_crud.get_by_course_id(db, course_id)
+    existing_tree = await technology_tree_crud.get_by_course_id_async(db, course_id)
     if not existing_tree:
         logger.warning(f"Technology tree not found for course: {course_id}")
         raise HTTPException(
@@ -214,7 +214,7 @@ async def delete_technology_tree(
         )
 
     # Delete the technology tree
-    await technology_tree_crud.remove(db, id=existing_tree.id)
+    await technology_tree_crud.remove_async(db, id=existing_tree.id)
 
     return None
 
@@ -246,7 +246,7 @@ async def update_technology_tree_data(
         )
 
     # Get existing technology tree
-    existing_tree = await technology_tree_crud.get_by_course_id(db, course_id)
+    existing_tree = await technology_tree_crud.get_by_course_id_async(db, course_id)
     if not existing_tree:
         logger.warning(f"Technology tree not found for course: {course_id}")
         raise HTTPException(
@@ -255,7 +255,7 @@ async def update_technology_tree_data(
         )
 
     # Update just the data
-    updated_tree = await technology_tree_crud.update_tree_data(db, tree_id=existing_tree.id, data=data)
+    updated_tree = await technology_tree_crud.update_tree_data_async(db, tree_id=existing_tree.id, data=data)
 
     return updated_tree
 
@@ -275,7 +275,7 @@ async def add_tree_node(
     logger.info(f"Request to add node {node_request.node_id} to technology tree for course: {course_id}")
 
     # Get existing technology tree
-    tree = await technology_tree_crud.get_by_course_id(db, course_id)
+    tree = await technology_tree_crud.get_by_course_id_async(db, course_id)
     if not tree:
         logger.warning(f"Technology tree not found for course: {course_id}")
         raise HTTPException(
@@ -297,7 +297,7 @@ async def add_tree_node(
         tree.add_node(node_request.node_id, node_data)
 
         # Save updated tree
-        updated_tree = await technology_tree_crud.update(db, db_obj=tree, obj_in={"data": tree.data, "version": tree.version})
+        updated_tree = await technology_tree_crud.update_async(db, db_obj=tree, obj_in={"data": tree.data, "version": tree.version})
 
         return {
             "success": True,
@@ -329,7 +329,7 @@ async def update_tree_node(
     logger.info(f"Request to update node {node_id} in technology tree for course: {course_id}")
 
     # Get existing technology tree
-    tree = await technology_tree_crud.get_by_course_id(db, course_id)
+    tree = await technology_tree_crud.get_by_course_id_async(db, course_id)
     if not tree:
         logger.warning(f"Technology tree not found for course: {course_id}")
         raise HTTPException(
@@ -358,7 +358,7 @@ async def update_tree_node(
         tree.version += 1
 
         # Save updated tree
-        updated_tree = await technology_tree_crud.update(db, db_obj=tree, obj_in={"data": tree.data, "version": tree.version})
+        updated_tree = await technology_tree_crud.update_async(db, db_obj=tree, obj_in={"data": tree.data, "version": tree.version})
 
         return {
             "success": True,
@@ -389,7 +389,7 @@ async def delete_tree_node(
     logger.info(f"Request to delete node {node_id} from technology tree for course: {course_id}")
 
     # Get existing technology tree
-    tree = await technology_tree_crud.get_by_course_id(db, course_id)
+    tree = await technology_tree_crud.get_by_course_id_async(db, course_id)
     if not tree:
         logger.warning(f"Technology tree not found for course: {course_id}")
         raise HTTPException(
@@ -407,7 +407,7 @@ async def delete_tree_node(
         )
 
     # Save updated tree
-    await technology_tree_crud.update(db, db_obj=tree, obj_in={"data": tree.data, "version": tree.version})
+    await technology_tree_crud.update_async(db, db_obj=tree, obj_in={"data": tree.data, "version": tree.version})
 
     return {
         "success": True,
@@ -431,7 +431,7 @@ async def get_tree_node(
     logger.info(f"Request to get node {node_id} from technology tree for course: {course_id}")
 
     # Get existing technology tree
-    tree = await technology_tree_crud.get_by_course_id(db, course_id)
+    tree = await technology_tree_crud.get_by_course_id_async(db, course_id)
     if not tree:
         logger.warning(f"Technology tree not found for course: {course_id}")
         raise HTTPException(
@@ -480,7 +480,7 @@ async def publish_technology_tree(
     logger.info(f"Request to set technology tree publish status to {is_published} for course: {course_id}")
 
     # Get existing technology tree
-    tree = await technology_tree_crud.get_by_course_id(db, course_id)
+    tree = await technology_tree_crud.get_by_course_id_async(db, course_id)
     if not tree:
         logger.warning(f"Technology tree not found for course: {course_id}")
         raise HTTPException(
@@ -489,7 +489,7 @@ async def publish_technology_tree(
         )
 
     # Update publish status
-    updated_tree = await technology_tree_crud.update(db, db_obj=tree, obj_in={"is_published": is_published})
+    updated_tree = await technology_tree_crud.update_async(db, db_obj=tree, obj_in={"is_published": is_published})
 
     return updated_tree
 
@@ -510,7 +510,7 @@ async def export_technology_tree(
     logger.info(f"Request to export technology tree for course: {course_id}")
 
     # Get existing technology tree
-    tree = await technology_tree_crud.get_by_course_id(db, course_id)
+    tree = await technology_tree_crud.get_by_course_id_async(db, course_id)
     if not tree:
         logger.warning(f"Technology tree not found for course: {course_id}")
         raise HTTPException(
@@ -611,7 +611,7 @@ async def import_technology_tree(
         )
 
     # Check if a technology tree already exists for this course
-    existing_tree = await technology_tree_crud.get_by_course_id(db, course_id)
+    existing_tree = await technology_tree_crud.get_by_course_id_async(db, course_id)
 
     if existing_tree and not import_data.replace_existing:
         logger.warning(f"Technology tree already exists for course: {course_id}")
@@ -629,7 +629,7 @@ async def import_technology_tree(
             version = existing_tree.version + 1 if hasattr(existing_tree, "version") else 1
 
             # Update the existing tree
-            updated_tree = await technology_tree_crud.update(
+            updated_tree = await technology_tree_crud.update_async(
                 db,
                 db_obj=existing_tree,
                 obj_in={"data": tree_data, "version": version}
@@ -643,7 +643,7 @@ async def import_technology_tree(
                 version=1,
                 is_published=False
             )
-            created_tree = await technology_tree_crud.create(db, obj_in=new_tree)
+            created_tree = await technology_tree_crud.create_async(db, obj_in=new_tree)
             return created_tree
     except Exception as e:
         logger.error(f"Error importing technology tree: {str(e)}")

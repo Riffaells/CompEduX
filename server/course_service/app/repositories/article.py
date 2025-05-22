@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from uuid import UUID
 
 from app.models.article import Article
@@ -15,7 +15,6 @@ class ArticleRepository:
         article = Article(
             course_id=course_id,
             slug=article_data.slug,
-            language=article_data.language,
             title=article_data.title,
             content=article_data.content,
             description=article_data.description,
@@ -33,12 +32,11 @@ class ArticleRepository:
         )
         return result.scalars().first()
 
-    async def get_article_by_slug(self, course_id: UUID, slug: str, language: str) -> Optional[Article]:
+    async def get_article_by_slug(self, course_id: UUID, slug: str) -> Optional[Article]:
         result = await self.session.execute(
             select(Article).where(
                 Article.course_id == course_id,
-                Article.slug == slug,
-                Article.language == language
+                Article.slug == slug
             )
         )
         return result.scalars().first()
@@ -51,8 +49,8 @@ class ArticleRepository:
                            is_published: Optional[bool] = None) -> tuple[List[Article], int]:
         query = select(Article).where(Article.course_id == course_id)
 
-        if language:
-            query = query.where(Article.language == language)
+        # We can't filter by language directly since it's in JSONB
+        # Language filtering will be done in the API layer
 
         if is_published is not None:
             query = query.where(Article.is_published == is_published)
@@ -68,10 +66,16 @@ class ArticleRepository:
         result = await self.session.execute(query)
         articles = result.scalars().all()
 
+        # Filter by language if specified
+        if language and articles:
+            # We'll keep all articles but later in the API we can filter
+            # the content based on the requested language
+            pass
+
         return articles, total_count
 
     async def update_article(self, article_id: UUID, article_data: ArticleUpdate) -> Optional[Article]:
-        update_data = article_data.dict(exclude_unset=True)
+        update_data = article_data.model_dump(exclude_unset=True)
 
         if not update_data:
             # If no data to update, just return the current article
@@ -92,3 +96,11 @@ class ArticleRepository:
         )
         await self.session.commit()
         return result.rowcount > 0
+        
+    async def get_article_languages(self, article_id: UUID) -> List[str]:
+        """Get list of languages available for an article"""
+        article = await self.get_article(article_id)
+        if not article:
+            return []
+        
+        return article.available_languages()

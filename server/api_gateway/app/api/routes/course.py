@@ -41,22 +41,33 @@ async def proxy_request_to_course(path: str, request: Request, extra_params: dic
     course_service_url = settings.COURSE_SERVICE_URL
     original_path = path
 
+    # Используем путь как есть, без добавления префикса /api/v1/
+    api_path = path
+    
+    # Добавляем завершающий слеш для технологического дерева, если его нет
+    # и это не запрос к конкретному узлу или другому подресурсу
+    if "/tree" in api_path and not api_path.endswith("/") and not any(
+        pattern in api_path for pattern in ["/nodes/", "/connections/", "/groups/", "/data"]
+    ):
+        api_path = f"{api_path}/"
+        logger.debug(f"Добавлен завершающий слеш к пути дерева технологий: {api_path}")
+
     # Если нам нужно добавить дополнительные параметры
     if extra_params:
         # Получаем текущие параметры из path
-        if '?' in path:
-            base_path, query = path.split('?', 1)
+        if '?' in api_path:
+            base_path, query = api_path.split('?', 1)
             params = dict(parse_qsl(query))
             # Добавляем новые параметры
             params.update(extra_params)
             # Строим новый путь
-            path = f"{base_path}?{'&'.join(f'{k}={v}' for k, v in params.items())}"
+            api_path = f"{base_path}?{'&'.join(f'{k}={v}' for k, v in params.items())}"
         else:
             # Если в path нет параметров, добавляем их
-            path = f"{path}?{'&'.join(f'{k}={v}' for k, v in extra_params.items())}"
+            api_path = f"{api_path}?{'&'.join(f'{k}={v}' for k, v in extra_params.items())}"
 
         # Логируем изменение пути
-        logger.debug(f"Добавлены параметры {extra_params} к пути, итоговый путь: {path}")
+        logger.debug(f"Добавлены параметры {extra_params} к пути, итоговый путь: {api_path}")
 
     # Собираем все параметры для логирования
     all_params = {}
@@ -67,11 +78,11 @@ async def proxy_request_to_course(path: str, request: Request, extra_params: dic
 
     logger.debug(f"Проксирование запроса к сервису курсов:")
     logger.debug(f"  URL: {course_service_url}")
-    logger.debug(f"  Путь: {path}")
+    logger.debug(f"  Путь: {api_path}")
     logger.debug(f"  Метод: {request.method if request else 'GET'}")
     logger.debug(f"  Параметры: {all_params}")
 
-    return await proxy_request(course_service_url, path, request)
+    return await proxy_request(course_service_url, api_path, request)
 
 
 # Функция для обработки списковых параметров
@@ -117,7 +128,7 @@ async def course_docs(request: Request, _: bool = Depends(check_course_service_h
     """Проксирование документации сервиса курсов"""
     logger.info("Proxying course service docs")
     # Используем специальную функцию для проксирования документации с правильным путем
-    return await proxy_docs_request(settings.COURSE_SERVICE_URL, "api/v1/docs", request)
+    return await proxy_docs_request(settings.COURSE_SERVICE_URL, "docs", request)
 
 
 @router.get(
@@ -130,7 +141,7 @@ async def course_redoc(request: Request, _: bool = Depends(check_course_service_
     """Проксирование ReDoc документации сервиса курсов"""
     logger.info("Proxying course service redoc")
     # Используем специальную функцию для проксирования документации с правильным путем
-    return await proxy_docs_request(settings.COURSE_SERVICE_URL, "api/v1/redoc", request)
+    return await proxy_docs_request(settings.COURSE_SERVICE_URL, "redoc", request)
 
 
 @router.get(
@@ -143,7 +154,7 @@ async def course_openapi(request: Request, _: bool = Depends(check_course_servic
     """Проксирование OpenAPI JSON схемы сервиса курсов"""
     logger.info("Proxying course service OpenAPI schema")
     # Используем специальную функцию для проксирования документации с правильным путем
-    return await proxy_docs_request(settings.COURSE_SERVICE_URL, "api/v1/openapi.json", request)
+    return await proxy_docs_request(settings.COURSE_SERVICE_URL, "openapi.json", request)
 
 
 ######################################################################
@@ -346,7 +357,7 @@ async def get_courses_by_author(
 
 
 ######################################################################
-# API ДРЕВА ТЕХНОЛОГИЙ (TECHNOLOGY TREE)
+# API ТЕХНОЛОГИЧЕСКОГО ДЕРЕВА (TECHNOLOGY TREE)
 ######################################################################
 
 @router.get(
@@ -362,8 +373,18 @@ async def get_technology_tree(
         request: Request = None,
         _: bool = Depends(check_course_service_health)
 ) -> Response:
-    """Получение древа технологий для курса"""
-    return await proxy_request_to_course(f"{course_id}/tree", request)
+    """Получение древа технологий курса"""
+    logger.debug(f"Запрос на получение древа технологий для курса {course_id}")
+    
+    # Формируем путь запроса
+    path = f"/{course_id}/tree"
+    
+    # Добавляем параметр языка, если указан
+    extra_params = {}
+    if language:
+        extra_params["language"] = language
+    
+    return await proxy_request_to_course(path, request, extra_params)
 
 
 @router.post(
@@ -380,7 +401,9 @@ async def create_technology_tree(
         _: bool = Depends(check_course_service_health)
 ) -> Response:
     """Создание древа технологий для курса"""
-    return await proxy_request_to_course(f"{course_id}/tree", request)
+    logger.debug(f"Запрос на создание древа технологий для курса {course_id}")
+    path = f"/{course_id}/tree"
+    return await proxy_request_to_course(path, request)
 
 
 @router.put(
@@ -395,8 +418,10 @@ async def update_technology_tree(
         request: Request = None,
         _: bool = Depends(check_course_service_health)
 ) -> Response:
-    """Обновление древа технологий для курса"""
-    return await proxy_request_to_course(f"{course_id}/tree", request)
+    """Обновление древа технологий"""
+    logger.debug(f"Запрос на обновление древа технологий для курса {course_id}")
+    path = f"/{course_id}/tree"
+    return await proxy_request_to_course(path, request)
 
 
 @router.delete(
@@ -412,8 +437,10 @@ async def delete_technology_tree(
         request: Request = None,
         _: bool = Depends(check_course_service_health)
 ) -> Response:
-    """Удаление древа технологий для курса"""
-    return await proxy_request_to_course(f"{course_id}/tree", request)
+    """Удаление древа технологий"""
+    logger.debug(f"Запрос на удаление древа технологий для курса {course_id}")
+    path = f"/{course_id}/tree"
+    return await proxy_request_to_course(path, request)
 
 
 @router.patch(
@@ -429,7 +456,9 @@ async def update_technology_tree_data(
         _: bool = Depends(check_course_service_health)
 ) -> Response:
     """Обновление данных древа технологий"""
-    return await proxy_request_to_course(f"{course_id}/tree/data", request)
+    logger.debug(f"Запрос на обновление данных древа технологий для курса {course_id}")
+    path = f"/{course_id}/tree/data"
+    return await proxy_request_to_course(path, request)
 
 
 @router.post(
@@ -445,7 +474,9 @@ async def add_tree_node(
         _: bool = Depends(check_course_service_health)
 ) -> Response:
     """Добавление узла в древо технологий"""
-    return await proxy_request_to_course(f"{course_id}/tree/nodes", request)
+    logger.debug(f"Запрос на добавление узла в древо технологий для курса {course_id}")
+    path = f"/{course_id}/tree/nodes"
+    return await proxy_request_to_course(path, request)
 
 
 @router.get(
@@ -462,8 +493,18 @@ async def get_tree_node(
         request: Request = None,
         _: bool = Depends(check_course_service_health)
 ) -> Response:
-    """Получение информации об узле древа технологий"""
-    return await proxy_request_to_course(f"{course_id}/tree/nodes/{node_id}", request)
+    """Получение информации об узле древа"""
+    logger.debug(f"Запрос на получение информации об узле {node_id} древа технологий для курса {course_id}")
+    
+    # Формируем путь запроса
+    path = f"/{course_id}/tree/nodes/{node_id}"
+    
+    # Добавляем параметр языка, если указан
+    extra_params = {}
+    if language:
+        extra_params["language"] = language
+    
+    return await proxy_request_to_course(path, request, extra_params)
 
 
 @router.put(
@@ -480,7 +521,9 @@ async def update_tree_node(
         _: bool = Depends(check_course_service_health)
 ) -> Response:
     """Обновление узла древа технологий"""
-    return await proxy_request_to_course(f"{course_id}/tree/nodes/{node_id}", request)
+    logger.debug(f"Запрос на обновление узла {node_id} древа технологий для курса {course_id}")
+    path = f"/{course_id}/tree/nodes/{node_id}"
+    return await proxy_request_to_course(path, request)
 
 
 @router.delete(
@@ -497,57 +540,102 @@ async def delete_tree_node(
         _: bool = Depends(check_course_service_health)
 ) -> Response:
     """Удаление узла древа технологий"""
-    return await proxy_request_to_course(f"{course_id}/tree/nodes/{node_id}", request)
-
-
-@router.patch(
-    "/{course_id}/tree/publish",
-    include_in_schema=True,
-    summary="Публикация или отмена публикации древа технологий",
-    description="Меняет статус публикации древа технологий. Требует авторизации",
-    response_description="Обновленное древо технологий"
-)
-async def publish_technology_tree(
-        course_id: str = PathParam(..., description="ID курса"),
-        request: Request = None,
-        _: bool = Depends(check_course_service_health)
-) -> Response:
-    """Публикация или отмена публикации древа технологий"""
-    return await proxy_request_to_course(f"{course_id}/tree/publish", request)
-
-
-@router.get(
-    "/{course_id}/tree/export",
-    include_in_schema=True,
-    summary="Экспорт древа технологий",
-    description="Экспортирует древо технологий в формат, подходящий для инструментов визуализации",
-    response_description="Данные древа технологий в формате для экспорта"
-)
-async def export_technology_tree(
-        course_id: str = PathParam(..., description="ID курса"),
-        language: Optional[str] = Query(None, description="Код языка для локализованного контента"),
-        localize: bool = Query(False, description="Включить локализованный контент узлов"),
-        request: Request = None,
-        _: bool = Depends(check_course_service_health)
-) -> Response:
-    """Экспорт древа технологий"""
-    return await proxy_request_to_course(f"{course_id}/tree/export", request)
+    logger.debug(f"Запрос на удаление узла {node_id} древа технологий для курса {course_id}")
+    path = f"/{course_id}/tree/nodes/{node_id}"
+    return await proxy_request_to_course(path, request)
 
 
 @router.post(
-    "/{course_id}/tree/import",
+    "/{course_id}/tree/connections",
     include_in_schema=True,
-    summary="Импорт древа технологий",
-    description="Импортирует древо технологий из внешних данных. Требует авторизации",
-    response_description="Импортированное древо технологий"
+    summary="Добавление связи между узлами",
+    description="Создает новую связь между узлами в древе технологий. Требует авторизации",
+    response_description="Результат операции с добавленной связью"
 )
-async def import_technology_tree(
+async def add_tree_connection(
         course_id: str = PathParam(..., description="ID курса"),
         request: Request = None,
         _: bool = Depends(check_course_service_health)
 ) -> Response:
-    """Импорт древа технологий"""
-    return await proxy_request_to_course(f"{course_id}/tree/import", request)
+    """Добавление связи между узлами"""
+    logger.debug(f"Запрос на добавление связи между узлами для курса {course_id}")
+    path = f"/{course_id}/tree/connections"
+    return await proxy_request_to_course(path, request)
+
+
+@router.delete(
+    "/{course_id}/tree/connections/{connection_id}",
+    include_in_schema=True,
+    summary="Удаление связи между узлами",
+    description="Удаляет связь между узлами в древе технологий. Требует авторизации",
+    response_description="Результат операции удаления связи"
+)
+async def delete_tree_connection(
+        course_id: str = PathParam(..., description="ID курса"),
+        connection_id: str = PathParam(..., description="ID связи"),
+        request: Request = None,
+        _: bool = Depends(check_course_service_health)
+) -> Response:
+    """Удаление связи между узлами"""
+    logger.debug(f"Запрос на удаление связи {connection_id} для курса {course_id}")
+    path = f"/{course_id}/tree/connections/{connection_id}"
+    return await proxy_request_to_course(path, request)
+
+
+@router.post(
+    "/{course_id}/tree/groups",
+    include_in_schema=True,
+    summary="Создание группы узлов",
+    description="Создает новую группу узлов в древе технологий. Требует авторизации",
+    response_description="Результат операции с созданной группой"
+)
+async def create_tree_group(
+        course_id: str = PathParam(..., description="ID курса"),
+        request: Request = None,
+        _: bool = Depends(check_course_service_health)
+) -> Response:
+    """Создание группы узлов"""
+    logger.debug(f"Запрос на создание группы узлов для курса {course_id}")
+    path = f"/{course_id}/tree/groups"
+    return await proxy_request_to_course(path, request)
+
+
+@router.put(
+    "/{course_id}/tree/groups/{group_id}",
+    include_in_schema=True,
+    summary="Обновление группы узлов",
+    description="Обновляет существующую группу узлов в древе технологий. Требует авторизации",
+    response_description="Результат операции с обновленной группой"
+)
+async def update_tree_group(
+        course_id: str = PathParam(..., description="ID курса"),
+        group_id: str = PathParam(..., description="ID группы"),
+        request: Request = None,
+        _: bool = Depends(check_course_service_health)
+) -> Response:
+    """Обновление группы узлов"""
+    logger.debug(f"Запрос на обновление группы {group_id} для курса {course_id}")
+    path = f"/{course_id}/tree/groups/{group_id}"
+    return await proxy_request_to_course(path, request)
+
+
+@router.delete(
+    "/{course_id}/tree/groups/{group_id}",
+    include_in_schema=True,
+    summary="Удаление группы узлов",
+    description="Удаляет группу узлов из древа технологий. Требует авторизации",
+    response_description="Результат операции удаления группы"
+)
+async def delete_tree_group(
+        course_id: str = PathParam(..., description="ID курса"),
+        group_id: str = PathParam(..., description="ID группы"),
+        request: Request = None,
+        _: bool = Depends(check_course_service_health)
+) -> Response:
+    """Удаление группы узлов"""
+    logger.debug(f"Запрос на удаление группы {group_id} для курса {course_id}")
+    path = f"/{course_id}/tree/groups/{group_id}"
+    return await proxy_request_to_course(path, request)
 
 
 ######################################################################
@@ -661,7 +749,28 @@ async def list_lessons(
         _: bool = Depends(check_course_service_health)
 ) -> Response:
     """Получение списка уроков"""
-    return await proxy_request_to_course("lessons", request)
+    logger.debug(f"Запрос на получение списка уроков для курса {course_id}")
+    
+    # Формируем путь запроса
+    path = "/lessons"
+    
+    # Подготавливаем параметры
+    extra_params = {
+        "course_id": course_id,
+        "skip": str(skip),
+        "limit": str(limit)
+    }
+    
+    if language:
+        extra_params["language"] = language
+    
+    if is_published is not None:
+        extra_params["is_published"] = str(is_published).lower()
+    
+    if tree_node_id:
+        extra_params["tree_node_id"] = tree_node_id
+    
+    return await proxy_request_to_course(path, request, extra_params)
 
 
 @router.get(
@@ -677,7 +786,9 @@ async def get_lesson(
         _: bool = Depends(check_course_service_health)
 ) -> Response:
     """Получение информации об уроке"""
-    return await proxy_request_to_course(f"lessons/{lesson_id}", request)
+    logger.debug(f"Запрос на получение информации об уроке {lesson_id}")
+    path = f"/lessons/{lesson_id}"
+    return await proxy_request_to_course(path, request)
 
 
 @router.get(
@@ -694,7 +805,17 @@ async def get_lesson_with_content(
         _: bool = Depends(check_course_service_health)
 ) -> Response:
     """Получение урока с контентом"""
-    return await proxy_request_to_course(f"lessons/{lesson_id}/content", request)
+    logger.debug(f"Запрос на получение урока {lesson_id} с контентом")
+    
+    # Формируем путь запроса
+    path = f"/lessons/{lesson_id}/content"
+    
+    # Добавляем параметр языка, если указан
+    extra_params = {}
+    if language:
+        extra_params["language"] = language
+    
+    return await proxy_request_to_course(path, request, extra_params)
 
 
 @router.post(
@@ -710,7 +831,9 @@ async def create_lesson(
         _: bool = Depends(check_course_service_health)
 ) -> Response:
     """Создание нового урока"""
-    return await proxy_request_to_course("lessons", request)
+    logger.debug("Запрос на создание нового урока")
+    path = "/lessons"
+    return await proxy_request_to_course(path, request)
 
 
 @router.put(
@@ -726,7 +849,9 @@ async def update_lesson(
         _: bool = Depends(check_course_service_health)
 ) -> Response:
     """Обновление урока"""
-    return await proxy_request_to_course(f"lessons/{lesson_id}", request)
+    logger.debug(f"Запрос на обновление урока {lesson_id}")
+    path = f"/lessons/{lesson_id}"
+    return await proxy_request_to_course(path, request)
 
 
 @router.delete(
@@ -743,7 +868,9 @@ async def delete_lesson(
         _: bool = Depends(check_course_service_health)
 ) -> Response:
     """Удаление урока"""
-    return await proxy_request_to_course(f"lessons/{lesson_id}", request)
+    logger.debug(f"Запрос на удаление урока {lesson_id}")
+    path = f"/lessons/{lesson_id}"
+    return await proxy_request_to_course(path, request)
 
 
 @router.post(
@@ -760,7 +887,9 @@ async def add_article_to_lesson(
         _: bool = Depends(check_course_service_health)
 ) -> Response:
     """Добавление статьи к уроку"""
-    return await proxy_request_to_course(f"lessons/{lesson_id}/articles/{article_id}", request)
+    logger.debug(f"Запрос на добавление статьи {article_id} к уроку {lesson_id}")
+    path = f"/lessons/{lesson_id}/articles/{article_id}"
+    return await proxy_request_to_course(path, request)
 
 
 @router.delete(
@@ -777,4 +906,43 @@ async def remove_article_from_lesson(
         _: bool = Depends(check_course_service_health)
 ) -> Response:
     """Удаление статьи из урока"""
-    return await proxy_request_to_course(f"lessons/{lesson_id}/articles/{article_id}", request)
+    logger.debug(f"Запрос на удаление статьи {article_id} из урока {lesson_id}")
+    path = f"/lessons/{lesson_id}/articles/{article_id}"
+    return await proxy_request_to_course(path, request)
+
+
+@router.post(
+    "/lessons/{lesson_id}/tree_node/{node_id}",
+    include_in_schema=True,
+    summary="Привязка урока к узлу дерева технологий",
+    description="Связывает урок с узлом дерева технологий. Требует авторизации",
+    response_description="Результат операции"
+)
+async def link_lesson_to_tree_node(
+        lesson_id: str = PathParam(..., description="ID урока"),
+        node_id: str = PathParam(..., description="ID узла дерева технологий"),
+        request: Request = None,
+        _: bool = Depends(check_course_service_health)
+) -> Response:
+    """Привязка урока к узлу дерева технологий"""
+    logger.debug(f"Запрос на привязку урока {lesson_id} к узлу {node_id}")
+    path = f"/lessons/{lesson_id}/tree_node/{node_id}"
+    return await proxy_request_to_course(path, request)
+
+
+@router.delete(
+    "/lessons/{lesson_id}/tree_node",
+    include_in_schema=True,
+    summary="Отвязка урока от узла дерева технологий",
+    description="Удаляет связь урока с узлом дерева технологий. Требует авторизации",
+    response_description="Результат операции"
+)
+async def unlink_lesson_from_tree_node(
+        lesson_id: str = PathParam(..., description="ID урока"),
+        request: Request = None,
+        _: bool = Depends(check_course_service_health)
+) -> Response:
+    """Отвязка урока от узла дерева технологий"""
+    logger.debug(f"Запрос на отвязку урока {lesson_id} от узла дерева технологий")
+    path = f"/lessons/{lesson_id}/tree_node"
+    return await proxy_request_to_course(path, request)

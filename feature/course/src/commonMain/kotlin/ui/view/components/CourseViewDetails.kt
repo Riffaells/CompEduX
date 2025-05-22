@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import components.view.CourseViewComponent
 import model.course.CourseDomain
 import model.course.CourseStatusDomain
 import model.course.CourseVisibilityDomain
@@ -32,7 +33,10 @@ import ui.view.components.ModuleItem
 import ui.view.components.ScrollableRow
 
 @Composable
-fun CourseViewDetails(course: CourseDomain) {
+fun CourseViewDetails(
+    course: CourseDomain,
+    component: CourseViewComponent
+) {
     // Список доступных языков
     val availableLanguages = listOf(
         "ru" to "Русский",
@@ -46,15 +50,20 @@ fun CourseViewDetails(course: CourseDomain) {
 
     // Языки, доступные для этого курса
     val courseLanguages = remember {
-        course.title.content.keys.toList().sortedWith(
-            compareBy {
-                when (it) {
-                    "ru" -> 0 // Русский первый
-                    "en" -> 1 // Английский второй
-                    else -> 2 // Остальные языки
+        // Фильтруем только языки с непустыми значениями
+        course.title.content.entries
+            .filter { (_, value) -> value.isNotBlank() }
+            .map { it.key }
+            .toList()
+            .sortedWith(
+                compareBy {
+                    when (it) {
+                        "ru" -> 0 // Русский первый
+                        "en" -> 1 // Английский второй
+                        else -> 2 // Остальные языки
+                    }
                 }
-            }
-        )
+            )
     }
 
     // Текущий выбранный язык для просмотра
@@ -215,43 +224,11 @@ fun CourseViewDetails(course: CourseDomain) {
                 }
             }
 
-            // Заголовок модулей
-            item {
-                Text(
-                    text = "Модули",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
-                )
-            }
-
-            // Модули курса
-            if (course.modules.isNotEmpty()) {
-                items(course.modules) { module ->
-                    ModuleItem(module = module, selectedLanguage = selectedLanguage)
-                }
-            } else {
-                item {
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.medium,
-                        tonalElevation = 1.dp
-                    ) {
-                        Text(
-                            text = "Этот курс не содержит модулей",
-                            style = MaterialTheme.typography.bodyMedium,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 32.dp)
-                        )
-                    }
-                }
-            }
-
             // Технологическое дерево, если есть
             item {
-                if (course.technologyTree != null) {
+                // Проверяем наличие technologyTreeId вместо technologyTree
+                // course.technologyTreeId != null нету тут у меня Treeid
+                if (true) {
                     Text(
                         text = "Дерево технологий",
                         style = MaterialTheme.typography.titleLarge,

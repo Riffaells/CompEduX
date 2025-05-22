@@ -1,0 +1,60 @@
+{
+  "course_id": "550e8400-e29b-41d4-a716-446655440123",
+  "data": {
+    "nodes": {
+      "node1": {
+        "id": "node1",
+        "title": {
+          "en": "Introduction to Programming",
+          "ru": "Введение в программирование"
+        },
+        "description": {
+          "en": "Learn the basics of programming and computational thinking",
+          "ru": "Изучите основы программирования и вычислительного мышления"
+        },
+        "position": {"x": 100, "y": 150},
+        "style": "circular",
+        "content_id": "550e8400-e29b-41d4-a716-446655440010",
+        "requirements": [],
+        "type": "article",
+        "status": "published"
+      },
+      "node2": {
+        "id": "node2",
+        "title": {
+          "en": "Variables and Data Types",
+          "ru": "Переменные и типы данных"
+        },
+        "description": {
+          "en": "Learn about variables, data types, and basic operations",
+          "ru": "Изучите переменные, типы данных и основные операции"
+        },
+        "position": {"x": 250, "y": 100},
+        "style": "hexagon",
+        "content_id": "550e8400-e29b-41d4-a716-446655440011",
+        "requirements": ["node1"],
+        "type": "article",
+        "status": "published"
+      }
+    },
+    "connections": [
+      {
+        "id": "conn1",
+        "from": "node1",
+        "to": "node2",
+        "type": "required"
+      }
+    ],
+    "metadata": {
+      "defaultLanguage": "en",
+      "availableLanguages": ["en", "ru"],
+      "layoutType": "tree",
+      "layoutDirection": "horizontal",
+      "canvasSize": {
+        "width": 800,
+        "height": 600
+      }
+    }
+  },
+  "is_published": false
+} 

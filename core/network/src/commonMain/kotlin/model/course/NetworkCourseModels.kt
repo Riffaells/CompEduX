@@ -19,7 +19,8 @@ data class NetworkCourse(
     val visibility: String = "PRIVATE",
     @SerialName("is_published") val isPublished: Boolean = false,
     @SerialName("organization_id") val organizationId: String? = null,
-    @SerialName("technology_tree") val technologyTree: String? = null
+    @SerialName("technology_tree") val technologyTreeId: String? = null,
+    @SerialName("image_url") val imageUrl: String? = null
 )
 
 /**
@@ -44,7 +45,8 @@ data class NetworkCreateCourseRequest(
     @SerialName("author_id") val authorId: String? = null,
     val visibility: String? = null,
     @SerialName("organization_id") val organizationId: String? = null,
-    val tags: List<String>? = null
+    val tags: List<String>? = null,
+    @SerialName("image_url") val imageUrl: String? = null
 )
 
 /**
@@ -57,7 +59,8 @@ data class NetworkUpdateCourseRequest(
     val visibility: String? = null,
     @SerialName("organization_id") val organizationId: String? = null,
     val tags: List<String>? = null,
-    @SerialName("is_published") val isPublished: Boolean? = null
+    @SerialName("is_published") val isPublished: Boolean? = null,
+    @SerialName("image_url") val imageUrl: String? = null
 )
 
 /**

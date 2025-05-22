@@ -1,0 +1,157 @@
+{
+  "course_id": "kotlin_basics",
+  "data": {
+    "nodes": {
+      "intro": {
+        "id": "intro",
+        "title": {
+          "ru": "Введение в Kotlin",
+          "en": "Introduction to Kotlin"
+        },
+        "description": {
+          "ru": "Основные концепции и преимущества Kotlin",
+          "en": "Basic concepts and advantages of Kotlin"
+        },
+        "position": {
+          "x": 100,
+          "y": 300
+        },
+        "type": "module",
+        "status": "available",
+        "difficulty": 1,
+        "estimated_time": 60,
+        "requirements": []
+      },
+      "variables": {
+        "id": "variables",
+        "title": {
+          "ru": "Переменные и типы данных",
+          "en": "Variables and Data Types"
+        },
+        "description": {
+          "ru": "Изучение переменных и типов данных в Kotlin",
+          "en": "Learning about variables and data types in Kotlin"
+        },
+        "position": {
+          "x": 300,
+          "y": 200
+        },
+        "type": "topic",
+        "status": "available",
+        "difficulty": 2,
+        "estimated_time": 90,
+        "requirements": ["intro"]
+      },
+      "functions": {
+        "id": "functions",
+        "title": {
+          "ru": "Функции",
+          "en": "Functions"
+        },
+        "description": {
+          "ru": "Изучение функций в Kotlin и их возможностей",
+          "en": "Learning functions in Kotlin and their capabilities"
+        },
+        "position": {
+          "x": 300,
+          "y": 400
+        },
+        "type": "topic",
+        "status": "locked",
+        "difficulty": 2,
+        "estimated_time": 120,
+        "requirements": ["intro"]
+      },
+      "classes": {
+        "id": "classes",
+        "title": {
+          "ru": "Классы и объекты",
+          "en": "Classes and Objects"
+        },
+        "description": {
+          "ru": "Изучение ООП в Kotlin: классы, объекты, наследование",
+          "en": "Learning OOP in Kotlin: classes, objects, inheritance"
+        },
+        "position": {
+          "x": 500,
+          "y": 300
+        },
+        "type": "topic",
+        "status": "locked",
+        "difficulty": 3,
+        "estimated_time": 150,
+        "requirements": ["variables", "functions"]
+      },
+      "coroutines": {
+        "id": "coroutines",
+        "title": {
+          "ru": "Корутины",
+          "en": "Coroutines"
+        },
+        "description": {
+          "ru": "Асинхронное программирование с корутинами в Kotlin",
+          "en": "Asynchronous programming with coroutines in Kotlin"
+        },
+        "position": {
+          "x": 700,
+          "y": 200
+        },
+        "type": "skill",
+        "status": "locked",
+        "difficulty": 4,
+        "estimated_time": 180,
+        "requirements": ["classes"]
+      },
+      "collections": {
+        "id": "collections",
+        "title": {
+          "ru": "Коллекции",
+          "en": "Collections"
+        },
+        "description": {
+          "ru": "Изучение коллекций в Kotlin и функциональное программирование",
+          "en": "Learning collections in Kotlin and functional programming"
+        },
+        "position": {
+          "x": 700,
+          "y": 400
+        },
+        "type": "skill",
+        "status": "locked",
+        "difficulty": 3,
+        "estimated_time": 120,
+        "requirements": ["classes"]
+      },
+      "project": {
+        "id": "project",
+        "title": {
+          "ru": "Итоговый проект",
+          "en": "Final Project"
+        },
+        "description": {
+          "ru": "Создание простого приложения на Kotlin с использованием всех изученных концепций",
+          "en": "Creating a simple application in Kotlin using all concepts learned"
+        },
+        "position": {
+          "x": 900,
+          "y": 300
+        },
+        "type": "module",
+        "status": "locked",
+        "difficulty": 5,
+        "estimated_time": 240,
+        "requirements": ["coroutines", "collections"]
+      }
+    },
+    "metadata": {
+      "defaultLanguage": "ru",
+      "availableLanguages": ["ru", "en"],
+      "layoutType": "tree",
+      "layoutDirection": "horizontal",
+      "canvasSize": {
+        "width": 1200,
+        "height": 800
+      }
+    }
+  }
+} 

@@ -79,6 +79,17 @@ data class DomainError(
                 details = details
             )
         }
+        
+        /**
+         * Create a not found error
+         */
+        fun notFoundError(message: String = "error_not_found", details: String? = null): DomainError {
+            return DomainError(
+                code = ErrorCode.NOT_FOUND,
+                message = message,
+                details = details
+            )
+        }
 
         /**
          * Create an error from server error code

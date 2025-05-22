@@ -119,7 +119,6 @@ class DefaultCourseComponent(
     init {
         scope.launch {
             // Подписываемся на события из дочерних компонентов
-            // Например, можно обрабатывать навигационные события
         }
     }
 
@@ -165,12 +164,7 @@ class DefaultCourseComponent(
                 onBack = ::onBackClicked,
                 onCourseSelected = ::navigateToCourseView
             )
-        ).also { component ->
-            // Подписываемся на события из компонента списка курсов
-            scope.launch {
-                // Здесь можно обрабатывать события, если они будут добавлены в CourseListComponent
-            }
-        }
+        )
     }
 
     private fun courseViewComponent(componentContext: ComponentContext, courseId: String): CourseViewComponent {
@@ -180,10 +174,6 @@ class DefaultCourseComponent(
                 componentContext = componentContext,
                 onBack = ::onBackClicked,
                 courseId = courseId,
-                onCourseUpdated = { updatedCourseId ->
-                    logger.i("Course updated: $updatedCourseId")
-                    // Можно выполнить дополнительные действия после обновления курса
-                }
             )
         )
     }
@@ -195,11 +185,6 @@ class DefaultCourseComponent(
                 componentContext = componentContext,
                 onBack = ::onBackClicked,
                 isCreateMode = true,
-                onCourseCreated = { courseId ->
-                    logger.i("Course created: $courseId")
-                    // После создания курса переходим к его просмотру
-                    navigateToCourseView(courseId)
-                }
             )
         )
     }

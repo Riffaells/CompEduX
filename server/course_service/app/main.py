@@ -148,9 +148,9 @@ app = FastAPI(
     title=settings.PROJECT_NAME,
     description=settings.DESCRIPTION,
     version=settings.VERSION,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json",
-    docs_url=f"{settings.API_V1_STR}/docs",
-    redoc_url=f"{settings.API_V1_STR}/redoc",
+    openapi_url="/openapi.json",
+    docs_url="/docs",
+    redoc_url="/redoc",
     lifespan=lifespan
 )
 
@@ -216,9 +216,7 @@ setup_request_logging(
     app=app,
     logger=logger,
     exclude_paths=[
-        "/docs", "/redoc", "/openapi.json", "/healthz",
-        f"{settings.API_V1_STR}/docs", f"{settings.API_V1_STR}/redoc",
-        f"{settings.API_V1_STR}/openapi.json"
+        "/docs", "/redoc", "/openapi.json", "/healthz"
     ],
     log_request_headers=False
 )
@@ -259,7 +257,7 @@ async def health_check():
 
 
 # Connect API routes
-app.include_router(api_router, prefix="")
+app.include_router(api_router)
 
 
 # Global exception handler

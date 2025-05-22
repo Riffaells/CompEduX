@@ -338,6 +338,7 @@ class DefaultRootComponent(
         return skikoComponentFactory(
             TechnologyTreeComponentParams(
                 componentContext = componentContext,
+                courseId = "",
                 onBack = { navigationExecutor.pop() }
             )
         )

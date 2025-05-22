@@ -312,12 +312,13 @@ class NetworkCourseApiImpl(
     }
 
     /**
+     * course
      * Update a course
      * @param courseId course identifier
      * @param course updated course data
      * @param token authorization token
      * @return the updated course result
-     */
+        */
     override suspend fun updateCourse(courseId: String, course: CourseDomain, token: String): DomainResult<CourseDomain> {
         return executeWithRetry {
             try {
@@ -416,3 +417,5 @@ class NetworkCourseApiImpl(
         }
     }
 }
+
+

@@ -1,0 +1,21 @@
+{
+  "id": "550e8400-e29b-41d4-a716-446655440010",
+  "course_id": "550e8400-e29b-41d4-a716-446655440123",
+  "slug": "introduction-to-programming",
+  "title": {
+    "en": "Introduction to Programming",
+    "ru": "Введение в программирование"
+  },
+  "description": {
+    "en": "Learn the basics of programming and computational thinking",
+    "ru": "Изучите основы программирования и вычислительного мышления"
+  },
+  "content": {
+    "en": "# Introduction to Programming\n\nProgramming is the process of creating a set of instructions that tell a computer how to perform a task. Programming can be done using a variety of computer programming languages, such as JavaScript, Python, and C++.\n\n## What is a Programming Language?\n\nA programming language is a formal language comprising a set of strings that produce various kinds of machine code output. Programming languages are one kind of computer language, and are used in computer programming to implement algorithms.\n\n## Why Learn Programming?\n\n- **Problem Solving**: Programming teaches you to break down complex problems into smaller, manageable parts.\n- **Career Opportunities**: Programming skills are in high demand across many industries.\n- **Automation**: You can automate repetitive tasks to save time.\n- **Creativity**: Programming allows you to create almost anything you can imagine.\n\n## Getting Started\n\nTo get started with programming, you need to choose a programming language and set up your development environment. For beginners, Python is often recommended due to its readability and simplicity.",
+    "ru": "# Введение в программирование\n\nПрограммирование — это процесс создания набора инструкций, которые указывают компьютеру, как выполнить задачу. Программирование можно выполнять с использованием различных языков программирования, таких как JavaScript, Python и C++.\n\n## Что такое язык программирования?\n\nЯзык программирования — это формальный язык, состоящий из набора строк, которые производят различные виды машинного кода. Языки программирования являются одним из видов компьютерных языков и используются в компьютерном программировании для реализации алгоритмов.\n\n## Зачем изучать программирование?\n\n- **Решение проблем**: Программирование учит разбивать сложные проблемы на более мелкие, управляемые части.\n- **Карьерные возможности**: Навыки программирования пользуются большим спросом во многих отраслях.\n- **Автоматизация**: Вы можете автоматизировать повторяющиеся задачи, чтобы сэкономить время.\n- **Творчество**: Программирование позволяет создавать практически все, что вы можете себе представить.\n\n## Начало работы\n\nЧтобы начать программировать, вам нужно выбрать язык программирования и настроить среду разработки. Для начинающих часто рекомендуется Python из-за его читаемости и простоты."
+  },
+  "order": 1,
+  "is_published": true,
+  "created_at": "2023-06-10T10:30:00Z",
+  "updated_at": "2023-06-25T14:30:00Z"
+} 

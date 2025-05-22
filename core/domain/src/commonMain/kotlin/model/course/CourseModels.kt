@@ -3,7 +3,6 @@ package model.course
 import kotlinx.datetime.Instant
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import model.tree.TechnologyTreeDomain
 
 /**
  * Domain model for a course
@@ -32,9 +31,6 @@ data class CourseDomain(
     val isPublished: Boolean = false,
     @SerialName("organization_id")
     val organizationId: String? = null,
-    @SerialName("technology_tree")
-    val technologyTree: TechnologyTreeDomain? = null,
-    val modules: List<CourseModuleDomain> = emptyList()
 ) {
     /**
      * Parse created_at timestamp string to Long

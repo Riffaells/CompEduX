@@ -1,5 +1,6 @@
 package ui
 
+import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.extensions.compose.stack.Children
@@ -12,9 +13,9 @@ import ui.list.CourseListContent
 import ui.view.CourseViewContent
 
 /**
- * Основной контент для функционала курсов
- * Отображает текущий дочерний компонент из стека навигации
+ * Основной контент для экрана курсов
  */
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun CourseContent(
     component: CourseComponent,
@@ -22,23 +23,30 @@ fun CourseContent(
 ) {
     Children(
         stack = component.childStack,
-        animation = stackAnimation(fade() + scale()),
+        animation = stackAnimation(
+            fade() + scale()
+        ),
+        modifier = modifier
     ) { child ->
         when (val instance = child.instance) {
-            is CourseComponent.Child.CourseListChild -> CourseListContent(
-                component = instance.component,
-                parentComponent = component
-            )
-
-            is CourseComponent.Child.CourseViewChild -> CourseViewContent(
-                component = instance.component,
-                parentComponent = component
-            )
-            
-            is CourseComponent.Child.CourseCreateChild -> CourseViewContent(
-                component = instance.component,
-                parentComponent = component
-            )
+            is CourseComponent.Child.CourseListChild -> {
+                CourseListContent(
+                    component = instance.component,
+                    parentComponent = component
+                )
+            }
+            is CourseComponent.Child.CourseViewChild -> {
+                CourseViewContent(
+                    component = instance.component,
+                    modifier = modifier
+                )
+            }
+            is CourseComponent.Child.CourseCreateChild -> {
+                CourseViewContent(
+                    component = instance.component,
+                    modifier = modifier
+                )
+            }
         }
     }
 } 

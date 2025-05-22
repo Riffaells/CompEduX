@@ -38,14 +38,23 @@ class TechnologyTree(Base):
     #       "description": {"en": "Description in English", "ru": "Описание на русском"},
     #       "type": "topic|skill|module|article",
     #       "position": {"x": 100, "y": 200},
-    #       "dependencies": ["node2", "node3"],
-    #       "content_ref": "optional-uuid-of-article-or-other-content"
+    #       "requirements": ["node2", "node3"],
+    #       "content_id": "optional-uuid-of-article"
     #     }
     #   },
+    #   "connections": [
+    #     {
+    #       "id": "conn1",
+    #       "from": "node1",
+    #       "to": "node2",
+    #       "type": "required|recommended|optional"
+    #     }
+    #   ],
     #   "metadata": {
-    #     "version": "1.0",
-    #     "created_at": "ISO timestamp",
-    #     "updated_at": "ISO timestamp"
+    #     "defaultLanguage": "en",
+    #     "availableLanguages": ["en", "ru"],
+    #     "layoutType": "tree|mesh|radial",
+    #     "layoutDirection": "horizontal|vertical"
     #   }
     # }
     data = Column(JSON, nullable=True)
@@ -71,16 +80,14 @@ class TechnologyTree(Base):
         """
         Get technology tree content localized for a specific language
 
-        Processes the tree JSON data and adds localized versions of titles and descriptions
-        based on the requested language.
+        Processes the tree JSON data and extracts content for the requested language.
 
         Args:
             language: Language code (e.g., 'en', 'ru')
             fallback: Whether to fall back to another language if requested language not found
 
         Returns:
-            Dictionary containing localized tree content with additional 'title_localized'
-            and 'description_localized' fields for each node
+            Dictionary containing localized tree content
         """
         if not self.data:
             return {}
@@ -146,7 +153,16 @@ class TechnologyTree(Base):
             node_data: Node data including title, description, position, etc.
         """
         if not self.data:
-            self.data = {"nodes": {}, "metadata": {"version": 1}}
+            self.data = {
+                "nodes": {}, 
+                "connections": [],
+                "metadata": {
+                    "defaultLanguage": "en",
+                    "availableLanguages": ["en"],
+                    "layoutType": "tree",
+                    "layoutDirection": "horizontal"
+                }
+            }
 
         if "nodes" not in self.data:
             self.data["nodes"] = {}
@@ -157,6 +173,18 @@ class TechnologyTree(Base):
         if "metadata" not in self.data:
             self.data["metadata"] = {}
 
+        # Update available languages
+        languages = set()
+        if "availableLanguages" in self.data["metadata"]:
+            languages.update(self.data["metadata"]["availableLanguages"])
+        
+        if "title" in node_data and isinstance(node_data["title"], dict):
+            languages.update(node_data["title"].keys())
+        
+        if "description" in node_data and isinstance(node_data["description"], dict):
+            languages.update(node_data["description"].keys())
+        
+        self.data["metadata"]["availableLanguages"] = sorted(list(languages))
         self.data["metadata"]["updated_at"] = datetime.now(timezone.utc).isoformat()
         self.version += 1
 
@@ -176,10 +204,17 @@ class TechnologyTree(Base):
         # Remove the node
         del self.data["nodes"][node_id]
 
-        # Update dependencies in other nodes
+        # Remove connections involving this node
+        if "connections" in self.data:
+            self.data["connections"] = [
+                conn for conn in self.data["connections"] 
+                if conn.get("from") != node_id and conn.get("to") != node_id
+            ]
+
+        # Update requirements in other nodes
         for existing_node_id, node_data in self.data["nodes"].items():
-            if "dependencies" in node_data and node_id in node_data["dependencies"]:
-                node_data["dependencies"].remove(node_id)
+            if "requirements" in node_data and node_id in node_data["requirements"]:
+                node_data["requirements"].remove(node_id)
 
         # Update metadata
         if "metadata" in self.data:
@@ -202,3 +237,78 @@ class TechnologyTree(Base):
             return None
 
         return self.data["nodes"][node_id]
+        
+    def add_connection(self, from_node_id: str, to_node_id: str, connection_type: str = "required") -> Optional[str]:
+        """
+        Add a connection between two nodes
+        
+        Args:
+            from_node_id: ID of the source node
+            to_node_id: ID of the target node
+            connection_type: Type of connection (required, recommended, optional)
+            
+        Returns:
+            ID of the created connection or None if nodes don't exist
+        """
+        if not self.data or "nodes" not in self.data:
+            return None
+            
+        # Check if both nodes exist
+        if from_node_id not in self.data["nodes"] or to_node_id not in self.data["nodes"]:
+            return None
+            
+        # Initialize connections list if it doesn't exist
+        if "connections" not in self.data:
+            self.data["connections"] = []
+            
+        # Create a new connection ID
+        connection_id = f"conn-{str(uuid.uuid4())}"
+        
+        # Create the connection
+        connection = {
+            "id": connection_id,
+            "from": from_node_id,
+            "to": to_node_id,
+            "type": connection_type
+        }
+        
+        # Add the connection
+        self.data["connections"].append(connection)
+        
+        # Update metadata
+        if "metadata" in self.data:
+            self.data["metadata"]["updated_at"] = datetime.now(timezone.utc).isoformat()
+            
+        self.version += 1
+        return connection_id
+        
+    def remove_connection(self, connection_id: str) -> bool:
+        """
+        Remove a connection from the tree
+        
+        Args:
+            connection_id: ID of the connection to remove
+            
+        Returns:
+            True if connection was removed, False otherwise
+        """
+        if not self.data or "connections" not in self.data:
+            return False
+            
+        # Find and remove the connection
+        initial_length = len(self.data["connections"])
+        self.data["connections"] = [
+            conn for conn in self.data["connections"] 
+            if conn.get("id") != connection_id
+        ]
+        
+        # Check if a connection was removed
+        if len(self.data["connections"]) < initial_length:
+            # Update metadata
+            if "metadata" in self.data:
+                self.data["metadata"]["updated_at"] = datetime.now(timezone.utc).isoformat()
+                
+            self.version += 1
+            return True
+            
+        return False

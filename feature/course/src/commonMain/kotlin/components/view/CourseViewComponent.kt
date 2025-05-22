@@ -1,16 +1,24 @@
 package components.view
 
 import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.decompose.router.slot.*
+import com.arkivanov.decompose.value.Value
+import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.labels
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
-import kotlinx.coroutines.*
+import component.TechnologyTreeComponent
+import component.TechnologyTreeComponentParams
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
+import model.course.CourseDomain
 import navigation.rDispatchers
 import org.kodein.di.DI
-import model.course.CourseDomain
+import org.kodein.di.DIAware
+import org.kodein.di.factory
+import org.kodein.di.instance
 
 /**
  * Параметры для создания компонента просмотра курса
@@ -19,9 +27,7 @@ data class CourseViewComponentParams(
     val componentContext: ComponentContext,
     val onBack: () -> Unit,
     val courseId: String? = null,
-    val isCreateMode: Boolean = false,
-    val onCourseCreated: ((String) -> Unit)? = null,
-    val onCourseUpdated: ((String) -> Unit)? = null
+    val isCreateMode: Boolean = false
 )
 
 /**
@@ -32,6 +38,11 @@ interface CourseViewComponent {
      * Состояние компонента
      */
     val state: StateFlow<CourseViewStore.State>
+
+    /**
+     * Слот дерева технологий
+     */
+    val treeSlot: Value<ChildSlot<TreeSlotConfig, TreeSlotChild>>
 
     /**
      * Загрузить курс по ID
@@ -46,7 +57,7 @@ interface CourseViewComponent {
     /**
      * Обновить существующий курс
      */
-    fun updateCourse(course: CourseDomain)
+    fun updateCourse(courseId: String, course: CourseDomain)
 
     /**
      * Переключить в режим редактирования
@@ -66,7 +77,48 @@ interface CourseViewComponent {
     /**
      * Вернуться назад
      */
-    fun onBack()
+    fun navigateBack()
+
+    /**
+     * Показать дерево технологий
+     */
+    fun showTechnologyTree()
+
+    /**
+     * Скрыть дерево технологий
+     */
+    fun dismissTechnologyTree()
+
+    /**
+     * Создать новое дерево технологий для курса
+     */
+    fun createTechnologyTree()
+
+    /**
+     * Перейти к дереву технологий по ID
+     */
+    fun navigateToTechnologyTree(courseId: String, technologyTreeId: String)
+
+    /**
+     * Принять Intent для обработки
+     */
+    fun accept(intent: CourseViewStore.Intent)
+
+    /**
+     * Дочерние компоненты для слота дерева технологий
+     */
+    sealed class TreeSlotChild {
+        data class Tree(val component: TechnologyTreeComponent) : TreeSlotChild()
+    }
+
+    /**
+     * Конфигурация для слота дерева технологий
+     */
+    @Serializable
+    sealed class TreeSlotConfig {
+        @Serializable
+        data class Tree(val courseId: String) : TreeSlotConfig()
+    }
 }
 
 /**
@@ -74,84 +126,130 @@ interface CourseViewComponent {
  */
 class DefaultCourseViewComponent(
     componentContext: ComponentContext,
-    private val di: DI,
-    storeFactory: StoreFactory,
-    courseId: String?,
-    private val onBackClicked: () -> Unit,
+    override val di: DI,
+    private val onBack: () -> Unit,
     private val isCreateMode: Boolean = false,
-    private val onCourseCreated: ((String) -> Unit)? = null,
-    private val onCourseUpdated: ((String) -> Unit)? = null
-) : CourseViewComponent, ComponentContext by componentContext {
+    private val initialCourseId: String? = null
+) : CourseViewComponent, ComponentContext by componentContext, DIAware {
 
-    private val scope = CoroutineScope(SupervisorJob() + rDispatchers.main)
+    private val storeFactory: StoreFactory by instance()
+    private val technologyTreeComponentFactory by factory<TechnologyTreeComponentParams, TechnologyTreeComponent>()
+
+    // Корутин скоуп, привязанный к жизненному циклу компонента
+    private val scope = coroutineScope(rDispatchers.main)
+
+    // Навигация для слота дерева технологий
+    private val treeSlotNavigation = SlotNavigation<CourseViewComponent.TreeSlotConfig>()
+
+    // Слот для дерева технологий
+    override val treeSlot: Value<ChildSlot<CourseViewComponent.TreeSlotConfig, CourseViewComponent.TreeSlotChild>> =
+        childSlot(
+            source = treeSlotNavigation,
+            serializer = CourseViewComponent.TreeSlotConfig.serializer(),
+            handleBackButton = true,
+            key = "TreeSlot"
+        ) { config, slotContext ->
+            when (config) {
+                is CourseViewComponent.TreeSlotConfig.Tree -> CourseViewComponent.TreeSlotChild.Tree(
+                    technologyTreeComponentFactory(
+                        TechnologyTreeComponentParams(
+                            componentContext = slotContext,
+                            courseId = config.courseId,
+                            onBack = { treeSlotNavigation.dismiss() }
+                        )
+                    )
+                )
+            }
+        }
 
     private val store = instanceKeeper.getStore {
-        CourseViewStoreFactory.create(di = di, storeFactory = storeFactory, isCreateMode = isCreateMode)
+        CourseViewStoreFactory.create(storeFactory, di, isCreateMode)
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     override val state: StateFlow<CourseViewStore.State> = store.stateFlow
 
     init {
+        // Загружаем курс, если передан ID
+        initialCourseId?.let { courseId ->
+            if (courseId.isNotBlank() && !isCreateMode) {
+                loadCourse(courseId)
+            }
+        }
+
+        // Подписываемся на метки из стора
         scope.launch {
-            store.labels.collectLatest { label ->
+            store.labels.collect { label ->
                 when (label) {
-                    CourseViewStore.Label.NavigateBack -> onBackClicked()
-                    is CourseViewStore.Label.CourseCreated -> {
-                        onCourseCreated?.invoke(label.courseId)
-                    }
-                    is CourseViewStore.Label.CourseUpdated -> {
-                        onCourseUpdated?.invoke(label.courseId)
+                    is CourseViewStore.Label.NavigateBack -> onBack()
+                    is CourseViewStore.Label.CourseCreated -> {}
+                    is CourseViewStore.Label.CourseUpdated -> {}
+                    is CourseViewStore.Label.TechnologyTreeCreated -> {
+                        // После создания дерева технологий показываем его
+                        label.courseId?.let {
+                            showTechnologyTreeForCourse(it)
+                        }
                     }
                 }
             }
         }
-        
-        // Если ID курса передан при создании компонента и не в режиме создания, загружаем его
-        if (!isCreateMode) {
-            courseId?.let { 
-                if (it.isNotBlank()) {
-                    loadCourse(it)
-                }
-            }
-        }
+    }
+
+    override fun accept(intent: CourseViewStore.Intent) {
+        store.accept(intent)
     }
 
     override fun loadCourse(courseId: String) {
-        store.accept(CourseViewStore.Intent.LoadCourse(courseId))
+        accept(CourseViewStore.Intent.LoadCourse(courseId))
     }
 
     override fun createCourse(course: CourseDomain) {
-        store.accept(CourseViewStore.Intent.CreateCourse(course))
+        accept(CourseViewStore.Intent.CreateCourse(course))
     }
 
-    override fun updateCourse(course: CourseDomain) {
-        val currentCourse = state.value.course
-        if (currentCourse != null) {
-            store.accept(CourseViewStore.Intent.UpdateCourse(currentCourse.id, course))
-        } else {
-            // Если нет текущего курса, создаем новый
-            createCourse(course)
-        }
+    override fun updateCourse(courseId: String, course: CourseDomain) {
+        accept(CourseViewStore.Intent.UpdateCourse(courseId, course))
     }
 
     override fun switchToEditMode() {
-        store.accept(CourseViewStore.Intent.SwitchToEditMode)
+        accept(CourseViewStore.Intent.SwitchToEditMode)
     }
 
     override fun switchToViewMode() {
-        store.accept(CourseViewStore.Intent.SwitchToViewMode)
+        accept(CourseViewStore.Intent.SwitchToViewMode)
     }
 
     override fun resetError() {
-        store.accept(CourseViewStore.Intent.ResetError)
+        accept(CourseViewStore.Intent.ResetError)
     }
 
-    override fun onBack() {
-        store.accept(CourseViewStore.Intent.NavigateBack)
+    override fun navigateBack() {
+        accept(CourseViewStore.Intent.NavigateBack)
     }
 
-    fun destroy() {
-        scope.cancel()
+    override fun showTechnologyTree() {
+        val currentCourse = state.value.course
+        if (currentCourse != null) {
+            showTechnologyTreeForCourse(currentCourse.id)
+        } else {
+            // Обработка ошибки
+            accept(CourseViewStore.Intent.Error("Курс не загружен"))
+        }
+    }
+
+    override fun navigateToTechnologyTree(courseId: String, technologyTreeId: String) {
+        // Активируем слот с деревом технологий для указанного курса
+        showTechnologyTreeForCourse(courseId)
+    }
+
+    private fun showTechnologyTreeForCourse(courseId: String) {
+        treeSlotNavigation.activate(CourseViewComponent.TreeSlotConfig.Tree(courseId = courseId))
+    }
+
+    override fun dismissTechnologyTree() {
+        treeSlotNavigation.dismiss()
+    }
+
+    override fun createTechnologyTree() {
+        accept(CourseViewStore.Intent.CreateTechnologyTree)
     }
 } 

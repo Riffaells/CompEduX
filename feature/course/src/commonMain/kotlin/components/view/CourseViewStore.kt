@@ -1,5 +1,6 @@
 package components.view
 
+import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.mvikotlin.core.store.Reducer
 import com.arkivanov.mvikotlin.core.store.SimpleBootstrapper
 import com.arkivanov.mvikotlin.core.store.Store
@@ -30,6 +31,8 @@ interface CourseViewStore : Store<CourseViewStore.Intent, CourseViewStore.State,
         data object SwitchToViewMode : Intent
         data object ResetError : Intent
         data object NavigateBack : Intent
+        data object CreateTechnologyTree : Intent
+        data class Error(val message: String) : Intent
     }
 
     /**
@@ -48,6 +51,7 @@ interface CourseViewStore : Store<CourseViewStore.Intent, CourseViewStore.State,
         data object NavigateBack : Label
         data class CourseCreated(val courseId: String) : Label
         data class CourseUpdated(val courseId: String) : Label
+        data class TechnologyTreeCreated(val courseId: String?) : Label
     }
 }
 
@@ -67,9 +71,10 @@ class CourseViewStoreFactory {
                 ) {}
     }
 
-    // Приватные сообщения для редуктора
-    private sealed interface Msg {
+    // Сообщения для редуктора
+    sealed interface Msg {
         data object Loading : Msg
+        data object LoadingFinished : Msg
         data class CourseLoaded(val course: CourseDomain) : Msg
         data class ErrorOccurred(val error: String) : Msg
         data object SwitchToEditMode : Msg
@@ -78,7 +83,7 @@ class CourseViewStoreFactory {
         data class CourseSaved(val courseId: String) : Msg
     }
 
-    private class ExecutorImpl(override val di: DI) :
+    class ExecutorImpl(override val di: DI) :
         CoroutineExecutor<CourseViewStore.Intent, Unit, CourseViewStore.State, Msg, CourseViewStore.Label>(rDispatchers.main),
         DIAware {
         val logger: Logger by instance()
@@ -97,6 +102,8 @@ class CourseViewStoreFactory {
                 is CourseViewStore.Intent.SwitchToViewMode -> dispatch(Msg.SwitchToViewMode)
                 is CourseViewStore.Intent.ResetError -> dispatch(Msg.ResetError)
                 is CourseViewStore.Intent.NavigateBack -> publish(CourseViewStore.Label.NavigateBack)
+                is CourseViewStore.Intent.CreateTechnologyTree -> createTechnologyTree()
+                is CourseViewStore.Intent.Error -> dispatch(Msg.ErrorOccurred(intent.message))
             }
         }
 
@@ -232,6 +239,32 @@ class CourseViewStoreFactory {
             }
         }
 
+        private fun createTechnologyTree() {
+            val currentCourse = state().course
+            if (currentCourse == null) {
+                dispatch(Msg.ErrorOccurred("Курс не загружен"))
+                return
+            }
+
+            dispatch(Msg.Loading)
+
+            scope.launch {
+                try {
+                    // Здесь должен быть вызов usecase для создания дерева технологий
+                    // В реальном приложении здесь будет вызов usecase из модуля tree
+                    logger.i("Creating technology tree for course: ${currentCourse.id}")
+                    
+                    // Отправляем метку о создании дерева технологий с ID курса
+                    // Дерево технологий будет создано в модуле tree
+                    publish(CourseViewStore.Label.TechnologyTreeCreated(currentCourse.id))
+                    dispatch(Msg.LoadingFinished)
+                } catch (e: Exception) {
+                    logger.e("Exception when creating technology tree: ${e.message}")
+                    dispatch(Msg.ErrorOccurred("Не удалось создать дерево технологий: ${e.message}"))
+                }
+            }
+        }
+
         /**
          * Проверка валидности данных курса
          */
@@ -257,6 +290,7 @@ class CourseViewStoreFactory {
         override fun CourseViewStore.State.reduce(msg: Msg): CourseViewStore.State =
             when (msg) {
                 is Msg.Loading -> copy(isLoading = true, error = null, isSaved = false)
+                is Msg.LoadingFinished -> copy(isLoading = false)
                 is Msg.CourseLoaded -> copy(isLoading = false, course = msg.course, error = null)
                 is Msg.ErrorOccurred -> copy(isLoading = false, error = msg.error)
                 is Msg.SwitchToEditMode -> copy(isEditMode = true)

@@ -28,5 +28,5 @@ val allModules = DI.Module("allModules") {
     import(storeModule)
     import(componentModule)
     import(courseModule)
-    import(technologyTreeModule)
+    import(treeModule)
 }

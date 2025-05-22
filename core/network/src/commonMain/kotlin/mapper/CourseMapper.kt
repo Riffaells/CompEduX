@@ -12,7 +12,7 @@ fun NetworkCourse.toDomain(): CourseDomain {
         id = id,
         title = LocalizedContent(title),
         description = LocalizedContent(description),
-        imageUrl = null,
+        imageUrl = imageUrl,
         authorId = authorId,
         authorName = "",
         tags = tags,
@@ -23,8 +23,6 @@ fun NetworkCourse.toDomain(): CourseDomain {
         visibility = parseVisibility(visibility),
         isPublished = isPublished,
         organizationId = organizationId,
-        technologyTree = null, // Временно возвращаем null, в будущем здесь будет парсинг
-        modules = emptyList()
     )
 }
 
@@ -52,7 +50,7 @@ fun CourseDomain.toNetwork(): NetworkCourse {
         visibility = visibility.toString(),
         isPublished = isPublished,
         organizationId = organizationId,
-        technologyTree = null // Временно отправляем null, в будущем будет сериализация
+        imageUrl = imageUrl
     )
 }
 
@@ -72,7 +70,8 @@ data class CreateCourseRequest(
     val authorId: String? = null,
     val visibility: CourseVisibilityDomain? = null,
     val organizationId: String? = null,
-    val tags: List<String>? = null
+    val tags: List<String>? = null,
+    val imageUrl: String? = null
 )
 
 fun CreateCourseRequest.toNetwork(): NetworkCreateCourseRequest {
@@ -82,7 +81,8 @@ fun CreateCourseRequest.toNetwork(): NetworkCreateCourseRequest {
         authorId = authorId,
         visibility = visibility?.toString(),
         organizationId = organizationId,
-        tags = tags
+        tags = tags,
+        imageUrl = imageUrl
     )
 }
 
@@ -92,7 +92,8 @@ data class UpdateCourseRequest(
     val visibility: CourseVisibilityDomain? = null,
     val organizationId: String? = null,
     val tags: List<String>? = null,
-    val isPublished: Boolean? = null
+    val isPublished: Boolean? = null,
+    val imageUrl: String? = null
 )
 
 fun UpdateCourseRequest.toNetwork(): NetworkUpdateCourseRequest {
@@ -102,6 +103,7 @@ fun UpdateCourseRequest.toNetwork(): NetworkUpdateCourseRequest {
         visibility = visibility?.toString(),
         organizationId = organizationId,
         tags = tags,
-        isPublished = isPublished
+        isPublished = isPublished,
+        imageUrl = imageUrl
     )
 }

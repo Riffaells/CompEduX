@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -20,8 +21,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -32,6 +37,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -59,405 +66,164 @@ import kotlin.collections.set
 @Composable
 fun CourseEditForm(
     component: CourseViewComponent,
-    initialCourse: CourseDomain?
+    initialCourse: CourseDomain? = null
 ) {
-    // Список доступных языков
-    val availableLanguages = listOf(
-        "ru" to "Русский",
-        "en" to "English",
-        "es" to "Español",
-        "de" to "Deutsch",
-        "fr" to "Français",
-        "zh" to "中文",
-        "ja" to "日本語"
-    )
-
-    // Используем MutableStateMap для хранения локализованного контента
-    val titleContent = remember {
-        mutableStateMapOf<String, String>().apply {
-            initialCourse?.title?.content?.forEach { (lang, text) ->
-                this[lang] = text
-            }
-            // Добавляем пустые значения для основных языков, если их нет
-            if (!containsKey("ru")) this["ru"] = ""
-            if (!containsKey("en")) this["en"] = ""
-        }
-    }
-
-    val descriptionContent = remember {
-        mutableStateMapOf<String, String>().apply {
-            initialCourse?.description?.content?.forEach { (lang, text) ->
-                this[lang] = text
-            }
-            // Добавляем пустые значения для основных языков, если их нет
-            if (!containsKey("ru")) this["ru"] = ""
-            if (!containsKey("en")) this["en"] = ""
-        }
-    }
-
-    // Активные языки (те, для которых есть поля ввода)
-    val activeLanguages = remember {
-        mutableStateListOf<String>().apply {
-            addAll(titleContent.keys)
-        }
-    }
-
-    // Текущий выбранный язык для редактирования
-    var selectedLanguage by remember { mutableStateOf("ru") }
-
-    // Диалог добавления нового языка
-    var isAddLanguageDialogVisible by remember { mutableStateOf(false) }
-
-    var tags by remember {
-        mutableStateOf(initialCourse?.tags?.joinToString(", ") ?: "")
-    }
-    var visibility by remember {
-        mutableStateOf(initialCourse?.visibility ?: CourseVisibilityDomain.PRIVATE)
-    }
-
-    // Проверка валидности формы - русский заголовок и описание обязательны
-    val isFormValid = titleContent["ru"]?.isNotBlank() == true && descriptionContent["ru"]?.isNotBlank() == true
-    val hasRuTitleError = titleContent["ru"]?.isBlank() == true
-    val hasRuDescriptionError = descriptionContent["ru"]?.isBlank() == true
-
+    var course by remember { mutableStateOf(initialCourse ?: createEmptyCourse()) }
     val scrollState = rememberScrollState()
+
+    // Определяем доступные языки
+    val availableLanguages = remember {
+        listOf(
+            "ru" to "Русский",
+            "en" to "English"
+        )
+    }
+
+    // Выбранный язык для редактирования
+    var selectedLanguageIndex by remember { mutableStateOf(0) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(scrollState)
-            .padding(16.dp),
+            .padding(16.dp)
+            .verticalScroll(scrollState),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Языковая панель
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.medium,
-            tonalElevation = 1.dp
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // Чипы для выбора языка
-                activeLanguages.forEach { langCode ->
-                    val langName = availableLanguages.find { it.first == langCode }?.second ?: langCode
-                    val isSelected = selectedLanguage == langCode
-                    val isRequired = langCode == "ru"
+        // Табы для выбора языка
+        TabRow(selectedTabIndex = selectedLanguageIndex) {
+            availableLanguages.forEachIndexed { index, (code, name) ->
+                Tab(
+                    selected = selectedLanguageIndex == index,
+                    onClick = { selectedLanguageIndex = index },
+                    text = { Text(name) },
+                    icon = {
+                        if (index == selectedLanguageIndex) {
+                            Icon(Icons.Default.Language, contentDescription = null)
+                        }
+                    }
+                )
+            }
+        }
 
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = { selectedLanguage = langCode },
-                        label = {
-                            Text(
-                                text = langName,
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        },
-                        leadingIcon = if (isRequired) {
-                            {
-                                Icon(
-                                    imageVector = Icons.Default.Edit,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp),
-                                    tint = if (isSelected)
-                                        MaterialTheme.colorScheme.onSecondaryContainer
-                                    else
-                                        MaterialTheme.colorScheme.error
-                                )
-                            }
-                        } else null
+        val currentLangCode = availableLanguages[selectedLanguageIndex].first
+
+        // Название курса на выбранном языке
+        OutlinedTextField(
+            value = course.title.content[currentLangCode] ?: "",
+            onValueChange = { newTitle ->
+                course = course.copy(
+                    title = course.title.copy(
+                        content = course.title.content.toMutableMap().apply {
+                            this[currentLangCode] = newTitle
+                        }
                     )
-                }
+                )
+            },
+            label = { Text("Название курса (${availableLanguages[selectedLanguageIndex].second})") },
+            modifier = Modifier.fillMaxWidth()
+        )
 
-                // Кнопка добавления языка
-                IconButton(
-                    onClick = { isAddLanguageDialogVisible = true },
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Добавить язык",
-                        tint = MaterialTheme.colorScheme.primary
+        // Описание курса на выбранном языке
+        OutlinedTextField(
+            value = course.description.content[currentLangCode] ?: "",
+            onValueChange = { newDescription ->
+                course = course.copy(
+                    description = course.description.copy(
+                        content = course.description.content.toMutableMap().apply {
+                            this[currentLangCode] = newDescription
+                        }
                     )
-                }
-            }
-        }
+                )
+            },
+            label = { Text("Описание курса (${availableLanguages[selectedLanguageIndex].second})") },
+            modifier = Modifier.fillMaxWidth().height(200.dp),
+            maxLines = 10
+        )
 
-        // Секция заголовка для текущего языка
-        OutlinedCard(
-            modifier = Modifier.fillMaxWidth()
+        // Информация о локализации
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                val langName = availableLanguages.find { it.first == selectedLanguage }?.second ?: selectedLanguage
-                val isRequired = selectedLanguage == "ru"
-                val hasError = isRequired && hasRuTitleError
-
+            Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = "Название курса",
+                    "Локализация контента",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
 
-                OutlinedTextField(
-                    value = titleContent[selectedLanguage] ?: "",
-                    onValueChange = { titleContent[selectedLanguage] = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    isError = hasError,
-                    label = { Text(langName) },
-                    supportingText = {
-                        if (hasError) {
-                            Text(
-                                text = "Обязательное поле",
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        }
-                    },
-                    placeholder = { Text("Введите название курса") },
-                    trailingIcon = if (isRequired) {
-                        {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error
-                            )
-                        }
-                    } else null
-                )
-            }
-        }
-
-        // Секция описания для текущего языка
-        OutlinedCard(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                val langName = availableLanguages.find { it.first == selectedLanguage }?.second ?: selectedLanguage
-                val isRequired = selectedLanguage == "ru"
-                val hasError = isRequired && hasRuDescriptionError
+                Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "Описание курса",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    "Заполните контент на всех необходимых языках, переключаясь между вкладками.",
+                    style = MaterialTheme.typography.bodyMedium
                 )
 
-                OutlinedTextField(
-                    value = descriptionContent[selectedLanguage] ?: "",
-                    onValueChange = { descriptionContent[selectedLanguage] = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(150.dp),
-                    maxLines = 7,
-                    isError = hasError,
-                    label = { Text(langName) },
-                    supportingText = {
-                        if (hasError) {
-                            Text(
-                                text = "Обязательное поле",
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        }
-                    },
-                    placeholder = { Text("Введите описание курса") },
-                    trailingIcon = if (isRequired) {
-                        {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error
-                            )
-                        }
-                    } else null
-                )
-            }
-        }
+                Spacer(modifier = Modifier.height(8.dp))
 
-        // Секция дополнительных настроек
-        OutlinedCard(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Text(
-                    text = "Дополнительные настройки",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
+                // Список языков с отметкой о заполненности
+                availableLanguages.forEach { (code, name) ->
+                    val hasTitleContent = !course.title.content[code].isNullOrBlank()
+                    val hasDescriptionContent = !course.description.content[code].isNullOrBlank()
 
-                // Теги
-                OutlinedTextField(
-                    value = tags,
-                    onValueChange = { tags = it },
-                    label = { Text("Теги") },
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("python, программирование, начинающий") }
-                )
-
-                // Видимость курса
-                Text(
-                    text = "Видимость курса",
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-
-                // Карточки для выбора видимости
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    CourseVisibilityDomain.values().forEach { visibilityOption ->
-                        val isSelected = visibility == visibilityOption
-
-                        Surface(
-                            modifier = Modifier
-                                .weight(1f)
-                                .aspectRatio(1f)
-                                .clickable { visibility = visibilityOption },
-                            shape = MaterialTheme.shapes.medium,
-                            color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-                            border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(12.dp),
-                                verticalArrangement = Arrangement.Center,
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text(
-                                    text = when(visibilityOption) {
-                                        CourseVisibilityDomain.PRIVATE -> "Приватный"
-                                        CourseVisibilityDomain.UNLISTED -> "По ссылке"
-                                        CourseVisibilityDomain.PUBLIC -> "Публичный"
-                                    },
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                    textAlign = TextAlign.Center
-                                )
-
-                                Spacer(modifier = Modifier.height(4.dp))
-
-                                Text(
-                                    text = when(visibilityOption) {
-                                        CourseVisibilityDomain.PRIVATE -> "Только вам"
-                                        CourseVisibilityDomain.UNLISTED -> "По ссылке"
-                                        CourseVisibilityDomain.PUBLIC -> "Всем"
-                                    },
-                                    style = MaterialTheme.typography.bodySmall,
-                                    textAlign = TextAlign.Center
-                                )
-                            }
-                        }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(name, modifier = Modifier.weight(1f))
+                        Text(
+                            if (hasTitleContent && hasDescriptionContent) "✓" else "✗",
+                            color = if (hasTitleContent && hasDescriptionContent)
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.error
+                        )
                     }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Кнопки управления
+        // Кнопки действий
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            horizontalArrangement = Arrangement.End
         ) {
-            // Кнопка отмены (только в режиме редактирования)
-            if (initialCourse != null) {
-                OutlinedButton(
-                    onClick = { component.switchToViewMode() },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("Отмена")
-                }
-            }
-
-            // Кнопка сохранения
             Button(
                 onClick = {
-                    // Создаем локализованный контент из собранных данных
-                    val title = LocalizedContent(titleContent.toMap())
-                    val description = LocalizedContent(descriptionContent.toMap())
-
-                    // Разбираем теги из строки
-                    val tagList = if (tags.isBlank()) emptyList() else tags.split(",").map { it.trim() }
-
-                    if (initialCourse != null) {
-                        // Режим редактирования - обновляем существующий курс
-                        val updatedCourse = initialCourse.copy(
-                            title = title,
-                            description = description,
-                            tags = tagList,
-                            visibility = visibility
-                        )
-                        component.updateCourse(updatedCourse)
+                    if (initialCourse == null) {
+                        component.createCourse(course)
                     } else {
-                        // Режим создания - создаем новый курс
-                        // Для создания используем только title и description, остальные поля заполнит UseCase
-                        val dummyCourse = CourseDomain(
-                            id = "",
-                            title = title,
-                            description = description,
-                            authorId = "",
-                            tags = tagList,
-                            visibility = visibility,
-                            status = CourseStatusDomain.DRAFT
-                        )
-                        component.createCourse(dummyCourse)
+                        component.updateCourse(initialCourse.id, course)
                     }
-                },
-                modifier = Modifier.weight(1f),
-                enabled = isFormValid
+                }
             ) {
-                Text(if (initialCourse != null) "Сохранить" else "Создать")
+                Text("Сохранить")
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            OutlinedButton(
+                onClick = { component.navigateBack() }
+            ) {
+                Text("Отмена")
             }
         }
     }
-
-    if (isAddLanguageDialogVisible) {
-        AlertDialog(
-            onDismissRequest = { isAddLanguageDialogVisible = false },
-            title = { Text("Добавить язык") },
-            text = {
-                LazyColumn(
-                    modifier = Modifier.heightIn(max = 300.dp)
-                ) {
-                    items(availableLanguages.filter { !activeLanguages.contains(it.first) }) { language ->
-                        ListItem(
-                            headlineContent = { Text("${language.second}") },
-                            supportingContent = { Text("${language.first}") },
-                            modifier = Modifier.clickable {
-                                activeLanguages.add(language.first)
-                                titleContent[language.first] = ""
-                                descriptionContent[language.first] = ""
-                                selectedLanguage = language.first
-                                isAddLanguageDialogVisible = false
-                            }
-                        )
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { isAddLanguageDialogVisible = false }) {
-                    Text("Отмена")
-                }
-            }
-        )
-    }
 }
+
+/**
+ * Создание пустого курса
+ */
+private fun createEmptyCourse() = CourseDomain(
+    id = "",
+    title = LocalizedContent(mapOf("ru" to "", "en" to "")),
+    description = LocalizedContent(mapOf("ru" to "", "en" to "")),
+    imageUrl = null,
+    tags = emptyList(),
+    visibility = CourseVisibilityDomain.PUBLIC,
+    status = CourseStatusDomain.DRAFT,
+    authorId = ""
+)

@@ -1,35 +1,21 @@
 package di
 
 import api.course.NetworkCourseApi
-import api.room.NetworkRoomApi
-import com.arkivanov.mvikotlin.core.store.StoreFactory
-import components.CourseComponent
-import components.CourseComponentParams
-import components.CourseStore
-import components.CourseStoreFactory
-import components.DefaultCourseComponent
+import components.*
 import components.list.CourseListComponent
 import components.list.CourseListComponentParams
 import components.list.DefaultCourseListComponent
 import components.view.CourseViewComponent
 import components.view.CourseViewComponentParams
 import components.view.DefaultCourseViewComponent
-import logging.Logger
 import logging.LoggingProvider
-import org.kodein.di.DI
-import org.kodein.di.bind
-import org.kodein.di.bindFactory
-import org.kodein.di.bindProvider
-import org.kodein.di.bindSingleton
-import org.kodein.di.instance
-import org.kodein.di.singleton
+import org.kodein.di.*
 import repository.auth.TokenRepository
 import repository.course.CourseRepository
 import repository.course.CourseRepositoryImpl
-import repository.room.RoomRepository
 
 /**
- * DI модуль для функционала курсов
+ * Модуль для предоставления зависимостей, связанных с курсами
  */
 val courseModule = DI.Module("courseModule") {
     // Компоненты
@@ -55,12 +41,9 @@ val courseModule = DI.Module("courseModule") {
         DefaultCourseViewComponent(
             componentContext = params.componentContext,
             di = di,
-            storeFactory = instance(),
-            courseId = params.courseId,
-            onBackClicked = params.onBack,
+            onBack = params.onBack,
             isCreateMode = params.isCreateMode,
-            onCourseCreated = params.onCourseCreated,
-            onCourseUpdated = params.onCourseUpdated
+            initialCourseId = params.courseId
         )
     }
 
@@ -73,12 +56,10 @@ val courseModule = DI.Module("courseModule") {
     }
 
     // Репозитории и адаптеры для курсов
-
     bindSingleton<CourseRepository> {
         val networkCourseApi = instance<NetworkCourseApi>()
         val tokenRepository = instance<TokenRepository>()
         val logger = instance<LoggingProvider>().getLogger("CourseRepository")
         CourseRepositoryImpl(networkCourseApi, tokenRepository, logger)
     }
-
-} 
+}

@@ -3,8 +3,6 @@ package di
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
-import component.DefaultTechnologyTreeComponent
-import component.TechnologyTreeComponentParams
 import component.app.auth.*
 import component.app.auth.login.DefaultLoginComponent
 import component.app.auth.register.DefaultRegisterComponent
@@ -61,14 +59,6 @@ val componentModule = DI.Module("componentModule") {
             webHistoryController = params.webHistoryController,
             deepLink = params.deepLink ?: DefaultRootComponent.DeepLink.None,
             storeFactory = instance(),
-            di = di
-        )
-    }
-
-    bindFactory { params: TechnologyTreeComponentParams ->
-        DefaultTechnologyTreeComponent(
-            componentContext = params.componentContext,
-            onBack = params.onBack,
             di = di
         )
     }

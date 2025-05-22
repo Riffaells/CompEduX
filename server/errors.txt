@@ -1,36 +1,6 @@
-❌[19:57:08.291][E] [HttpClient] [Network Error] POST http://localhost:8000/api/v1/courses - Client request(POST http://localhost:8000/api/v1/courses) invalid: 403 Forbidden. Text: "error_forbidden"
-io.ktor.client.plugins.ClientRequestException: Client request(POST http://localhost:8000/api/v1/courses) invalid: 403 Forbidden. Text: "error_forbidden"
-	at client.HttpClientFactory$create$1$5$1.invokeSuspend(HttpClientFactory.kt:146)
-	at client.HttpClientFactory$create$1$5$1.invoke(HttpClientFactory.kt)
-	at client.HttpClientFactory$create$1$5$1.invoke(HttpClientFactory.kt)
-	at io.ktor.client.plugins.HttpCallValidatorKt.HttpCallValidator$lambda$2$validateResponse(HttpCallValidator.kt:110)
-	at io.ktor.client.plugins.HttpCallValidatorKt.access$HttpCallValidator$lambda$2$validateResponse(HttpCallValidator.kt:1)
-	at io.ktor.client.plugins.HttpCallValidatorKt$HttpCallValidator$2$2.invokeSuspend(HttpCallValidator.kt:129)
-	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
-	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
-	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:586)
-	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:829)
-	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:717)
-	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:704)
+e: file:///C:/Users/Riff/Documents/Projects/Kotlin/CompEduX/feature/course/src/commonMain/kotlin/ui/view/CourseViewContent.kt:131:25 No parameter with name 'component' found.
+e: file:///C:/Users/Riff/Documents/Projects/Kotlin/CompEduX/feature/course/src/commonMain/kotlin/ui/view/CourseViewContent.kt:156:41 No parameter with name 'component' found.
+e: file:///C:/Users/Riff/Documents/Projects/Kotlin/CompEduX/feature/course/src/commonMain/kotlin/ui/view/CourseViewContent.kt:164:48 Unresolved reference 'modules'.
+e: file:///C:/Users/Riff/Documents/Projects/Kotlin/CompEduX/feature/course/src/commonMain/kotlin/ui/view/CourseViewContent.kt:165:41 Unresolved reference 'CourseSchemaContent'.
+e: file:///C:/Users/Riff/Documents/Projects/Kotlin/CompEduX/feature/course/src/commonMain/kotlin/ui/view/CourseViewContent.kt:247:18 Argument type mismatch: actual type is 'Boolean', but 'CourseVisibilityDomain' was expected.
 
-❌[19:57:08.292][E] [NetworkCourseApi] Error during request: Client request(POST http://localhost:8000/api/v1/courses) invalid: 403 Forbidden. Text: "error_forbidden"
-io.ktor.client.plugins.ClientRequestException: Client request(POST http://localhost:8000/api/v1/courses) invalid: 403 Forbidden. Text: "error_forbidden"
-	at client.HttpClientFactory$create$1$5$1.invokeSuspend(HttpClientFactory.kt:146)
-	at client.HttpClientFactory$create$1$5$1.invoke(HttpClientFactory.kt)
-	at client.HttpClientFactory$create$1$5$1.invoke(HttpClientFactory.kt)
-	at io.ktor.client.plugins.HttpCallValidatorKt.HttpCallValidator$lambda$2$validateResponse(HttpCallValidator.kt:110)
-	at io.ktor.client.plugins.HttpCallValidatorKt.access$HttpCallValidator$lambda$2$validateResponse(HttpCallValidator.kt:1)
-	at io.ktor.client.plugins.HttpCallValidatorKt$HttpCallValidator$2$2.invokeSuspend(HttpCallValidator.kt:129)
-	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
-	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
-	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:586)
-	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:829)
-	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:717)
-	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:704)
-
-⚠️[19:57:08.294][W] [NetworkCourseApi] Create course failed: Unknown error
-❌[19:57:08.295][E] [CourseRepository] Failed to create course: Unknown error
-❌[19:57:08.295][E] [] Failed to create course: DomainError(code=UNKNOWN_ERROR, message=Unknown error, details=null)
-
-
-18.05.2025 19:57:08 ERROR    CLIENT ERROR POST /verify-token - 401 (2.28ms)

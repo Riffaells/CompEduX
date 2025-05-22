@@ -1,0 +1,182 @@
+{
+  "technology_tree_example": {
+    "course_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "data": {
+      "nodes": {
+        "node1": {
+          "id": "node1",
+          "title": {
+            "en": "Introduction to Programming",
+            "ru": "Введение в программирование",
+            "fr": "Introduction à la programmation"
+          },
+          "description": {
+            "en": "Learn the basics of programming concepts",
+            "ru": "Изучите основы концепций программирования",
+            "fr": "Apprenez les bases des concepts de programmation"
+          },
+          "type": "article",
+          "position": {"x": 100, "y": 200},
+          "requirements": [],
+          "content_id": "3fa85f64-5717-4562-b3fc-2c963f66afa7"
+        },
+        "node2": {
+          "id": "node2",
+          "title": {
+            "en": "Variables and Data Types",
+            "ru": "Переменные и типы данных",
+            "fr": "Variables et types de données"
+          },
+          "description": {
+            "en": "Understanding variables and basic data types",
+            "ru": "Понимание переменных и основных типов данных",
+            "fr": "Comprendre les variables et les types de données de base"
+          },
+          "type": "article",
+          "position": {"x": 300, "y": 200},
+          "requirements": ["node1"],
+          "content_id": "3fa85f64-5717-4562-b3fc-2c963f66afa8"
+        },
+        "node3": {
+          "id": "node3",
+          "title": {
+            "en": "Control Structures",
+            "ru": "Управляющие конструкции",
+            "fr": "Structures de contrôle"
+          },
+          "description": {
+            "en": "Learn about if-else statements and loops",
+            "ru": "Изучите условные операторы и циклы",
+            "fr": "Apprenez les instructions if-else et les boucles"
+          },
+          "type": "article",
+          "position": {"x": 500, "y": 200},
+          "requirements": ["node2"],
+          "content_id": "3fa85f64-5717-4562-b3fc-2c963f66afa9"
+        }
+      },
+      "connections": [
+        {
+          "id": "conn1",
+          "from": "node1",
+          "to": "node2",
+          "type": "required"
+        },
+        {
+          "id": "conn2",
+          "from": "node2",
+          "to": "node3",
+          "type": "required"
+        }
+      ],
+      "metadata": {
+        "defaultLanguage": "en",
+        "availableLanguages": ["en", "ru", "fr"],
+        "layoutType": "tree",
+        "layoutDirection": "horizontal"
+      }
+    },
+    "is_published": true,
+    "version": 1
+  },
+  
+  "article_example": {
+    "course_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "slug": "introduction-to-programming",
+    "title": {
+      "en": "Introduction to Programming",
+      "ru": "Введение в программирование",
+      "fr": "Introduction à la programmation"
+    },
+    "description": {
+      "en": "Learn the basics of programming concepts and get started with coding",
+      "ru": "Изучите основы концепций программирования и начните кодировать",
+      "fr": "Apprenez les bases des concepts de programmation et commencez à coder"
+    },
+    "content": {
+      "en": "# Introduction to Programming\n\nProgramming is the process of creating a set of instructions that tell a computer how to perform a task. Programming can be done using a variety of computer programming languages, such as JavaScript, Python, and C++.\n\n## Why Learn Programming?\n\n- Problem-solving skills\n- Career opportunities\n- Automation of tasks\n- Understanding technology\n\n## Basic Concepts\n\n1. Variables\n2. Data Types\n3. Control Structures\n4. Functions\n\nLet's get started with the basics!",
+      
+      "ru": "# Введение в программирование\n\nПрограммирование — это процесс создания набора инструкций, которые указывают компьютеру, как выполнять задачу. Программирование можно выполнять с использованием различных языков программирования, таких как JavaScript, Python и C++.\n\n## Почему стоит изучать программирование?\n\n- Навыки решения проблем\n- Карьерные возможности\n- Автоматизация задач\n- Понимание технологий\n\n## Основные концепции\n\n1. Переменные\n2. Типы данных\n3. Управляющие конструкции\n4. Функции\n\nДавайте начнем с основ!",
+      
+      "fr": "# Introduction à la programmation\n\nLa programmation est le processus de création d'un ensemble d'instructions qui indiquent à un ordinateur comment effectuer une tâche. La programmation peut être effectuée à l'aide de divers langages de programmation informatiques, tels que JavaScript, Python et C++.\n\n## Pourquoi apprendre la programmation?\n\n- Compétences en résolution de problèmes\n- Opportunités de carrière\n- Automatisation des tâches\n- Comprendre la technologie\n\n## Concepts de base\n\n1. Variables\n2. Types de données\n3. Structures de contrôle\n4. Fonctions\n\nCommençons par les bases!"
+    },
+    "order": 1,
+    "is_published": true
+  },
+  
+  "api_request_examples": {
+    "create_technology_tree": {
+      "method": "POST",
+      "endpoint": "/api/courses/{course_id}/technology-tree/",
+      "body": {
+        "course_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "data": {
+          "nodes": {
+            "node1": {
+              "id": "node1",
+              "title": {
+                "en": "Introduction to Programming",
+                "ru": "Введение в программирование"
+              },
+              "description": {
+                "en": "Learn the basics of programming concepts",
+                "ru": "Изучите основы концепций программирования"
+              },
+              "type": "article",
+              "position": {"x": 100, "y": 200},
+              "requirements": [],
+              "content_id": "3fa85f64-5717-4562-b3fc-2c963f66afa7"
+            }
+          },
+          "connections": [],
+          "metadata": {
+            "defaultLanguage": "en",
+            "availableLanguages": ["en", "ru"],
+            "layoutType": "tree",
+            "layoutDirection": "horizontal"
+          }
+        },
+        "is_published": false
+      }
+    },
+    
+    "create_article": {
+      "method": "POST",
+      "endpoint": "/api/articles/",
+      "body": {
+        "course_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "slug": "introduction-to-programming",
+        "title": {
+          "en": "Introduction to Programming",
+          "ru": "Введение в программирование"
+        },
+        "description": {
+          "en": "Learn the basics of programming concepts",
+          "ru": "Изучите основы концепций программирования"
+        },
+        "content": {
+          "en": "# Introduction to Programming\n\nProgramming is the process of creating a set of instructions...",
+          "ru": "# Введение в программирование\n\nПрограммирование — это процесс создания набора инструкций..."
+        },
+        "order": 1,
+        "is_published": true
+      }
+    },
+    
+    "update_article_add_language": {
+      "method": "PUT",
+      "endpoint": "/api/articles/{article_id}",
+      "body": {
+        "title": {
+          "fr": "Introduction à la programmation"
+        },
+        "description": {
+          "fr": "Apprenez les bases des concepts de programmation"
+        },
+        "content": {
+          "fr": "# Introduction à la programmation\n\nLa programmation est le processus de création..."
+        }
+      }
+    }
+  }
+} 

@@ -37,7 +37,7 @@ class CompEduXNetworkingPlugin : Plugin<Project> {
                     implementation(libs.ktor.client.js)
                 }
 
-                // Тестовые зависимости - только самое необходимое для API тестирования
+                // Тестовые зависимости - расширенный набор для API тестирования
                 sourceSets.commonTest.dependencies {
                     implementation(libs.kotlinx.coroutines.test)
                     implementation(libs.ktor.client.mock)

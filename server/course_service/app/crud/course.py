@@ -9,6 +9,7 @@ import sqlalchemy as sa
 from app.models.article import Article
 from app.models.course import Course, generate_slug, course_tag, CourseVisibility
 from app.models.tag import Tag
+from app.crud.technology_tree import technology_tree_crud
 from app.schemas.course import CourseCreate, CourseUpdate, CourseSearchParams
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy import desc, asc, or_, text
@@ -27,7 +28,7 @@ class CRUDCourse:
 
     async def get(self, db: Session, id: uuid.UUID) -> Optional[Course]:
         """
-        Get a course by ID with related technology tree and tags
+        Get a course by ID with related tags
 
         Args:
             db: Database session
@@ -37,7 +38,6 @@ class CRUDCourse:
             Course if found, None otherwise
         """
         stmt = select(Course).options(
-            joinedload(Course.technology_tree),
             joinedload(Course.tags)
         ).where(Course.id == id)
         result = await db.execute(stmt)
@@ -58,7 +58,7 @@ class CRUDCourse:
 
     async def get_by_slug(self, db: Session, slug: str) -> Optional[Course]:
         """
-        Get course by slug with related technology tree and tags
+        Get course by slug with related tags
 
         Args:
             db: Database session
@@ -70,7 +70,6 @@ class CRUDCourse:
         stmt = (
             select(Course)
             .options(
-                joinedload(Course.technology_tree),
                 joinedload(Course.tags)
             )
             .where(Course.slug == slug)
@@ -80,7 +79,7 @@ class CRUDCourse:
 
     async def get_by_title(self, db: Session, title: str, language: str = 'en') -> Optional[Course]:
         """
-        Get course by title with related technology tree and tags
+        Get course by title with related tags
 
         Args:
             db: Database session
@@ -93,7 +92,6 @@ class CRUDCourse:
         stmt = (
             select(Course)
             .options(
-                joinedload(Course.technology_tree),
                 joinedload(Course.tags)
             )
             .where(text(f"title->'{language}' = :title"))
@@ -106,7 +104,7 @@ class CRUDCourse:
             self, db: Session, *, skip: int = 0, limit: int = 100
     ) -> List[Course]:
         """
-        Get multiple courses with pagination and related technology trees
+        Get multiple courses with pagination and related tags
 
         Args:
             db: Database session
@@ -119,7 +117,6 @@ class CRUDCourse:
         logger.info(f"Getting all courses with skip={skip}, limit={limit}")
         try:
             stmt = select(Course).options(
-                joinedload(Course.technology_tree),
                 joinedload(Course.tags)
             ).offset(skip).limit(limit).order_by(desc(Course.created_at))
 
@@ -152,7 +149,6 @@ class CRUDCourse:
         """
         # Построим базовый запрос
         stmt = select(Course).options(
-            joinedload(Course.technology_tree),
             joinedload(Course.tags)
         )
 
@@ -433,7 +429,6 @@ class CRUDCourse:
             List of courses
         """
         stmt = select(Course).options(
-            joinedload(Course.technology_tree),
             joinedload(Course.tags)
         )
 
@@ -482,7 +477,6 @@ class CRUDCourse:
             .join(course_tag)
             .where(course_tag.c.tag_id == tag_obj.id)
             .options(
-                joinedload(Course.technology_tree),
                 joinedload(Course.tags)
             )
             .offset(skip)
@@ -656,13 +650,17 @@ class CRUDCourse:
         Returns:
             Dictionary with the course tree structure
         """
-        course = await self.get_course(db, course_id)
+        # Check if course exists
+        course = await self.get_by_id(db, course_id)
         if not course:
             return {"error": "Course not found"}
 
+        # Get technology tree directly using technology_tree_crud
+        technology_tree = await technology_tree_crud.get_by_course_id_async(db, course_id)
+        
         # If the course has a technology tree, return it
-        if course.technology_tree:
-            tree_data = course.technology_tree.data
+        if technology_tree:
+            tree_data = technology_tree.data
 
             # If a language is specified and the tree has localized content,
             # filter the tree to only include content in that language

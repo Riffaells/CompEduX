@@ -1,0 +1,18 @@
+{
+  "course_id": "550e8400-e29b-41d4-a716-446655440123",
+  "slug": "introduction-to-programming",
+  "title": {
+    "en": "Introduction to Programming",
+    "ru": "Введение в программирование"
+  },
+  "description": {
+    "en": "Learn the basics of programming and computational thinking",
+    "ru": "Изучите основы программирования и вычислительного мышления"
+  },
+  "content": {
+    "en": "# Introduction to Programming\n\nProgramming is the process of creating a set of instructions that tell a computer how to perform a task. Programming can be done using a variety of computer programming languages, such as JavaScript, Python, and C++.\n\n## What is a Programming Language?\n\nA programming language is a formal language comprising a set of strings that produce various kinds of machine code output. Programming languages are one kind of computer language, and are used in computer programming to implement algorithms.",
+    "ru": "# Введение в программирование\n\nПрограммирование — это процесс создания набора инструкций, которые указывают компьютеру, как выполнить задачу. Программирование можно выполнять с использованием различных языков программирования, таких как JavaScript, Python и C++.\n\n## Что такое язык программирования?\n\nЯзык программирования — это формальный язык, состоящий из набора строк, которые производят различные виды машинного кода. Языки программирования являются одним из видов компьютерных языков и используются в компьютерном программировании для реализации алгоритмов."
+  },
+  "order": 1,
+  "is_published": true
+} 

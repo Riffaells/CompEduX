@@ -6,7 +6,7 @@ import secrets
 import string
 import uuid
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 from app.models.base import Base
 from sqlalchemy import Column, DateTime, ForeignKey, String, Table, Index, Boolean, Enum
@@ -103,10 +103,10 @@ class Course(Base):
 
     # Связь с статьями
     articles = relationship("Article", back_populates="course", cascade="all, delete-orphan")
-
-    # Связь с уроками
+    
+    # Связь с уроками (устаревшая, оставлена для обратной совместимости)
+    # DEPRECATED: Lessons are being replaced by articles with multilingual content
     lessons = relationship("Lesson", back_populates="course", cascade="all, delete-orphan")
-
 
     @declared_attr
     def __table_args__(cls):
@@ -244,71 +244,89 @@ class Course(Base):
             languages.update(self.description.keys())
 
         return sorted(list(languages))
+        
+    def get_localized_version(self, language: str = 'en', fallback: bool = True) -> Dict[str, Any]:
+        """
+        Get a localized version of the course
+
+        Args:
+            language: ISO language code (e.g., 'en', 'ru', 'fr')
+            fallback: If True and requested language not found, returns first available
+                      content in any language
+
+        Returns:
+            Dictionary with localized title and description
+        """
+        return {
+            "id": self.id,
+            "slug": self.slug,
+            "title": self.get_title(language, fallback),
+            "description": self.get_description(language, fallback),
+            "author_id": self.author_id,
+            "is_published": self.is_published,
+            "visibility": self.visibility.value if self.visibility else None,
+            "organization_id": self.organization_id,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at
+        }
 
     # Сохраняем обратную совместимость
     @property
     def title_en(self) -> str:
-        return self.get_title('en')
+        return self.get_title("en")
 
     @property
     def description_en(self) -> Optional[str]:
-        return self.get_description('en')
+        return self.get_description("en")
 
     def is_accessible_to(self, user_id: Optional[uuid.UUID], user_roles: Optional[List[str]] = None) -> bool:
         """
-        Check if the course is accessible to a specific user
+        Check if the course is accessible to a user
 
         Args:
-            user_id: UUID of the user, or None for anonymous access
-            user_roles: List of user roles (optional)
+            user_id: ID of the user trying to access the course
+            user_roles: List of roles the user has
 
         Returns:
-            True if the course is accessible to the user, False otherwise
+            True if the user can access the course, False otherwise
         """
-        # Always allow access to the author
-        if user_id and user_id == self.author_id:
+        if not user_roles:
+            user_roles = []
+
+        # Admins can access everything
+        if "admin" in user_roles:
             return True
 
-        # If course is not published, only the author can access it
-        if not self.is_published:
+        # Published courses with PUBLIC visibility are accessible to everyone
+        if self.is_published and self.visibility == CourseVisibility.PUBLIC:
+            return True
+
+        # If no user_id provided, only public courses are accessible
+        if not user_id:
             return False
 
-        # Check visibility settings
-        if self.visibility == CourseVisibility.PUBLIC:
+        # Authors can always access their own courses
+        if user_id == self.author_id:
             return True
 
-        if not user_id:  # Anonymous user
-            # Only public and link-accessible courses are available to anonymous users
-            return self.visibility in [CourseVisibility.PUBLIC, CourseVisibility.LINK]
-
-        # Different visibility checks
+        # Handle other visibility levels
         if self.visibility == CourseVisibility.PRIVATE:
+            # Only the author can access private courses
+            return False
+        elif self.visibility == CourseVisibility.FRIENDS:
+            # TODO: Implement friend check
+            return False
+        elif self.visibility == CourseVisibility.LINK:
+            # Anyone with the link can access
+            return self.is_published
+        elif self.visibility == CourseVisibility.PAID:
+            # TODO: Implement payment check
+            return False
+        elif self.visibility == CourseVisibility.ORGANIZATION:
+            # TODO: Implement organization membership check
+            return False
+        elif self.visibility == CourseVisibility.ENROLLED:
+            # TODO: Implement enrollment check
             return False
 
-        if self.visibility == CourseVisibility.FRIENDS:
-            # This would require a separate friendship check using a friendship service
-            # For now, return False as we don't have friendship data
-            return False
-
-        if self.visibility == CourseVisibility.ORGANIZATION and self.organization_id:
-            # Check if user is part of the organization
-            # This would require integration with organization service
-            # For now, check if user has admin or org_member role
-            if user_roles and ('admin' in user_roles or 'org_member' in user_roles):
-                return True
-            return False
-
-        if self.visibility == CourseVisibility.PAID:
-            # Check if user has purchased the course
-            # This would require integration with payment service
-            # For now, return False as we don't have payment data
-            return False
-
-        if self.visibility == CourseVisibility.ENROLLED:
-            # Check if user is enrolled in the course
-            # This would require checking enrollment records
-            # For now, return False as we don't have enrollment data
-            return False
-
-        # Default: not accessible
         return False

@@ -6,6 +6,8 @@ import api.course.NetworkCourseApi
 import api.course.NetworkCourseApiImpl
 import api.room.NetworkRoomApi
 import api.room.NetworkRoomApiImpl
+import api.tree.NetworkTreeApi
+import api.tree.NetworkTreeApiImpl
 import client.HttpClientFactory
 import client.InMemoryTokenStorage
 import client.TokenStorage
@@ -69,6 +71,15 @@ val networkModule = DI.Module("networkModule") {
         )
     }
 
+    // API для технологического дерева
+    bind<NetworkTreeApi>() with singleton {
+        NetworkTreeApiImpl(
+            client = instance(),
+            networkConfig = instance(),
+            logger = instance<LoggingProvider>().withTag("TreeApi")
+        )
+    }
+
     // API для комнат
     bind<NetworkRoomApi>() with singleton {
         NetworkRoomApiImpl(
@@ -77,6 +88,4 @@ val networkModule = DI.Module("networkModule") {
             logger = instance<LoggingProvider>().withTag("NetworkRoomApi")
         )
     }
-
-
 }

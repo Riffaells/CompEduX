@@ -7,6 +7,8 @@ from uuid import UUID
 
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from common.logger import get_logger
 from ..models.course import Course
@@ -33,6 +35,20 @@ class TechnologyTreeCRUD:
         """
         return db.query(TechnologyTree).filter(TechnologyTree.id == id).first()
 
+    async def get_async(self, db: AsyncSession, id: UUID) -> Optional[TechnologyTree]:
+        """
+        Get technology tree by id (async version)
+
+        Args:
+            db: Async database session
+            id: UUID of the technology tree
+
+        Returns:
+            TechnologyTree object if found, None otherwise
+        """
+        result = await db.execute(select(TechnologyTree).filter(TechnologyTree.id == id))
+        return result.scalar_one_or_none()
+
     def get_by_course_id(self, db: Session, course_id: UUID) -> Optional[TechnologyTree]:
         """
         Get technology tree for a specific course
@@ -45,6 +61,20 @@ class TechnologyTreeCRUD:
             TechnologyTree object if found, None otherwise
         """
         return db.query(TechnologyTree).filter(TechnologyTree.course_id == course_id).first()
+
+    async def get_by_course_id_async(self, db: AsyncSession, course_id: UUID) -> Optional[TechnologyTree]:
+        """
+        Get technology tree for a specific course (async version)
+
+        Args:
+            db: Async database session
+            course_id: UUID of the course
+
+        Returns:
+            TechnologyTree object if found, None otherwise
+        """
+        result = await db.execute(select(TechnologyTree).filter(TechnologyTree.course_id == course_id))
+        return result.scalar_one_or_none()
 
     def create(self, db: Session, obj_in: TechnologyTreeCreate) -> TechnologyTree:
         """
@@ -88,6 +118,67 @@ class TechnologyTreeCRUD:
             raise
         except Exception as e:
             db.rollback()
+            logger.error(f"Error creating technology tree: {str(e)}")
+            raise
+
+    async def create_async(self, db: AsyncSession, obj_in: TechnologyTreeCreate) -> TechnologyTree:
+        """
+        Create a new technology tree (async version)
+
+        Args:
+            db: Async database session
+            obj_in: Technology tree create schema with course_id and data
+
+        Returns:
+            Created TechnologyTree object
+
+        Raises:
+            ValueError: If course does not exist or already has a technology tree
+            SQLAlchemyError: On database error
+        """
+        try:
+            # Check if the course exists
+            result = await db.execute(select(Course).filter(Course.id == obj_in.course_id))
+            course = result.scalar_one_or_none()
+            if not course:
+                raise ValueError(f"Course with id {obj_in.course_id} does not exist")
+
+            # Check if the course already has a technology tree
+            existing = await self.get_by_course_id_async(db, obj_in.course_id)
+            if existing:
+                raise ValueError(f"Course with id {obj_in.course_id} already has a technology tree")
+
+            # Convert to dict
+            obj_data = obj_in.dict(exclude_unset=True)
+            
+            # Initialize data structure if not present
+            if not obj_data.get("data"):
+                obj_data["data"] = {
+                    "nodes": {},
+                    "connections": [],
+                    "metadata": {
+                        "defaultLanguage": "en",
+                        "availableLanguages": ["en"],
+                        "layoutType": "tree",
+                        "layoutDirection": "horizontal"
+                    }
+                }
+            
+            # Create the TechnologyTree object
+            db_obj = TechnologyTree(**obj_data)
+
+            db.add(db_obj)
+            await db.commit()
+            await db.refresh(db_obj)
+            logger.info(f"Created technology tree for course {obj_in.course_id}")
+            return db_obj
+
+        except SQLAlchemyError as e:
+            await db.rollback()
+            logger.error(f"Database error creating technology tree: {str(e)}")
+            raise
+        except Exception as e:
+            await db.rollback()
             logger.error(f"Error creating technology tree: {str(e)}")
             raise
 
@@ -388,6 +479,118 @@ class TechnologyTreeCRUD:
         except Exception as e:
             db.rollback()
             logger.error(f"Error setting publish status for technology tree: {str(e)}")
+            raise
+
+    async def update_async(self, db: AsyncSession, db_obj: TechnologyTree, obj_in: TechnologyTreeUpdate | Dict[str, Any]) -> TechnologyTree:
+        """
+        Update technology tree (async version)
+
+        Args:
+            db: Async database session
+            db_obj: Existing TechnologyTree object
+            obj_in: Technology tree update schema or dict with update data
+
+        Returns:
+            Updated TechnologyTree object
+
+        Raises:
+            SQLAlchemyError: On database error
+        """
+        try:
+            update_data = obj_in if isinstance(obj_in, dict) else obj_in.dict(exclude_unset=True)
+
+            for field, value in update_data.items():
+                if value is not None:
+                    setattr(db_obj, field, value)
+
+            db.add(db_obj)
+            await db.commit()
+            await db.refresh(db_obj)
+            logger.info(f"Updated technology tree {db_obj.id}")
+            return db_obj
+
+        except SQLAlchemyError as e:
+            await db.rollback()
+            logger.error(f"Database error updating technology tree: {str(e)}")
+            raise
+        except Exception as e:
+            await db.rollback()
+            logger.error(f"Error updating technology tree: {str(e)}")
+            raise
+
+    async def remove_async(self, db: AsyncSession, id: UUID) -> bool:
+        """
+        Delete technology tree (async version)
+
+        Args:
+            db: Async database session
+            id: UUID of the technology tree to delete
+
+        Returns:
+            True if deleted successfully, False if not found
+
+        Raises:
+            SQLAlchemyError: On database error
+        """
+        try:
+            db_obj = await self.get_async(db, id)
+            if not db_obj:
+                return False
+
+            await db.delete(db_obj)
+            await db.commit()
+            logger.info(f"Deleted technology tree {id}")
+            return True
+
+        except SQLAlchemyError as e:
+            await db.rollback()
+            logger.error(f"Database error deleting technology tree: {str(e)}")
+            raise
+        except Exception as e:
+            await db.rollback()
+            logger.error(f"Error deleting technology tree: {str(e)}")
+            raise
+
+    async def update_tree_data_async(self, db: AsyncSession, tree_id: UUID, data: Dict[str, Any]) -> Optional[TechnologyTree]:
+        """
+        Update just the data portion of a technology tree (async version)
+
+        Args:
+            db: Async database session
+            tree_id: UUID of the technology tree
+            data: New tree data
+
+        Returns:
+            Updated TechnologyTree object, or None if not found
+
+        Raises:
+            SQLAlchemyError: On database error
+        """
+        try:
+            db_obj = await self.get_async(db, tree_id)
+            if not db_obj:
+                return None
+
+            # Increment version
+            version = db_obj.version + 1 if hasattr(db_obj, "version") else 1
+
+            # Update tree data and version
+            db_obj.data = data
+            db_obj.version = version
+
+            db.add(db_obj)
+            await db.commit()
+            await db.refresh(db_obj)
+            logger.info(f"Updated technology tree data for tree {tree_id}")
+            return db_obj
+
+        except SQLAlchemyError as e:
+            await db.rollback()
+            logger.error(f"Database error updating technology tree data: {str(e)}")
+            raise
+        except Exception as e:
+            await db.rollback()
+            logger.error(f"Error updating technology tree data: {str(e)}")
             raise
 
 
